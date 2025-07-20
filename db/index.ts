@@ -94,14 +94,14 @@ export default db;
 export type User = {
   id: string;
   username: string;
-  passwordHash: string;
+  password_hash: string;
   createdAt: Date;
 };
 
 export type File = {
   id: string;
-  fileName: string;
+  file_name: string;
   bucket: string;
   size: number;
-  createdAt: Date;
+  created_at: Date;
 };

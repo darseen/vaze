@@ -9,11 +9,13 @@ export const metadata: Metadata = {
   description: "Sign in | Vaze",
 };
 
-export default async function Page() {
-  const { error } = await checkUser();
+export const dynamic = "force-dynamic";
 
-  if (error && error.status === 500) throw error;
-  else if (error && error.status === 404) redirect("/register");
+export default async function Page() {
+  const { error, status } = await checkUser();
+
+  if (error && status === 404) redirect("/register");
+  else if (error && status === 500) throw error;
 
   return (
     <div className="flex h-screen">

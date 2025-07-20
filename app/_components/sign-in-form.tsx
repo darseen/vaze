@@ -1,8 +1,26 @@
+"use client";
+
+import signIn from "@/actions/auth/sign-in";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function SignInForm() {
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const { error } = await signIn(formData);
+
+    if (error) return toast.error(error.message);
+
+    toast.success("Signed in successfully");
+
+    router.push("/dashboard");
+  };
   return (
     <section className="text-foreground flex flex-1 items-center justify-center px-8">
       <div className="w-full max-w-md">
@@ -11,7 +29,7 @@ export default function SignInForm() {
           <p className="text-muted-foreground">Sign in to your dashboard</p>
         </div>
 
-        <form className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <Input
