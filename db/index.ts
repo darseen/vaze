@@ -90,3 +90,18 @@ class SQLiteDB {
 // Export the single, shared instance of the database connection.
 const db = SQLiteDB.getInstance().db;
 export default db;
+
+export type User = {
+  id: string;
+  username: string;
+  passwordHash: string;
+  createdAt: Date;
+};
+
+export type File = {
+  id: string;
+  fileName: string;
+  bucket: string;
+  size: number;
+  createdAt: Date;
+};
