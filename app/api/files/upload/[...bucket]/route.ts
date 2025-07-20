@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import { BASE_UPLOADS_PATH } from "@/constants";
 import db from "@/db";
+import validateUser from "@/actions/auth/validate-user";
 
 type FileMetadata = {
   id: string;
@@ -21,6 +22,22 @@ export async function POST(
   const formData = await request.formData();
   const bucketPath = path.join(BASE_UPLOADS_PATH, ...bucket);
   const uploadedFiles: FileMetadata[] = [];
+
+  const username = formData.get("username") as string | null;
+  const password = formData.get("password") as string | null;
+
+  if (!username || !password) {
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 },
+    );
+  }
+
+  const { error } = await validateUser({ username, password });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 401 });
+  }
 
   const files = formData.getAll("files") as File[] | null;
   if (!files || files.length === 0) {
