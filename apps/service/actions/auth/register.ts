@@ -5,10 +5,10 @@ import db, { User } from "@/db";
 import { hashPassword, issueJWT } from "@/utils";
 import { cookies } from "next/headers";
 
-export default async function register(data: FormData) {
-  const username = data.get("username") as string | null;
-  const password = data.get("password") as string | null;
-  const confirmPassword = data.get("confirmPassword") as string | null;
+export default async function register(formData: FormData) {
+  const username = formData.get("username") as string | null;
+  const password = formData.get("password") as string | null;
+  const confirmPassword = formData.get("confirmPassword") as string | null;
 
   if (!username || !password || !confirmPassword) {
     return {

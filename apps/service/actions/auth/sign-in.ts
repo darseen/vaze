@@ -4,9 +4,9 @@ import db, { User } from "@/db";
 import { comparePassword, issueJWT } from "@/utils";
 import { cookies } from "next/headers";
 
-export default async function signIn(data: FormData) {
-  const username = data.get("username") as string | null;
-  const password = data.get("password") as string | null;
+export default async function signIn(formData: FormData) {
+  const username = formData.get("username") as string | null;
+  const password = formData.get("password") as string | null;
 
   if (!username || !password) {
     return {
@@ -37,7 +37,7 @@ export default async function signIn(data: FormData) {
     }
 
     // generate token
-    const token = await issueJWT(username);
+    const token = await issueJWT(user.username);
 
     // set token cookie
     (await cookies()).set("token", token, {
@@ -50,6 +50,7 @@ export default async function signIn(data: FormData) {
 
     return { data: user, error: null, status: 200 };
   } catch (error) {
+    console.log(error);
     return {
       data: null,
       error: { message: "Internal server error" },
