@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import fs from "node:fs/promises";
-import path from "node:path";
-import crypto from "node:crypto";
-import { pipeline } from "node:stream/promises";
+import validateUser from "@/actions/auth/validate-user";
 import { BASE_UPLOADS_PATH } from "@/constants";
 import db from "@/db";
-import validateUser from "@/actions/auth/validate-user";
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { pipeline } from "node:stream/promises";
 
 type FileMetadata = {
   id: string;
@@ -80,7 +80,7 @@ export async function POST(
     // run all database inserts within a single, atomic transaction
     const insertMany = db.transaction((filesToInsert: FileMetadata[]) => {
       const insertStatement = db.prepare(
-        `INSERT INTO files (id, file_name, bucket, size) VALUES (?, ?, ?, ?)`,
+        `INSERT INTO files (id, name, bucket, size) VALUES (?, ?, ?, ?)`,
       );
       for (const f of filesToInsert) {
         insertStatement.run(f.id, f.fileName, f.bucket, f.size);

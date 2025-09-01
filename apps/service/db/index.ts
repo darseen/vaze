@@ -1,7 +1,7 @@
-import Database from "better-sqlite3";
-import path from "node:path";
-import fs from "node:fs";
 import { BASE_DB_PATH } from "@/constants";
+import Database from "better-sqlite3";
+import fs from "node:fs";
+import path from "node:path";
 
 /**
  * A singleton class to manage the SQLite database connection and initialization
@@ -63,7 +63,7 @@ class SQLiteDB {
     const schemaSQL = `
       CREATE TABLE IF NOT EXISTS files (
           id TEXT PRIMARY KEY NOT NULL,
-          file_name TEXT UNIQUE NOT NULL,
+          name TEXT UNIQUE NOT NULL,
           bucket TEXT NOT NULL,
           size INTEGER NOT NULL, 
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -100,7 +100,7 @@ export type User = {
 
 export type File = {
   id: string;
-  file_name: string;
+  name: string;
   bucket: string;
   size: number;
   created_at: Date;
