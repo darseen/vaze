@@ -11,15 +11,6 @@ services:
     volumes:
       - storage:/app/data
     restart: always
-    develop:
-      watch:
-        - action: sync
-          path: ./apps/service
-          target: ./app
-          ignore:
-            - node_modules
-        - action: rebuild
-          path: package.json
 
 volumes:
   storage:

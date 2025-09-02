@@ -12,14 +12,12 @@ export default async function getUser() {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const jwt = await jwtVerify(token, secret);
 
-    console.log(jwt);
-
     return {
       data: { username: jwt.payload.username as string },
       error: null,
       status: 200,
     };
-  } catch (error) {
+  } catch {
     return {
       data: null,
       error: { message: "Internal server error" },

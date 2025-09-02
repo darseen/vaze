@@ -1,5 +1,3 @@
-"use server";
-
 import db, { User } from "@/db";
 import { comparePassword } from "@/utils";
 

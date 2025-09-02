@@ -57,7 +57,6 @@ class SQLiteDB {
 
   /**
    * A private method to create the necessary tables.
-   * `better-sqlite3`'s `exec` method can run multiple SQL statements at once.
    */
   private initializeSchema(): void {
     const schemaSQL = `
