@@ -1,7 +1,7 @@
 import db, { User } from "@/db";
 import { comparePassword } from "@/utils";
 
-export default async function validateUser(data: {
+export default async function authenticateUser(data: {
   username: string;
   password: string;
 }) {
@@ -11,7 +11,6 @@ export default async function validateUser(data: {
     return {
       data: null,
       error: { message: "Missing required fields" },
-      status: 400,
     };
   }
 
@@ -21,7 +20,7 @@ export default async function validateUser(data: {
     const user = statement.get(username) as User;
 
     if (!user) {
-      return { data: null, error: { message: "User not found" }, status: 404 };
+      return { data: null, error: { message: "User not found" } };
     }
 
     // check if password is correct
@@ -35,12 +34,11 @@ export default async function validateUser(data: {
       };
     }
 
-    return { data: user, error: null, status: 200 };
+    return { data: user, error: null };
   } catch (error) {
     return {
       data: null,
       error: { message: "Internal server error" },
-      status: 500,
     };
   }
 }

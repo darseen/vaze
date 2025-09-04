@@ -1,4 +1,3 @@
-import { SignJWT } from "jose";
 import crypto from "node:crypto";
 
 const SALT_BYTES = 16;
@@ -67,15 +66,4 @@ export function comparePassword(
       }
     });
   });
-}
-
-export function issueJWT(username: string) {
-  const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-  const token = new SignJWT({ username })
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
-    .setIssuedAt()
-    .sign(secret);
-
-  return token;
 }

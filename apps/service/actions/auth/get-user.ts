@@ -9,7 +9,7 @@ export default async function getUser() {
     if (!token)
       return { data: null, error: { message: "Unauthorized" }, status: 401 };
 
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
     const jwt = await jwtVerify(token, secret);
 
     return {

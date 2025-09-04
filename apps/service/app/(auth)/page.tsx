@@ -1,8 +1,8 @@
-import { Metadata } from "next";
-import SignInForm from "../_components/sign-in-form";
-import Info from "../_components/info";
 import checkUser from "@/actions/auth/check-user";
+import { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Info from "../_components/info";
+import SignInForm from "../_components/sign-in-form";
 
 export const metadata: Metadata = {
   title: "Vaze",

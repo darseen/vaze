@@ -1,9 +1,10 @@
 "use server";
 
-import crypto from "node:crypto";
 import db, { User } from "@/db";
-import { hashPassword, issueJWT } from "@/utils";
+import { hashPassword } from "@/utils";
+import { issueJWT } from "@/utils/jwt";
 import { cookies } from "next/headers";
+import crypto from "node:crypto";
 
 export default async function register(formData: FormData) {
   const username = formData.get("username") as string | null;
@@ -56,10 +57,11 @@ export default async function register(formData: FormData) {
     const statement2 = db.prepare(
       `INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?);`,
     );
-    statement2.run(crypto.randomUUID(), username, passwordHash);
+    const userId = crypto.randomUUID();
+    statement2.run(userId, username, passwordHash);
 
     // generate token
-    const token = await issueJWT(username);
+    const token = await issueJWT({ username, id: userId });
 
     (await cookies()).set("token", token, {
       httpOnly: true,

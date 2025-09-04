@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { File } from "@/db";
 import { FileIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ActionBar from "./_components/action-bar";
 import FilesList from "./_components/files-list";
 
@@ -33,6 +33,21 @@ export default function Dashboard() {
     setEditingFile(null);
     setNewFileName("");
   };
+
+  useEffect(() => {
+    const fetchFiles = async () => {
+      const result = await fetch("/api/files", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const { data } = await result.json();
+      setFiles(data.files);
+    };
+    fetchFiles();
+  }, []);
 
   return (
     <div className="bg-background min-h-screen">

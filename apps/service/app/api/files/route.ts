@@ -1,26 +1,13 @@
 import db, { File } from "@/db";
 import { NextRequest, NextResponse } from "next/server";
-import validateUser from "../_utils/validate-user";
+import authorizeRequest from "../_utils/authorize-request";
 
 export async function GET(request: NextRequest) {
   try {
-    const formData = await request.formData();
-
-    const username = formData.get("username") as string | null;
-    const password = formData.get("password") as string | null;
-
-    if (!username || !password) {
+    const { error: authError } = await authorizeRequest(request);
+    if (authError) {
       return NextResponse.json(
-        { error: { message: "Missing required fields" }, data: null },
-        { status: 400 },
-      );
-    }
-
-    const { error } = await validateUser({ username, password });
-
-    if (error) {
-      return NextResponse.json(
-        { error: { message: error.message }, data: null },
+        { error: { message: authError.message }, data: null },
         { status: 401 },
       );
     }

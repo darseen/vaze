@@ -1,7 +1,8 @@
 "use server";
 
 import db, { User } from "@/db";
-import { comparePassword, issueJWT } from "@/utils";
+import { comparePassword } from "@/utils";
+import { issueJWT } from "@/utils/jwt";
 import { cookies } from "next/headers";
 
 export default async function signIn(formData: FormData) {
@@ -37,7 +38,7 @@ export default async function signIn(formData: FormData) {
     }
 
     // generate token
-    const token = await issueJWT(user.username);
+    const token = await issueJWT({ username: user.username, id: user.id });
 
     // set token cookie
     (await cookies()).set("token", token, {
@@ -48,7 +49,7 @@ export default async function signIn(formData: FormData) {
       path: "/",
     });
 
-    return { data: user, error: null, status: 200 };
+    return { data: { user }, error: null, status: 200 };
   } catch (error) {
     console.log(error);
     return {

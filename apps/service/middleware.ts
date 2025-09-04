@@ -1,5 +1,6 @@
-import { jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
+import db from "./db";
+import { verifyToken } from "./utils/jwt";
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
@@ -17,10 +18,20 @@ export async function middleware(request: NextRequest) {
 
   // If a token exists for a protected route, verify it.
   if (token && pathname.startsWith("/dashboard")) {
-    try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-      await jwtVerify(token, secret);
-    } catch (error) {
+    // verify token
+    const payload = await verifyToken(token);
+    if (!payload) {
+      // Token is invalid, redirect to the homepage and clear the invalid token.
+      const response = NextResponse.redirect(new URL("/", request.url));
+      response.cookies.delete("token");
+      return response;
+    }
+
+    // check if user exists in the database
+    const user = db
+      .prepare("SELECT * FROM users WHERE id = ?")
+      .get(payload.user.id);
+    if (!user) {
       // Token is invalid, redirect to the homepage and clear the invalid token.
       const response = NextResponse.redirect(new URL("/", request.url));
       response.cookies.delete("token");
@@ -33,4 +44,5 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: ["/", "/dashboard/:path*"],
+  runtime: "nodejs",
 };

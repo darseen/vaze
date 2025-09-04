@@ -1,3 +1,4 @@
+import authorizeRequest from "@/app/api/_utils/authorize-request";
 import { BASE_UPLOADS_PATH } from "@/constants";
 import db from "@/db";
 import { NextRequest, NextResponse } from "next/server";
@@ -5,7 +6,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
-import validateUser from "../../../_utils/validate-user";
+import authenticateUser from "../../../_utils/authenticate-user";
 
 type FileMetadata = {
   id: string;
@@ -19,6 +20,14 @@ export async function POST(
   { params }: { params: Promise<{ buckets: string[] }> },
 ) {
   try {
+    const { error: authError } = await authorizeRequest(request);
+    if (authError) {
+      return NextResponse.json(
+        { error: { message: authError.message }, data: null },
+        { status: 401 },
+      );
+    }
+
     const { buckets } = await params;
     const formData = await request.formData();
     const bucketPath = path.join(BASE_UPLOADS_PATH, ...buckets);
@@ -34,7 +43,7 @@ export async function POST(
       );
     }
 
-    const { error } = await validateUser({ username, password });
+    const { error } = await authenticateUser({ username, password });
 
     if (error) {
       return NextResponse.json(
