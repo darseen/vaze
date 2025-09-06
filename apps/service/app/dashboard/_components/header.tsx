@@ -1,6 +1,6 @@
 "use client";
 
-import getUser from "@/actions/auth/get-user";
+import getUser from "@/actions/auth/get-user-from-token";
 import signOut from "@/actions/auth/sign-out";
 import ThemeToggle from "@/components/theme-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -12,7 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, UserIcon } from "lucide-react";
+import { KeyIcon, LogOut, Settings, UserIcon } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -38,7 +39,11 @@ export default function Header() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-foreground text-2xl font-bold">Vaze</h1>
+            <h1 className="text-foreground text-2xl font-bold">
+              <Link href="/dashboard" className="hover:cursor-pointer">
+                Vaze
+              </Link>
+            </h1>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
@@ -65,6 +70,13 @@ export default function Header() {
                 <DropdownMenuItem>
                   <UserIcon className="mr-2 h-4 w-4" />
                   Profile
+                </DropdownMenuItem>
+
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/api-keys">
+                    <KeyIcon className="mr-2 h-4 w-4" />
+                    API Keys
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />

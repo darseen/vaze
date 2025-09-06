@@ -35,7 +35,7 @@ export default async function authenticateUser(data: {
     }
 
     return { data: user, error: null };
-  } catch (error) {
+  } catch {
     return {
       data: null,
       error: { message: "Internal server error" },

@@ -35,8 +35,6 @@ export default function FilesList({
   setNewFileName,
   viewMode,
 }: Props) {
-  const handleDelete = (id: string) => {};
-
   return (
     <div
       className={
@@ -124,7 +122,7 @@ export default function FilesList({
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={() => handleDelete(file.id)}
+                        onClick={() => {}}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         Delete

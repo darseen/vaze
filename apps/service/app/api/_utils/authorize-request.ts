@@ -1,3 +1,5 @@
+import db, { User } from "@/db";
+import { validateApiKey } from "@/utils/api-keys";
 import { verifyToken } from "@/utils/jwt";
 import { NextRequest } from "next/server";
 
@@ -15,10 +17,25 @@ export default async function authorizeRequest(request: NextRequest) {
     }
 
     return { error: null, data: { user: payload.user } };
+  } else if (apiKey) {
+    const key = validateApiKey(apiKey);
+    if (!key) {
+      return { error: { message: "Unauthorized" }, data: null };
+    }
+
+    const user = db
+      .prepare(`SELECT * FROM users WHERE id = ?`)
+      .get(key.user_id) as User | undefined;
+
+    if (!user) {
+      return { error: { message: "Unauthorized" }, data: null };
+    }
+
+    return {
+      error: null,
+      data: { user: { id: user.id, username: user.username } },
+    };
   }
-  //  else if (apiKey) {
-  //   // TODO: implement api key verification
-  // }
 
   return { error: null, data: null };
 }

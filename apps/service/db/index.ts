@@ -74,6 +74,17 @@ class SQLiteDB {
           password_hash TEXT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS api_keys (
+          id TEXT PRIMARY KEY NOT NULL,
+          name TEXT UNIQUE NOT NULL,
+          user_id TEXT NOT NULL,
+          key_hash TEXT UNIQUE NOT NULL,
+          last_used TIMESTAMP,
+          expires_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
     `;
 
     try {
@@ -94,7 +105,7 @@ export type User = {
   id: string;
   username: string;
   password_hash: string;
-  createdAt: Date;
+  createdAt: string;
 };
 
 export type File = {
@@ -102,5 +113,15 @@ export type File = {
   name: string;
   bucket: string;
   size: number;
-  created_at: Date;
+  created_at: string;
+};
+
+export type ApiKey = {
+  id: string;
+  name: string;
+  user_id: string;
+  key_hash: string;
+  created_at: string;
+  last_used?: string;
+  expires_at?: string;
 };
