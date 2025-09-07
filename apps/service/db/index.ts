@@ -63,7 +63,7 @@ class SQLiteDB {
       CREATE TABLE IF NOT EXISTS files (
           id TEXT PRIMARY KEY NOT NULL,
           name TEXT UNIQUE NOT NULL,
-          bucket TEXT NOT NULL,
+          folder TEXT NOT NULL,
           size INTEGER NOT NULL, 
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -111,7 +111,7 @@ export type User = {
 export type File = {
   id: string;
   name: string;
-  bucket: string;
+  folder: string;
   size: number;
   created_at: string;
 };

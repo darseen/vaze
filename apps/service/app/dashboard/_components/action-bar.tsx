@@ -36,8 +36,8 @@ export default function ActionBar() {
 
       // get folders from pathname
       const folders = pathname.split("/").slice(2);
-      const bucket = folders.length > 0 ? folders.slice(0, -1).join("/") : ".";
-      formData.append("bucket", bucket);
+      const folder = folders.length > 0 ? folders.slice(0, -1).join("/") : ".";
+      formData.append("folder", folder);
 
       const response = await fetch("/api/files", {
         method: "POST",

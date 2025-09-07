@@ -59,11 +59,11 @@ export default function FilesList({ files }: Props) {
     try {
       // get folders from pathname
       const folders = pathname.split("/").slice(2);
-      const bucket = folders.length > 0 ? folders.slice(0, -1).join("/") : ".";
+      const folder = folders.length > 0 ? folders.slice(0, -1).join("/") : ".";
 
       const response = await fetch(`/api/files`, {
         method: "DELETE",
-        body: JSON.stringify({ name, bucket }),
+        body: JSON.stringify({ name, folder }),
       });
 
       const { error } = (await response.json()) as ApiResponse<null>;
@@ -137,9 +137,15 @@ export default function FilesList({ files }: Props) {
                       <Edit className="mr-3 h-4 w-4" />
                       Rename
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Download className="mr-3 h-4 w-4" />
-                      Download
+                    <DropdownMenuItem className="cursor-pointer" asChild>
+                      <a
+                        href={`/api/files/download/${file.id}`}
+                        download
+                        target="_blank"
+                      >
+                        <Download className="mr-3 h-4 w-4" />
+                        Download
+                      </a>
                     </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer">
                       <Share className="mr-3 h-4 w-4" />

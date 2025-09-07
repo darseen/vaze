@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
 type FileMetadata = {
   id: string;
-  bucket: string;
+  folder: string;
   fileName: string;
   size: number;
 };
@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const bucket = formData.get("bucket") as string;
-    const bucketPath = path.join(BASE_UPLOADS_PATH, bucket);
+    const folder = formData.get("folder") as string;
+    const folderPath = path.join(BASE_UPLOADS_PATH, folder);
     const uploadedFiles: FileMetadata[] = [];
 
     const files = formData.getAll("files") as File[] | null;
@@ -63,11 +63,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // create bucket if it doesn't exist
+    // create folder if it doesn't exist
     try {
-      await fs.access(bucketPath, fs.constants.F_OK);
+      await fs.access(folderPath, fs.constants.F_OK);
     } catch {
-      await fs.mkdir(bucketPath, { recursive: true });
+      await fs.mkdir(folderPath, { recursive: true });
     }
 
     try {
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
         }-${crypto.randomUUID().split("-")[0]}${path.extname(file.name)}`;
 
         // construct file path
-        const filePath = path.join(bucketPath, fileName);
+        const filePath = path.join(folderPath, fileName);
 
         // create a readable stream from the file
         const fileStream = file.stream();
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
         uploadedFiles.push({
           id: crypto.randomUUID(),
-          bucket: path.join(...bucket),
+          folder: path.join(...folder),
           fileName,
           size: file.size,
         });
@@ -99,13 +99,13 @@ export async function POST(request: NextRequest) {
       // run all database inserts within a single, atomic transaction
       const insertMany = db.transaction((filesToInsert: FileMetadata[]) => {
         const insertStatement = db.prepare(
-          `INSERT INTO files (id, name, bucket, size) VALUES (?, ?, ?, ?)`,
+          `INSERT INTO files (id, name, folder, size) VALUES (?, ?, ?, ?)`,
         );
         for (const f of filesToInsert) {
           insertStatement.run(
             f.id,
             f.fileName,
-            f.bucket.replace("\\", "/"),
+            f.folder.replace("\\", "/"),
             f.size,
           );
         }
@@ -115,13 +115,13 @@ export async function POST(request: NextRequest) {
       // revert the changes if there is an error
       for (const file of uploadedFiles) {
         await fs
-          .rm(path.join(BASE_UPLOADS_PATH, file.bucket, file.fileName))
+          .rm(path.join(BASE_UPLOADS_PATH, file.folder, file.fileName))
           .catch();
       }
       // delete the folder if it's empty
-      const files = await fs.readdir(bucketPath);
+      const files = await fs.readdir(folderPath);
       if (files.length === 0) {
-        await fs.rmdir(bucketPath).catch();
+        await fs.rmdir(folderPath).catch();
       }
 
       return NextResponse.json(
@@ -151,10 +151,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { name, bucket }: { name: string; bucket: string } =
+    const { name, folder }: { name: string; folder: string } =
       await request.json();
-    const bucketPath = path.join(BASE_UPLOADS_PATH, bucket);
-    const filePath = path.join(bucketPath, name);
+    const folderPath = path.join(BASE_UPLOADS_PATH, folder);
+    const filePath = path.join(folderPath, name);
 
     // check if file exists on disk
     try {
@@ -162,9 +162,9 @@ export async function DELETE(request: NextRequest) {
     } catch {
       // delete file from database if it doesn't exist on disk
       const statement = db.prepare(
-        `DELETE FROM files WHERE name = ? AND bucket = ?`,
+        `DELETE FROM files WHERE name = ? AND folder = ?`,
       );
-      statement.run(name, bucket);
+      statement.run(name, folder);
       revalidatePath("/dashboard");
 
       return NextResponse.json(
@@ -177,9 +177,9 @@ export async function DELETE(request: NextRequest) {
     try {
       await fs.rm(path.join(filePath));
       const statement = db.prepare(
-        `DELETE FROM files WHERE name = ? AND bucket = ?`,
+        `DELETE FROM files WHERE name = ? AND folder = ?`,
       );
-      statement.run(name, bucket);
+      statement.run(name, folder);
     } catch {
       return NextResponse.json(
         { error: { message: "Error deleting file" }, data: null },

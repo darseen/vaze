@@ -1,0 +1,3 @@
+- add permissions to api keys
+- add orphaned data cleanup
+- encrypt files on disk
