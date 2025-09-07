@@ -38,7 +38,7 @@ import {
   Share,
   Trash2,
 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -51,19 +51,14 @@ export default function FilesList({ files }: Props) {
   const [newFileName, setNewFileName] = useState("");
 
   const router = useRouter();
-  const pathname = usePathname();
 
   const handleRename = async () => {};
 
-  const handleDelete = async (name: string) => {
+  const handleDelete = async (id: string) => {
     try {
-      // get folders from pathname
-      const folders = pathname.split("/").slice(2);
-      const folder = folders.length > 0 ? folders.slice(0, -1).join("/") : ".";
-
       const response = await fetch(`/api/files`, {
         method: "DELETE",
-        body: JSON.stringify({ name, folder }),
+        body: JSON.stringify({ id }),
       });
 
       const { error } = (await response.json()) as ApiResponse<null>;
@@ -81,11 +76,15 @@ export default function FilesList({ files }: Props) {
   };
 
   const formatSize = (bytes: number) => {
-    const mb = bytes / 1024 / 1024;
-    if (mb < 1) {
-      return `${(bytes / 1024).toFixed(1)} KB`;
-    }
-    return `${mb.toFixed(1)} MB`;
+    const kb = bytes / 1024;
+    const mb = kb / 1024;
+    const gb = mb / 1024;
+
+    if (gb >= 1) return `${gb.toFixed(1)} GB`;
+    if (mb >= 1) return `${mb.toFixed(1)} MB`;
+    if (kb >= 1) return `${kb.toFixed(1)} KB`;
+
+    return `${bytes} B`;
   };
 
   const getFileExtension = (filename: string) => {
@@ -175,7 +174,7 @@ export default function FilesList({ files }: Props) {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => handleDelete(file.name)}
+                            onClick={() => handleDelete(file.id)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           >
                             Delete

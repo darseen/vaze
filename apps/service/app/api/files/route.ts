@@ -151,20 +151,28 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { name, folder }: { name: string; folder: string } =
-      await request.json();
-    const folderPath = path.join(BASE_UPLOADS_PATH, folder);
-    const filePath = path.join(folderPath, name);
+    const { id }: { id: string } = await request.json();
+
+    // find in database
+    const file = db.prepare(`SELECT * FROM files WHERE id = ?`).get(id) as
+      | FileDB
+      | undefined;
+
+    if (!file) {
+      return NextResponse.json(
+        { data: null, error: { message: "File not found" } },
+        { status: 404 },
+      );
+    }
+
+    const filePath = path.join(BASE_UPLOADS_PATH, file.folder, file.name);
 
     // check if file exists on disk
     try {
       await fs.access(filePath, fs.constants.F_OK);
     } catch {
       // delete file from database if it doesn't exist on disk
-      const statement = db.prepare(
-        `DELETE FROM files WHERE name = ? AND folder = ?`,
-      );
-      statement.run(name, folder);
+      db.prepare(`DELETE FROM files WHERE id = ?`).run(id);
       revalidatePath("/dashboard");
 
       return NextResponse.json(
@@ -175,11 +183,8 @@ export async function DELETE(request: NextRequest) {
 
     // delete file from disk and database
     try {
-      await fs.rm(path.join(filePath));
-      const statement = db.prepare(
-        `DELETE FROM files WHERE name = ? AND folder = ?`,
-      );
-      statement.run(name, folder);
+      await fs.rm(filePath);
+      db.prepare(`DELETE FROM files WHERE id = ?`).run(id);
     } catch {
       return NextResponse.json(
         { error: { message: "Error deleting file" }, data: null },
