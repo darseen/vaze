@@ -50,13 +50,31 @@ interface Props {
 export default function FilesList({ files }: Props) {
   const [editingFile, setEditingFile] = useState<File | null>(null);
   const [newFileName, setNewFileName] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const router = useRouter();
 
-  const handleRename = async () => {};
+  const handleRename = async (id: string, name: string) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/files`, {
+        method: "PUT",
+        body: JSON.stringify({ id, name }),
+      });
+      const { error } = (await response.json()) as ApiResponse<null>;
+      if (error) return toast.error(error.message);
+      toast.success("File renamed successfully");
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+      router.refresh();
+    }
+  };
 
   const handleDelete = async (id: string) => {
     try {
+      setLoading(true);
       const response = await fetch(`/api/files`, {
         method: "DELETE",
         body: JSON.stringify({ id }),
@@ -64,15 +82,14 @@ export default function FilesList({ files }: Props) {
 
       const { error } = (await response.json()) as ApiResponse<null>;
 
-      if (error) {
-        toast.error(error.message);
-        return router.refresh();
-      }
+      if (error) return toast.error(error.message);
 
       toast.success("File deleted successfully");
-      router.refresh();
     } catch {
       toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+      router.refresh();
     }
   };
 
@@ -247,13 +264,17 @@ export default function FilesList({ files }: Props) {
                   Cancel
                 </Button>
                 <Button
-                  onClick={() => editingFile && handleRename()}
+                  onClick={() =>
+                    editingFile && handleRename(editingFile.id, newFileName)
+                  }
                   disabled={
-                    !newFileName.trim() || newFileName === editingFile?.name
+                    !newFileName.trim() ||
+                    newFileName === editingFile?.name ||
+                    loading
                   }
                   className="min-w-20"
                 >
-                  Rename
+                  {loading ? "Renaming..." : "Rename"}
                 </Button>
               </div>
             </div>

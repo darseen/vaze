@@ -141,6 +141,64 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    const { error: authError } = await authorizeRequest(request);
+    if (authError) {
+      return NextResponse.json(
+        { error: { message: authError.message }, data: null },
+        { status: 401 },
+      );
+    }
+
+    const { id, name }: { id: string; name: string } = await request.json();
+
+    // find in database
+    const file = db.prepare(`SELECT * FROM files WHERE id = ?`).get(id) as
+      | FileDB
+      | undefined;
+
+    if (!file) {
+      return NextResponse.json(
+        { data: null, error: { message: "File not found" } },
+        { status: 404 },
+      );
+    }
+    const filePath = path.join(BASE_UPLOADS_PATH, file.folder, file.name);
+
+    try {
+      // check if file exists on disk
+      await fs.access(filePath, fs.constants.F_OK);
+    } catch {
+      return NextResponse.json(
+        { data: null, error: { message: "File not found" } },
+        { status: 404 },
+      );
+    }
+
+    try {
+      // update file name on disk
+      await fs.rename(filePath, path.join(BASE_UPLOADS_PATH, name));
+      // update file name in database
+      db.prepare(`UPDATE files SET name = ? WHERE id = ?`).run(name, id);
+    } catch (error) {
+      return NextResponse.json(
+        { data: null, error: { message: "Error updating file" } },
+        { status: 500 },
+      );
+    }
+
+    revalidatePath("/dashboard");
+    return NextResponse.json({ data: null, error: null });
+  } catch (error) {
+    console.log("update file error", error);
+    return NextResponse.json(
+      { error: { message: "Internal server error" }, data: null },
+      { status: 500 },
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const { error: authError } = await authorizeRequest(request);
