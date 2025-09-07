@@ -11,12 +11,12 @@ else
   echo ">>> Using existing AUTH_SECRET provided by user."
 fi
 
-# Check for AUTH_URL, default if not set
-if [ -z "${AUTH_URL}" ]; then
-  echo ">>> AUTH_URL is not set. Defaulting to http://localhost:3000"
-  export AUTH_URL="http://localhost:3000"
+# Check for BASE_URL, default if not set
+if [ -z "${BASE_URL}" ]; then
+  echo ">>> BASE_URL is not set. Defaulting to http://localhost:3000"
+  export BASE_URL="http://localhost:3000"
 else
-  echo ">>> Using existing AUTH_URL: ${AUTH_URL}"
+  echo ">>> Using existing BASE_URL: ${BASE_URL}"
 fi
 
 exec "$@"

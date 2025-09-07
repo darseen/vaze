@@ -1,8 +1,8 @@
 "use server";
 
 import db, { User } from "@/db";
-import { hashPassword } from "@/utils";
 import { issueJWT } from "@/utils/jwt";
+import { hashPassword } from "@/utils/password";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
 

@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ApiKey } from "@/db";
+import { formatDate } from "@/utils";
 import {
   AlertCircle,
   Calendar,
@@ -41,18 +42,6 @@ export default function KeysList({ keys }: Props) {
     } catch {
       toast.error("Something went wrong");
     }
-  };
-
-  const formatDate = (date?: string) => {
-    if (!date) return;
-
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   const isKeyActive = (lastUsed?: string) => {

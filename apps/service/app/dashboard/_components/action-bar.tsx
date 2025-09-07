@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -6,33 +8,76 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Filter, Grid3X3, List, Plus, Search, Upload } from "lucide-react";
-import { Dispatch, SetStateAction } from "react";
+import { ApiResponse } from "@/types";
+import { Filter, Plus, Search, Upload } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ChangeEvent, useRef, useState } from "react";
+import { toast } from "sonner";
 
-interface Props {
-  setSearchTerm: Dispatch<SetStateAction<string>>;
-  searchTerm: string;
-  viewMode: string;
-  setViewMode: Dispatch<SetStateAction<"grid" | "list">>;
-}
+export default function ActionBar() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-export default function ActionBar({
-  searchTerm,
-  setSearchTerm,
-  viewMode,
-  setViewMode,
-}: Props) {
-  const handleUpload = () => {};
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const handleFilesUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    try {
+      setLoading(true);
+
+      const files = event.target.files;
+      if (!files) return;
+      const formData = new FormData();
+
+      for (let i = 0; i < files.length; i++) {
+        formData.append("files", files[i]);
+      }
+
+      // get folders from pathname
+      const folders = pathname.split("/").slice(2);
+      const bucket = folders.length > 0 ? folders.slice(0, -1).join("/") : ".";
+      formData.append("bucket", bucket);
+
+      const response = await fetch("/api/files", {
+        method: "POST",
+        body: formData,
+      });
+      const { error } = (await response.json()) as ApiResponse<null>;
+      if (error) return toast.error(error.message);
+
+      toast.success("Files uploaded successfully");
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+      event.target.value = "";
+    }
+  };
 
   const handleCreateFolder = () => {};
 
   return (
     <div className="mb-6 flex w-full flex-col-reverse gap-4 sm:flex-row sm:justify-center">
       <div className="flex gap-2">
-        <Button onClick={handleUpload} className="flex-1 sm:flex-none">
+        <Button
+          onClick={() => inputRef.current?.click()}
+          disabled={loading}
+          className="flex-1 sm:flex-none"
+        >
           <Upload className="mr-2 h-4 w-4" />
-          Upload
+          {loading ? "Uploading..." : "Upload"}
         </Button>
+
+        <input
+          type="file"
+          multiple
+          disabled={loading}
+          ref={inputRef}
+          onChange={handleFilesUpload}
+          style={{ display: "none" }}
+        />
         <Button
           variant="outline"
           onClick={handleCreateFolder}
@@ -52,23 +97,6 @@ export default function ActionBar({
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 lg:min-w-md"
           />
-        </div>
-
-        <div className="flex gap-1">
-          <Button
-            variant={viewMode === "grid" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("grid")}
-          >
-            <Grid3X3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "list" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("list")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
         </div>
 
         <DropdownMenu>
