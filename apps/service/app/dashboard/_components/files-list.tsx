@@ -53,7 +53,7 @@ export default function FilesList({ files }: Props) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleRename = async (id: string, name: string) => {};
+  const handleRename = async () => {};
 
   const handleDelete = async (name: string) => {
     try {
@@ -240,9 +240,7 @@ export default function FilesList({ files }: Props) {
                 Cancel
               </Button>
               <Button
-                onClick={() =>
-                  editingFile && handleRename(editingFile.id, newFileName)
-                }
+                onClick={() => editingFile && handleRename()}
                 disabled={
                   !newFileName.trim() || newFileName === editingFile?.name
                 }

@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    let { id } = await params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json(
