@@ -1,3 +1,6 @@
 - add permissions to api keys
 - add orphaned data cleanup
 - encrypt files on disk
+- add storage analytics (dashboard)
+- implement worker threads
+- add file hosting

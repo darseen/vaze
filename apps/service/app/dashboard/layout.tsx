@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import { ReactNode } from "react";
 import Header from "./_components/header";
 
 export default function DashboardLayout({

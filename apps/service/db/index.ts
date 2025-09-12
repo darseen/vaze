@@ -1,5 +1,6 @@
-import { BASE_DB_PATH } from "@/constants";
+import { BASE_DB_PATH, BASE_UPLOADS_PATH } from "@/constants";
 import Database from "better-sqlite3";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -34,7 +35,8 @@ class SQLiteDB {
 
       // Enable Write-Ahead Logging for better concurrency.
       this.db.pragma("journal_mode = WAL");
-
+      // Enable foreign key support.
+      this.db.pragma("foreign_keys = ON");
       // Initialize the database schema.
       this.initializeSchema();
     } catch (error) {
@@ -61,35 +63,56 @@ class SQLiteDB {
   private initializeSchema(): void {
     const schemaSQL = `
       CREATE TABLE IF NOT EXISTS files (
-          id TEXT PRIMARY KEY NOT NULL,
+          id TEXT PRIMARY KEY NOT NULL UNIQUE,
           name TEXT UNIQUE NOT NULL,
-          folder TEXT NOT NULL,
+          path TEXT NOT NULL,
+          folder_id TEXT NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
           size INTEGER NOT NULL, 
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS folders (
+          id TEXT PRIMARY KEY NOT NULL UNIQUE,
+          name TEXT NOT NULL,
+          path TEXT NOT NULL UNIQUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
       CREATE TABLE IF NOT EXISTS users (
-          id TEXT PRIMARY KEY NOT NULL,
+          id TEXT PRIMARY KEY NOT NULL UNIQUE,
           username TEXT UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
       CREATE TABLE IF NOT EXISTS api_keys (
-          id TEXT PRIMARY KEY NOT NULL,
-          name TEXT UNIQUE NOT NULL,
-          user_id TEXT NOT NULL,
-          key_hash TEXT UNIQUE NOT NULL,
+          id TEXT PRIMARY KEY NOT NULL UNIQUE,
+          name TEXT NOT NULL UNIQUE,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          key_hash TEXT NOT NULL UNIQUE,
           last_used TIMESTAMP,
           expires_at TIMESTAMP,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
 
     try {
       // Execute all table creation statements in one go.
       this.db.exec(schemaSQL);
+      // insert root folder
+      this.db
+        .prepare(
+          `INSERT OR IGNORE INTO folders (id, name, path) VALUES (?, ?, ?)`,
+        )
+        .run(
+          crypto.randomUUID(),
+          path.basename(BASE_UPLOADS_PATH),
+          BASE_UPLOADS_PATH,
+        );
     } catch (error) {
       console.error("Error initializing database schema:", error);
       throw error;
@@ -105,15 +128,26 @@ export type User = {
   id: string;
   username: string;
   password_hash: string;
-  createdAt: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type File = {
   id: string;
   name: string;
-  folder: string;
+  folder_id: string;
+  path: string;
   size: number;
   created_at: string;
+  updated_at: string;
+};
+
+export type Folder = {
+  id: string;
+  name: string;
+  path: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ApiKey = {
@@ -121,7 +155,8 @@ export type ApiKey = {
   name: string;
   user_id: string;
   key_hash: string;
-  created_at: string;
   last_used?: string;
   expires_at?: string;
+  created_at: string;
+  updated_at: string;
 };

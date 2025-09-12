@@ -1,4 +1,3 @@
-import { BASE_UPLOADS_PATH } from "@/constants";
 import db, { File } from "@/db";
 import fs from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
@@ -39,7 +38,7 @@ export async function GET(
       );
     }
 
-    const filePath = path.join(BASE_UPLOADS_PATH, file.folder, file.name);
+    const filePath = path.join(file.path);
 
     // check if file exists
     try {

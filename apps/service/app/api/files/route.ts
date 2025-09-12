@@ -1,5 +1,5 @@
 import { BASE_UPLOADS_PATH } from "@/constants";
-import db, { File as FileDB } from "@/db";
+import db, { File as FileDB, Folder } from "@/db";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
@@ -35,7 +35,8 @@ export async function GET(request: NextRequest) {
 
 type FileMetadata = {
   id: string;
-  folder: string;
+  folderId: string;
+  path: string;
   fileName: string;
   size: number;
 };
@@ -51,23 +52,37 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const folder = formData.get("folder") as string;
-    const folderPath = path.join(BASE_UPLOADS_PATH, folder);
-    const uploadedFiles: FileMetadata[] = [];
+    const folder = formData.get("folder") as string | null;
+    const files = formData.getAll("files") as File[];
 
-    const files = formData.getAll("files") as File[] | null;
     if (!files || files.length === 0) {
       return NextResponse.json(
-        { error: { message: "No files found" }, data: null },
+        { error: { message: "Missing required fields" }, data: null },
         { status: 400 },
       );
     }
 
+    // check if folder contains any dots
+    if (folder && folder.includes(".")) {
+      return NextResponse.json(
+        { error: { message: "Folder name cannot contain dots" }, data: null },
+        { status: 400 },
+      );
+    }
+
+    const folderName = path.basename(folder ? folder : "uploads");
+    const folderAbsolutePath = path.join(
+      BASE_UPLOADS_PATH,
+      // remove leading slash if folder is provided
+      folder ? folder.replace("/", "") : "",
+    );
+    const uploadedFiles: FileMetadata[] = [];
+
     // create folder if it doesn't exist
     try {
-      await fs.access(folderPath, fs.constants.F_OK);
+      await fs.access(folderAbsolutePath, fs.constants.F_OK);
     } catch {
-      await fs.mkdir(folderPath, { recursive: true });
+      await fs.mkdir(folderAbsolutePath, { recursive: true });
     }
 
     try {
@@ -78,19 +93,52 @@ export async function POST(request: NextRequest) {
         }-${crypto.randomUUID().split("-")[0]}${path.extname(file.name)}`;
 
         // construct file path
-        const filePath = path.join(folderPath, fileName);
+        const fileAbsolutePath = path.join(folderAbsolutePath, fileName);
 
         // create a readable stream from the file
         const fileStream = file.stream();
 
         // write file to disk
-        const fileToWriteTo = await fs.open(filePath, "w");
+        const fileToWriteTo = await fs.open(fileAbsolutePath, "w");
         // @ts-expect-error - type issue
         await pipeline(fileStream, fileToWriteTo.createWriteStream());
 
+        // get folder id from database
+        let folderInDB = db
+          .prepare(`SELECT * FROM folders WHERE path = ?`)
+          .get(folderAbsolutePath) as Folder | undefined;
+
+        // create folder if it doesn't exist
+        if (!folderInDB) {
+          try {
+            db.prepare(
+              `INSERT INTO folders (id, name, path) VALUES (?, ?, ?)`,
+            ).run(crypto.randomUUID(), folderName, folderAbsolutePath);
+
+            folderInDB = db
+              .prepare(`SELECT * FROM folders WHERE path = ?`)
+              .get(folderAbsolutePath) as Folder;
+          } catch (error) {
+            console.log(error);
+            // revert the changes if there is an error
+            await fs
+              .rm(folderAbsolutePath, { recursive: true, force: true })
+              .catch();
+            db.prepare(`DELETE FROM folders WHERE path = ?`).run(
+              folderAbsolutePath,
+            );
+
+            return NextResponse.json(
+              { data: null, error: { message: "Error creating folder" } },
+              { status: 400 },
+            );
+          }
+        }
+
         uploadedFiles.push({
           id: crypto.randomUUID(),
-          folder: path.join(...folder),
+          path: fileAbsolutePath,
+          folderId: folderInDB.id,
           fileName,
           size: file.size,
         });
@@ -99,30 +147,24 @@ export async function POST(request: NextRequest) {
       // run all database inserts within a single, atomic transaction
       const insertMany = db.transaction((filesToInsert: FileMetadata[]) => {
         const insertStatement = db.prepare(
-          `INSERT INTO files (id, name, folder, size) VALUES (?, ?, ?, ?)`,
+          `INSERT INTO files (id, name, folder_id, path, size) VALUES (?, ?, ?, ?, ?)`,
         );
-        for (const f of filesToInsert) {
+        for (const file of filesToInsert) {
           insertStatement.run(
-            f.id,
-            f.fileName,
-            f.folder.replace("\\", "/"),
-            f.size,
+            file.id,
+            file.fileName,
+            file.folderId,
+            file.path,
+            file.size,
           );
         }
       });
-      insertMany(uploadedFiles); // this is atomic. It all succeeds or all fails.
-    } catch {
+      insertMany(uploadedFiles);
+    } catch (error) {
+      console.log(error);
       // revert the changes if there is an error
-      for (const file of uploadedFiles) {
-        await fs
-          .rm(path.join(BASE_UPLOADS_PATH, file.folder, file.fileName))
-          .catch();
-      }
-      // delete the folder if it's empty
-      const files = await fs.readdir(folderPath);
-      if (files.length === 0) {
-        await fs.rmdir(folderPath).catch();
-      }
+      await fs.rm(folderAbsolutePath, { recursive: true, force: true }).catch();
+      db.prepare(`DELETE FROM folders WHERE path = ?`).run(folderAbsolutePath); // files would be deleted by cascade
 
       return NextResponse.json(
         { data: null, error: { message: "Error uploading file" } },
@@ -164,11 +206,10 @@ export async function PUT(request: NextRequest) {
         { status: 404 },
       );
     }
-    const filePath = path.join(BASE_UPLOADS_PATH, file.folder, file.name);
 
     try {
       // check if file exists on disk
-      await fs.access(filePath, fs.constants.F_OK);
+      await fs.access(file.path, fs.constants.F_OK);
     } catch {
       return NextResponse.json(
         { data: null, error: { message: "File not found" } },
@@ -178,10 +219,10 @@ export async function PUT(request: NextRequest) {
 
     try {
       // update file name on disk
-      await fs.rename(filePath, path.join(BASE_UPLOADS_PATH, name));
+      await fs.rename(file.path, path.join(BASE_UPLOADS_PATH, name));
       // update file name in database
       db.prepare(`UPDATE files SET name = ? WHERE id = ?`).run(name, id);
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { data: null, error: { message: "Error updating file" } },
         { status: 500 },
@@ -223,11 +264,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const filePath = path.join(BASE_UPLOADS_PATH, file.folder, file.name);
-
     // check if file exists on disk
     try {
-      await fs.access(filePath, fs.constants.F_OK);
+      await fs.access(file.path, fs.constants.F_OK);
     } catch {
       // delete file from database if it doesn't exist on disk
       db.prepare(`DELETE FROM files WHERE id = ?`).run(id);
@@ -241,7 +280,7 @@ export async function DELETE(request: NextRequest) {
 
     // delete file from disk and database
     try {
-      await fs.rm(filePath);
+      await fs.rm(file.path);
       db.prepare(`DELETE FROM files WHERE id = ?`).run(id);
     } catch {
       return NextResponse.json(
