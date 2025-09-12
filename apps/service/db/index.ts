@@ -29,6 +29,13 @@ class SQLiteDB {
     }
 
     try {
+      fs.accessSync(BASE_UPLOADS_PATH, fs.constants.F_OK);
+    } catch {
+      // Create the uploads directory if it doesn't exist.
+      fs.mkdirSync(BASE_UPLOADS_PATH, { recursive: true });
+    }
+
+    try {
       // The database connection is established synchronously.
       this.db = new Database(dbPath);
       console.log(`Successfully connected to the database at ${dbPath}`);
@@ -76,6 +83,7 @@ class SQLiteDB {
           id TEXT PRIMARY KEY NOT NULL UNIQUE,
           name TEXT NOT NULL,
           path TEXT NOT NULL UNIQUE,
+          parent_id TEXT REFERENCES folders(id) ON DELETE CASCADE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -146,6 +154,7 @@ export type Folder = {
   id: string;
   name: string;
   path: string;
+  parent_id: string | null;
   created_at: string;
   updated_at: string;
 };

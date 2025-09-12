@@ -86,7 +86,7 @@ export default function ActionBar() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          folderPath,
+          folder: folderPath,
         }),
       });
 
