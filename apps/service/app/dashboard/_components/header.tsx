@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { KeyIcon, LogOut, Settings, UserIcon } from "lucide-react";
+import { FilesIcon, KeyIcon, LogOut, Settings, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -68,23 +68,29 @@ export default function Header() {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                  <UserIcon className="mr-2 h-4 w-4" />
+                  <UserIcon className="mr-2 size-4" />
                   Profile
                 </DropdownMenuItem>
 
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/api-keys">
-                    <KeyIcon className="mr-2 h-4 w-4" />
+                    <KeyIcon className="mr-2 size-4" />
                     API Keys
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/files">
+                    <FilesIcon className="mr-2 size-4" />
+                    Files
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
+                  <Settings className="mr-2 size-4" />
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
+                  <LogOut className="mr-2 size-4" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>

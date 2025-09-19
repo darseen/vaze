@@ -10,7 +10,6 @@ export default function Header() {
 
       <div className="flex items-center gap-4">
         <Link href="#">About</Link>
-        <Link href="#">Dashboard</Link>
         <Link href="#">Documentation</Link>
       </div>
 

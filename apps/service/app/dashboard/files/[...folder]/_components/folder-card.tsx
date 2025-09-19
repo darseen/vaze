@@ -1,3 +1,5 @@
+"use client";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,8 +27,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Folder } from "@/db";
-import { ApiResponse } from "@/types";
+import type { Folder } from "@/db";
+import type { ApiResponse } from "@/types";
 import { formatDate } from "@/utils";
 import { Edit, FolderIcon, MoreVertical, Trash2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -62,7 +64,9 @@ export default function FolderCard({ folder }: Props) {
       toast.error("Something went wrong");
     } finally {
       setLoading(false);
-      router.refresh();
+      console.log(pathname);
+      if (pathname === "/dashboard/files/uploads") router.refresh();
+      else router.back();
     }
   };
 
@@ -130,6 +134,7 @@ export default function FolderCard({ folder }: Props) {
                     <AlertDialogTrigger asChild>
                       <DropdownMenuItem
                         onSelect={(e) => e.preventDefault()}
+                        onClick={(e) => e.stopPropagation()}
                         className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                       >
                         <Trash2 className="mr-3 h-4 w-4" />
@@ -147,9 +152,14 @@ export default function FolderCard({ folder }: Props) {
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
+                          Cancel
+                        </AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => handleDelete(folder.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(folder.id);
+                          }}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                           Delete
