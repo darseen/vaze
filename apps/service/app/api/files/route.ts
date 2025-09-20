@@ -6,6 +6,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
+import { accessPath } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export async function GET(request: NextRequest) {
@@ -79,9 +80,8 @@ export async function POST(request: NextRequest) {
     const uploadedFiles: FileMetadata[] = [];
 
     // create folder if it doesn't exist
-    try {
-      await fs.access(folderAbsolutePath, fs.constants.F_OK);
-    } catch {
+    const folderExists = await accessPath(folderAbsolutePath);
+    if (!folderExists) {
       await fs.mkdir(folderAbsolutePath, { recursive: true });
     }
 
@@ -207,10 +207,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    try {
-      // check if file exists on disk
-      await fs.access(file.path, fs.constants.F_OK);
-    } catch {
+    const fileExists = await accessPath(file.path);
+    if (!fileExists) {
       return NextResponse.json(
         { data: null, error: { message: "File not found" } },
         { status: 404 },
@@ -265,9 +263,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // check if file exists on disk
-    try {
-      await fs.access(file.path, fs.constants.F_OK);
-    } catch {
+    const fileExists = await accessPath(file.path);
+    if (!fileExists) {
       // delete file from database if it doesn't exist on disk
       db.prepare(`DELETE FROM files WHERE id = ?`).run(id);
       revalidatePath("/dashboard");

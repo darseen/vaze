@@ -1,3 +1,4 @@
+import { accessPath } from "@/app/api/_utils";
 import db, { File } from "@/db";
 import fs from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
@@ -41,9 +42,8 @@ export async function GET(
     const filePath = path.join(file.path);
 
     // check if file exists
-    try {
-      await fs.access(filePath);
-    } catch {
+    const fileExists = await accessPath(filePath);
+    if (!fileExists) {
       return NextResponse.json(
         { data: null, error: { message: "File not found" } },
         { status: 404 },

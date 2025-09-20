@@ -1,9 +1,10 @@
 import db, { File, Folder } from "@/db";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
-import { accessSync, renameSync } from "node:fs";
+import { renameSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { accessPathSync } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export default async function PUT(request: NextRequest) {
@@ -39,10 +40,9 @@ export default async function PUT(request: NextRequest) {
         throw new Error("Folder not found");
       }
 
-      try {
-        // check if folder exists on disk
-        accessSync(folder.path, fs.constants.F_OK);
-      } catch {
+      // check if folder exists on disk
+      const folderExists = accessPathSync(folder.path);
+      if (!folderExists) {
         // delete folder from database if it doesn't exist on disk
         db.prepare(`DELETE FROM folders WHERE id = ?`).run(id);
         throw new Error("Folder not found");

@@ -2,6 +2,7 @@ import db, { Folder } from "@/db";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs/promises";
+import { accessPath } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export default async function DELETE(request: NextRequest) {
@@ -29,9 +30,8 @@ export default async function DELETE(request: NextRequest) {
     }
 
     // check if folder exists on disk
-    try {
-      await fs.access(folder.path, fs.constants.F_OK);
-    } catch {
+    const folderExists = await accessPath(folder.path);
+    if (!folderExists) {
       // delete folder from database if it doesn't exist on disk
       db.prepare(`DELETE FROM folders WHERE id = ?`).run(id);
       revalidatePath("/dashboard");
