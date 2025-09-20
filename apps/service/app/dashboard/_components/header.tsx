@@ -2,6 +2,7 @@
 
 import getUser from "@/actions/auth/get-user-from-token";
 import signOut from "@/actions/auth/sign-out";
+import logo from "@/assets/images/vaze.png";
 import ThemeToggle from "@/components/theme-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FilesIcon, KeyIcon, LogOut, Settings, UserIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -40,8 +42,9 @@ export default function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-foreground text-2xl font-bold">
-              <Link href="/dashboard" className="hover:cursor-pointer">
-                Vaze
+              <Link href={"/dashboard"} className="flex items-center gap-1">
+                <Image src={logo} alt="Vaze Logo" className="size-12" />
+                <h1 className="text-2xl font-bold">Vaze</h1>
               </Link>
             </h1>
           </div>
