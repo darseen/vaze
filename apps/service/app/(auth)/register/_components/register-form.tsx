@@ -1,10 +1,12 @@
 "use client";
 
 import register from "@/actions/auth/register";
+import logo from "@/assets/images/vaze.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -19,18 +21,25 @@ export default function RegisterForm() {
     if (error) return toast.error(error.message);
 
     toast.success("Account created successfully");
-
-    router.push("/dashboard");
+    router.replace("/dashboard");
   };
+
   return (
-    <section className="flex flex-1 items-center justify-center px-8">
+    <section className="flex flex-1 items-center justify-center px-4 pb-8 sm:px-8">
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h2 className="flex items-center justify-center gap-2 text-2xl font-bold">
-            <Shield className="h-6 w-6" />
+        <div className="mb-6 text-center sm:mb-8">
+          <Image
+            src={logo}
+            alt="Vaze Logo"
+            className="mx-auto h-12 w-auto md:h-16"
+          />
+          <h2 className="flex items-center justify-center gap-2 text-xl font-bold sm:text-2xl">
+            <Shield className="h-5 w-5 sm:h-6 sm:w-6" />
             Create Admin Account
           </h2>
-          <p className="mt-2">Register a new administrator account for Vaze</p>
+          <p className="mt-2 text-sm sm:text-base">
+            Register a new administrator account for Vaze
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -67,7 +76,7 @@ export default function RegisterForm() {
           <div className="bg-accent text-accent-foreground rounded-lg p-3">
             <div className="flex items-start gap-2">
               <Shield className="mt-0.5 h-4 w-4 flex-shrink-0" />
-              <p className="text-sm">
+              <p className="text-xs sm:text-sm">
                 This will create an administrator account with full access to
                 the Vaze file storage system.
               </p>
