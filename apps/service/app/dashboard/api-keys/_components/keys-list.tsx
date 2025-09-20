@@ -15,8 +15,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { ApiKey } from "@/db";
 import { formatDate } from "@/utils";
+import type { ApiKey } from "@repo/types";
 import {
   AlertCircle,
   Calendar,
@@ -44,7 +44,7 @@ export default function KeysList({ keys }: Props) {
     }
   };
 
-  const isKeyActive = (lastUsed?: string) => {
+  const isKeyActive = (lastUsed: string | null) => {
     if (!lastUsed) return false;
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);

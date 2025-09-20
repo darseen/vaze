@@ -1,5 +1,6 @@
 import { BASE_UPLOADS_PATH } from "@/constants";
-import db, { Folder } from "@/db";
+import db from "@/db";
+import { File, Folder } from "@repo/types";
 import { NextRequest, NextResponse } from "next/server";
 import path from "node:path";
 import authorizeRequest from "../_utils/authorize-request";

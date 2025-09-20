@@ -25,9 +25,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { File } from "@/db";
 import { ApiResponse } from "@/types";
 import { formatDate } from "@/utils";
+import { File } from "@repo/types";
 import { Download, Edit, FileText, MoreVertical, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

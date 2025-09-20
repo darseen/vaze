@@ -1,4 +1,5 @@
-import db, { File, Folder } from "@/db";
+import db from "@/db";
+import { File, Folder } from "@repo/types";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { renameSync } from "node:fs";

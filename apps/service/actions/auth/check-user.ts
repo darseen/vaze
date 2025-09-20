@@ -1,6 +1,7 @@
 "use server";
 
-import db, { User } from "@/db";
+import db from "@/db";
+import { User } from "@repo/types";
 
 export default async function checkUser() {
   try {

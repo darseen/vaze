@@ -1,5 +1,5 @@
-import type { File, Folder } from "@/db";
 import { ApiResponse } from "@/types";
+import type { File, Folder } from "@repo/types";
 import { cookies } from "next/headers";
 
 export default async function fetchFolder({

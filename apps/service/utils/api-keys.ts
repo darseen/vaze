@@ -1,4 +1,5 @@
-import db, { ApiKey } from "@/db";
+import db from "@/db";
+import { ApiKey } from "@repo/types";
 import crypto from "node:crypto";
 
 export function validateApiKey(key: string): ApiKey | null {

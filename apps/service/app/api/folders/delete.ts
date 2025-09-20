@@ -1,4 +1,5 @@
-import db, { Folder } from "@/db";
+import db from "@/db";
+import { Folder } from "@repo/types";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs/promises";

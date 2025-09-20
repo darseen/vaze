@@ -1,5 +1,6 @@
-import db, { ApiKey } from "@/db";
+import db from "@/db";
 import auth from "@/utils/auth";
+import { ApiKey } from "@repo/types";
 
 export default async function fetchKeys() {
   try {

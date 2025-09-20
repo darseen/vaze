@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { File, Folder } from "@/db";
+import type { File, Folder } from "@repo/types";
 import { ArrowLeft, FileIcon, FolderIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import FileCard from "./file-card";

@@ -1,5 +1,6 @@
 import { accessPath } from "@/app/api/_utils";
-import db, { File } from "@/db";
+import db from "@/db";
+import { File } from "@repo/types";
 import fs from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";

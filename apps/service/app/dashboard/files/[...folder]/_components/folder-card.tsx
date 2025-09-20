@@ -27,9 +27,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import type { Folder } from "@/db";
 import type { ApiResponse } from "@/types";
 import { formatDate } from "@/utils";
+import type { Folder } from "@repo/types";
 import { Edit, FolderIcon, MoreVertical, Trash2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";

@@ -1,8 +1,9 @@
 "use server";
 
-import db, { User } from "@/db";
+import db from "@/db";
 import { issueJWT } from "@/utils/jwt";
 import { comparePassword } from "@/utils/password";
+import { User } from "@repo/types";
 import { cookies } from "next/headers";
 
 export default async function signIn(formData: FormData) {
