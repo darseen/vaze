@@ -24,8 +24,8 @@ export function validateApiKey(key: string): ApiKey | null {
     return null;
   }
 
-  //  update the `last_used_at` timestamp.
-  db.prepare("UPDATE api_keys SET last_used_at = ? WHERE key_hash = ?").run(
+  //  update the `last_used` timestamp.
+  db.prepare("UPDATE api_keys SET last_used = ? WHERE key_hash = ?").run(
     new Date().toISOString(),
     keyHash,
   );
