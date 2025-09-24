@@ -66,7 +66,7 @@ export default async function register(formData: FormData) {
 
     (await cookies()).set("token", token, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.BASE_URL?.startsWith("https://") ?? false,
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
       path: "/",
