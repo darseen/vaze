@@ -13,8 +13,8 @@ fi
 
 # Check for BASE_URL, default if not set
 if [ -z "${BASE_URL}" ]; then
-  echo ">>> BASE_URL is not set. Defaulting to http://127.0.0.1:3000"
   SERVICE_NAME=$(hostname)
+  echo ">>> BASE_URL is not set. Defaulting to http://${SERVICE_NAME}:3000"
   export BASE_URL="http://${SERVICE_NAME}:3000"
 else
   echo ">>> Using existing BASE_URL: ${BASE_URL}"
