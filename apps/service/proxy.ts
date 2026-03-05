@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "./db";
 import { verifyToken } from "./utils/jwt";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
   const { pathname } = request.nextUrl;
 
@@ -43,6 +43,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/dashboard/:path*"],
-  runtime: "nodejs",
+  matcher: ["/", "/dashboard/:path*"]
 };
