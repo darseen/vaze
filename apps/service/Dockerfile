@@ -1,4 +1,4 @@
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
  
 FROM base AS builder
 
@@ -12,10 +12,8 @@ RUN npm install -g turbo@latest
 
 COPY . .
  
-# Generate a partial monorepo with a pruned lockfile for a target workspace.
 RUN turbo prune service --docker
  
-# Add lockfile and package.json's of isolated subworkspace
 FROM base AS installer
 
 RUN apk update
@@ -24,11 +22,9 @@ RUN corepack enable pnpm
 
 WORKDIR /app
  
-# First install the dependencies (as they change less often)
 COPY --from=builder /app/out/json/ .
 RUN pnpm install --frozen-lockfile
  
-# Build the project
 COPY --from=builder /app/out/full/ .
 
 ENV NEXT_TELEMETRY_DISABLED=1
