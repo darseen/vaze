@@ -37,7 +37,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="border-border bg-card/95 supports-[backdrop-filter]:bg-card/60 sticky top-0 z-50 border-b px-2 backdrop-blur">
+    <header className="border-border bg-card/95 supports-backdrop-filter:bg-card/60 sticky top-0 z-50 border-b px-2 backdrop-blur">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -48,6 +48,32 @@ export default function Header() {
               </Link>
             </h1>
           </div>
+          <nav className="hidden items-center gap-6 md:flex">
+            <Link
+              href="/dashboard"
+              className="text-foreground hover:text-accent text-sm font-medium transition-colors"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/dashboard/files"
+              className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+            >
+              Files
+            </Link>
+            <Link
+              href="/dashboard/api-keys"
+              className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+            >
+              API Keys
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+            >
+              Settings
+            </Link>
+          </nav>
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <DropdownMenu>
