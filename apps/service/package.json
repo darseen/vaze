@@ -1,12 +1,15 @@
 {
   "name": "service",
-  "version": "1.0.5",
+  "version": "1.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "version:patch": "pnpm version patch --no-git-tag-version",
+    "version:minor": "pnpm version minor --no-git-tag-version",
+    "version:major": "pnpm version major --no-git-tag-version"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",
