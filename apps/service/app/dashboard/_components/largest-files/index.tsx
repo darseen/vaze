@@ -21,8 +21,14 @@ export default async function LargestFilesChart() {
           Files consuming the most storage space
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Chart data={data} />
+      <CardContent className="flex h-50 items-center justify-center">
+        {data.length === 0 ? (
+          <p className="text-muted-foreground text-center text-sm">
+            No files uploaded yet
+          </p>
+        ) : (
+          <Chart data={data} />
+        )}
       </CardContent>
     </Card>
   );

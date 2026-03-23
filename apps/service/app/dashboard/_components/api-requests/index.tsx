@@ -48,7 +48,7 @@ export default function ApiRequestsChart() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex h-full items-center justify-center">
+      <CardContent className="flex h-50 items-center justify-center">
         {data.length === 0 ? (
           <p className="text-muted-foreground text-center text-sm">
             No API requests yet
