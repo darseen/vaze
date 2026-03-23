@@ -18,7 +18,7 @@ interface Props {
 
 export default function Chart({ data }: Props) {
   return (
-    <div className="h-64">
+    <div className="size-full">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}

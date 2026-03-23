@@ -28,7 +28,7 @@ const barColors = [
 
 export default function Chart({ data }: Props) {
   return (
-    <div className="h-50">
+    <div className="size-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
