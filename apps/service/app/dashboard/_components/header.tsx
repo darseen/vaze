@@ -16,11 +16,19 @@ import {
 import { FilesIcon, KeyIcon, LogOut, Settings, UserIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+
+const navLinks = [
+  { name: "Dashboard", href: "/dashboard" },
+  { name: "Files", href: "/dashboard/files/uploads" },
+  { name: "API Keys", href: "/dashboard/api-keys" },
+  { name: "Settings", href: "/dashboard/settings" },
+];
 
 export default function Header() {
   const [username, setUsername] = useState<string | null>(null);
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -48,32 +56,27 @@ export default function Header() {
               </Link>
             </h1>
           </div>
+
           <nav className="hidden items-center gap-6 md:flex">
-            <Link
-              href="/dashboard"
-              className="text-foreground hover:text-accent text-sm font-medium transition-colors"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/dashboard/files"
-              className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-            >
-              Files
-            </Link>
-            <Link
-              href="/dashboard/api-keys"
-              className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-            >
-              API Keys
-            </Link>
-            <Link
-              href="/dashboard/settings"
-              className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-            >
-              Settings
-            </Link>
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-sm font-medium transition-colors ${
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              );
+            })}
           </nav>
+
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <DropdownMenu>
