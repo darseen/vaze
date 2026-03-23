@@ -27,12 +27,12 @@ export default async function FileTypesChart() {
   const data = result.map((item, index) => ({
     name: item.name,
     value: item.value,
-    color: palette[index % palette.length],
+    fill: palette[index % palette.length],
   }));
 
   return (
-    <Card className="border-border/50 bg-card/50">
-      <CardHeader>
+    <Card className="border-border/50 bg-card/50 flex flex-col">
+      <CardHeader className="items-center pb-0">
         <CardTitle className="text-base font-medium">
           Storage by File Type
         </CardTitle>
@@ -40,7 +40,7 @@ export default async function FileTypesChart() {
           Breakdown of storage usage by file type
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex h-64 w-full items-center justify-center">
+      <CardContent className="flex h-64 w-full flex-1 items-center justify-center pb-0">
         {data.length === 0 ? (
           <p className="text-muted-foreground text-center text-sm">
             No files uploaded yet
