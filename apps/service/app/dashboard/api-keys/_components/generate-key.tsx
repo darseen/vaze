@@ -193,7 +193,7 @@ export default function GenerateKey() {
           <DialogHeader>
             <DialogTitle>API Key Generated</DialogTitle>
             <DialogDescription>
-              {`Your API key {generatedKey.name} has been created. Copy it now as
+              {`Your API key \`${generatedKey.name}\` has been created. Copy it now as
               this is the only time you'll be able to see it.`}
             </DialogDescription>
           </DialogHeader>
