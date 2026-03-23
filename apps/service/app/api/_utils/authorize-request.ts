@@ -32,6 +32,11 @@ export default async function authorizeRequest(request: NextRequest) {
       return { error: { message: "Unauthorized" }, data: null };
     }
 
+    db.prepare(`INSERT INTO api_requests (user_id, key_id) VALUES (?, ?)`).run(
+      user.id,
+      key.id,
+    );
+
     return {
       error: null,
       data: { user: { id: user.id, username: user.username } },

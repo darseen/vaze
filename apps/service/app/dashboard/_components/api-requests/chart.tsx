@@ -39,7 +39,7 @@ export default function Chart({ data }: Props) {
             </linearGradient>
           </defs>
           <XAxis
-            dataKey="dayOfTheWeek" // Fixed: Changed from "date" to match the data object
+            dataKey="dayOfTheWeek"
             tickLine={false}
             axisLine={false}
             tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }}

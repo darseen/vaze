@@ -72,6 +72,7 @@ class SQLiteDB {
       CREATE TABLE IF NOT EXISTS files (
           id TEXT PRIMARY KEY NOT NULL UNIQUE,
           name TEXT UNIQUE NOT NULL,
+          type TEXT NOT NULL,
           path TEXT NOT NULL,
           folder_id TEXT NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
           size INTEGER NOT NULL, 

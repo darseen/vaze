@@ -39,6 +39,7 @@ type FileMetadata = {
   id: string;
   folderId: string;
   path: string;
+  type: string;
   fileName: string;
   size: number;
 };
@@ -93,6 +94,9 @@ export async function POST(request: NextRequest) {
           path.parse(file.name).name
         }-${crypto.randomUUID().split("-")[0]}${path.extname(file.name)}`;
 
+        // get file type
+        const fileType = path.extname(fileName);
+
         // construct file path
         const fileAbsolutePath = path.join(folderAbsolutePath, fileName);
 
@@ -113,8 +117,13 @@ export async function POST(request: NextRequest) {
         if (!folderInDB) {
           try {
             db.prepare(
-              `INSERT INTO folders (id, name, path) VALUES (?, ?, ?)`,
-            ).run(crypto.randomUUID(), folderName, folderAbsolutePath);
+              `INSERT INTO folders (id, name, path, type) VALUES (?, ?, ?, ?)`,
+            ).run(
+              crypto.randomUUID(),
+              folderName,
+              folderAbsolutePath,
+              fileType,
+            );
 
             folderInDB = db
               .prepare(`SELECT * FROM folders WHERE path = ?`)
@@ -140,6 +149,7 @@ export async function POST(request: NextRequest) {
           id: crypto.randomUUID(),
           path: fileAbsolutePath,
           folderId: folderInDB.id,
+          type: fileType,
           fileName,
           size: file.size,
         });
@@ -148,7 +158,7 @@ export async function POST(request: NextRequest) {
       // run all database inserts within a single, atomic transaction
       const insertMany = db.transaction((filesToInsert: FileMetadata[]) => {
         const insertStatement = db.prepare(
-          `INSERT INTO files (id, name, folder_id, path, size) VALUES (?, ?, ?, ?, ?)`,
+          `INSERT INTO files (id, name, folder_id, path, size, type) VALUES (?, ?, ?, ?, ?, ?)`,
         );
         for (const file of filesToInsert) {
           insertStatement.run(
@@ -157,6 +167,7 @@ export async function POST(request: NextRequest) {
             file.folderId,
             file.path,
             file.size,
+            file.type,
           );
         }
       });
