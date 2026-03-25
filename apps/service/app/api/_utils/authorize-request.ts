@@ -3,6 +3,7 @@ import { validateApiKey } from "@/utils/api-keys";
 import { verifyToken } from "@/utils/jwt";
 import { User } from "@repo/types";
 import { NextRequest } from "next/server";
+import crypto from "node:crypto";
 
 export default async function authorizeRequest(request: NextRequest) {
   // authorize the request using the jwt token or an api key
@@ -32,10 +33,9 @@ export default async function authorizeRequest(request: NextRequest) {
       return { error: { message: "Unauthorized" }, data: null };
     }
 
-    db.prepare(`INSERT INTO api_requests (user_id, key_id) VALUES (?, ?)`).run(
-      user.id,
-      key.id,
-    );
+    db.prepare(
+      `INSERT INTO api_requests (id, user_id, key_id) VALUES (?, ?, ?)`,
+    ).run(crypto.randomUUID(), user.id, key.id);
 
     return {
       error: null,
