@@ -18,4 +18,5 @@ jobs:
 
       - name: Push image
         run: |
+          docker login -u darseen -p ${{ secrets.DOCKER_TOKEN }}
           docker push darsee/vaze:latest
