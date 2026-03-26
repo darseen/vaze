@@ -98,7 +98,7 @@ export default async function RecentFiles() {
         <CardDescription>Latest uploaded files</CardDescription>
       </CardHeader>
       <CardContent
-        className={`h-64 ${files.length === 0 ? "flex items-center justify-center" : ""}`}
+        className={`h-64 ${files.length === 0 ? "flex items-center justify-center" : "space-y-4"}`}
       >
         {files.length === 0 ? (
           <p className="text-muted-foreground text-center text-sm">

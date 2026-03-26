@@ -35,14 +35,16 @@ export default function Chart({ data }: Props) {
     >
       <RadialBarChart data={data} innerRadius={30} outerRadius={100}>
         <ChartTooltip
-          cursor={false}
+          cursor={{ fill: "oklch(0.5 0 0 / 0.1)" }}
           content={
             <ChartTooltipContent
               hideLabel
               formatter={(value, name, props) => (
                 <div className="flex flex-row items-center justify-center gap-2">
-                  <span className="text-xs">{formatBytes(Number(value))}</span>
-                  <span className="text-muted-foreground font-medium">
+                  <span className="text-xs font-medium">
+                    {formatBytes(Number(value))}
+                  </span>
+                  <span className="text-muted-foreground">
                     {props.payload.name}
                   </span>
                 </div>
@@ -50,15 +52,17 @@ export default function Chart({ data }: Props) {
             />
           }
         />
-        <PolarGrid gridType="circle" />
-        <RadialBar dataKey="value" />
+        <PolarGrid gridType="circle" stroke="oklch(0.5 0 0 / 0.15)" />
+
+        <RadialBar dataKey="value" cornerRadius={4} />
+
         <Legend
           layout="vertical"
           verticalAlign="middle"
           align="right"
           wrapperStyle={{ fontSize: "12px" }}
           formatter={(value) => (
-            <span style={{ color: "oklch(0.8 0 0)" }}>{value}</span>
+            <span className="text-foreground font-medium">{value}</span>
           )}
         />
       </RadialBarChart>
