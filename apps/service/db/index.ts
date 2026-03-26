@@ -111,7 +111,7 @@ class SQLiteDB {
       CREATE TABLE IF NOT EXISTS api_requests (
           id TEXT PRIMARY KEY NOT NULL UNIQUE,
           user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          key_id TEXT NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,
+          key_id TEXT NOT NULL REFERENCES api_keys(id) ON DELETE SET NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
