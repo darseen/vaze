@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     const filesWithUrls = files.map((file) => ({
       ...file,
-      url: `${process.env.BASE_URL}/file/${file.name}`,
+      url: `${process.env.BASE_URL}/hosting/${file.name}`,
     }));
 
     return NextResponse.json({ data: { files: filesWithUrls }, error: null });
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
 
     const filesWithUrls = uploadedFiles.map((file) => ({
       ...file,
-      url: `${process.env.BASE_URL}/file/${file.fileName}`,
+      url: `${process.env.BASE_URL}/hosting/${file.fileName}`,
     }));
 
     revalidatePath("/dashboard");
@@ -216,7 +216,6 @@ export async function PUT(request: NextRequest) {
 
     const { id, name }: { id: string; name: string } = await request.json();
 
-    // find in database
     const file = db.prepare(`SELECT * FROM files WHERE id = ?`).get(id) as
       | FileDB
       | undefined;
@@ -237,10 +236,17 @@ export async function PUT(request: NextRequest) {
     }
 
     try {
+      const fileDirectory = path.dirname(file.path);
+      const newAbsolutePath = path.join(fileDirectory, name);
+
       // update file name on disk
-      await fs.rename(file.path, path.join(BASE_UPLOADS_PATH, name));
-      // update file name in database
-      db.prepare(`UPDATE files SET name = ? WHERE id = ?`).run(name, id);
+      await fs.rename(file.path, newAbsolutePath);
+
+      db.prepare(`UPDATE files SET name = ?, path = ? WHERE id = ?`).run(
+        name,
+        newAbsolutePath,
+        id,
+      );
     } catch {
       return NextResponse.json(
         { data: null, error: { message: "Error updating file" } },
