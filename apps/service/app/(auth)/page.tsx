@@ -5,7 +5,7 @@ import Info from "./_components/info";
 import SignInForm from "./_components/sign-in-form";
 
 export const metadata: Metadata = {
-  title: "Vaze",
+  title: "Auth",
   description: "Sign in | Vaze",
 };
 

@@ -24,7 +24,11 @@ export default async function signIn(formData: FormData) {
     const user = statement.get(username) as User;
 
     if (!user) {
-      return { data: null, error: { message: "User not found" }, status: 404 };
+      return {
+        data: null,
+        error: { message: "Invalid credentials" },
+        status: 401,
+      };
     }
 
     // check if password is correct
