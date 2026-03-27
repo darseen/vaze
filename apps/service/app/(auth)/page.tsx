@@ -6,7 +6,7 @@ import SignInForm from "./_components/sign-in-form";
 
 export const metadata: Metadata = {
   title: "Auth",
-  description: "Sign in | Vaze",
+  description: "Sign in to your Vaze account",
 };
 
 export const dynamic = "force-dynamic";

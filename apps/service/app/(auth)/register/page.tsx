@@ -5,8 +5,8 @@ import Info from "../_components/info";
 import RegisterForm from "./_components/register-form";
 
 export const metadata: Metadata = {
-  title: "Vaze",
-  description: "Register | Vaze",
+  title: "Register",
+  description: "Create a Vaze admin account",
 };
 
 export const dynamic = "force-dynamic";
