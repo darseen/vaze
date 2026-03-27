@@ -1,8 +1,8 @@
 import { Metadata } from "next";
 
+import { fetchFolderByPath } from "@/app/api/folders/get";
 import ActionBar from "./_components/action-bar";
 import FilesList from "./_components/files-list";
-import fetchFolder from "./_utils/fetch-folder";
 
 export const metadata: Metadata = {
   title: "Files",
@@ -16,7 +16,7 @@ export default async function Page({
 }) {
   const folderPath = (await params).folder.slice(1).join("/");
 
-  const { data, error } = await fetchFolder({ path: folderPath });
+  const { data, error } = await fetchFolderByPath(folderPath);
 
   if (error) throw new Error(error.message);
 

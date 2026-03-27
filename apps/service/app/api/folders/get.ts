@@ -101,38 +101,8 @@ export default async function GET(request: NextRequest) {
     }
 
     if (folderPath) {
-      const folder = db
-        .prepare(`SELECT * FROM folders WHERE path = ?`)
-        .get(path.join(BASE_UPLOADS_PATH, folderPath)) as Folder | undefined;
-
-      if (!folder) {
-        return NextResponse.json(
-          { data: null, error: { message: "Folder not found" } },
-          { status: 404 },
-        );
-      }
-
-      // fetch files in folder
-      const files = db
-        .prepare(`SELECT * FROM files WHERE folder_id = ?`)
-        .all(folder.id) as File[];
-
-      // fetch subfolders in folder
-      const searchPattern = path.join(folder.path, "%");
-      const excludePattern = path.join(folder.path, "%/%");
-
-      const folders = db
-        .prepare(
-          `
-            SELECT * FROM folders 
-            WHERE path LIKE ? 
-            AND path NOT LIKE ?
-            AND path != ?
-          `,
-        )
-        .all(searchPattern, excludePattern, folder.path) as Folder[];
-
-      return NextResponse.json({ data: { files, folders }, error: null });
+      const { error, data } = await fetchFolderByPath(folderPath);
+      return NextResponse.json({ data, error });
     }
 
     // throw an error if somehow all the if's didn't trigger, just in case.
@@ -144,4 +114,36 @@ export default async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+export async function fetchFolderByPath(folderPath: string) {
+  const folder = db
+    .prepare(`SELECT * FROM folders WHERE path = ?`)
+    .get(path.join(BASE_UPLOADS_PATH, folderPath)) as Folder | undefined;
+
+  if (!folder) {
+    return { error: { message: "Folder not found" }, data: null };
+  }
+
+  // fetch files in folder
+  const files = db
+    .prepare(`SELECT * FROM files WHERE folder_id = ?`)
+    .all(folder.id) as File[];
+
+  // fetch subfolders in folder
+  const searchPattern = path.join(folder.path, "%");
+  const excludePattern = path.join(folder.path, "%/%");
+
+  const folders = db
+    .prepare(
+      `
+            SELECT * FROM folders 
+            WHERE path LIKE ? 
+            AND path NOT LIKE ?
+            AND path != ?
+          `,
+    )
+    .all(searchPattern, excludePattern, folder.path) as Folder[];
+
+  return { data: { files, folders }, error: null };
 }
