@@ -44,7 +44,7 @@ export type ApiRequest = {
   created_at: string;
 };
 
-export type ApiResponse<T> = Promise<
+export type ApiResponse<T> =
   | {
       data: T;
       error: null;
@@ -52,5 +52,4 @@ export type ApiResponse<T> = Promise<
   | {
       data: null;
       error: { message: string };
-    }
->;
+    };
