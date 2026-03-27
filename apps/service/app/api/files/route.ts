@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { accessPath } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
@@ -104,13 +105,12 @@ export async function POST(request: NextRequest) {
         // construct file path
         const fileAbsolutePath = path.join(folderAbsolutePath, fileName);
 
-        // create a readable stream from the file
-        const fileStream = file.stream();
+        // create a readable stream from the file and convert it to a Node stream
+        const nodeStream = Readable.fromWeb(file.stream() as any);
 
         // write file to disk
         const fileToWriteTo = await fs.open(fileAbsolutePath, "w");
-        // @ts-expect-error - type issue
-        await pipeline(fileStream, fileToWriteTo.createWriteStream());
+        await pipeline(nodeStream, fileToWriteTo.createWriteStream());
 
         // get folder id from database
         let folderInDB = db
