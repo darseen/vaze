@@ -14,18 +14,18 @@
 > [!IMPORTANT]  
 > **Vaze is currently under active development.** This project is still in its early stages, and I'm continuously implementing new features and improvements.
 
-## ✨ Features
+## Features
 
-- **🗂️ Full File & Folder Management**: Create, rename, move, and delete files and folders directly from the web UI.
-- **📤 Simple Uploads**: Easily upload files and folders through a drag-and-drop interface.
-- **📥 Export & Download**: Download individual files or entire folders as a zip archive.
-- **🔑 API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps.
-- **🚀 Powerful API**: Use Vaze as a backend service for any application that needs file hosting or storage, with simple RESTful endpoints.
-- **🚢 Dockerized**: Get up and running in minutes with the official Docker image.
+- **Full File & Folder Management**: Create, rename, move, and delete files and folders directly from the web UI.
+- **Simple Uploads**: Easily upload files and folders through a drag-and-drop interface.
+- **Export & Download**: Download individual files or entire folders as a zip archive.
+- **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps.
+- **Powerful API**: Use Vaze as a backend service for any application that needs file hosting or storage, with simple RESTful endpoints.
+- **Dockerized**: Get up and running in minutes with the official Docker image.
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 Getting your own Vaze instance running is simple. All you need is Docker installed on your system.
 
@@ -46,7 +46,7 @@ docker run -d -p 3000:3000 --name vaze darseen/vaze:latest
 ```
 
 - `-p 3000:3000`: Maps port 3000 on your host to the container's port 3000.
-<!-- - `-v /path/on/your/host/machine:/app/data`: This is important! It mounts a directory from your host machine into the container. This ensures your uploaded files are saved on your machine and persist even if the container is removed or updated. Remember to replace `/path/on/your/host/machine` with an actual path on your server (e.g., `~/vaze-data`). -->
+- `-v /path/on/your/host/machine:/app/data`: This mounts a directory from your host machine into the container. It ensures your uploaded files are saved on your machine and persist even if the container is removed or updated.
 
 ## 3. Initial Setup (Admin Registration)
 
@@ -58,7 +58,7 @@ Once the container is running, you need to create your first (admin) user.
 
 That's it! You can now start uploading and managing your files.
 
-## 🛜 API Usage
+## API Usage
 
 Vaze can be used as a file-hosting backend for your other projects.
 
@@ -75,9 +75,15 @@ curl -X POST http://<your-server-ip>:3000/api/files \
 
 The API will return a JSON response with the URL of the hosted file.
 
-## 🖼️ Screenshots
+## Screenshots
 
-Here are a few glimpses of the Vaze interface.
+Here are a few screenshots of the Vaze interface.
+
+<div align="center">
+  <h3> Main Dashboard View  </h3>
+  <img src="./.github/images/dashboard-1.png" alt="Main Dashboard View 1" width="100%"/>
+  <img src="./.github/images/dashboard-2.png" alt="Main Dashboard View 2" width="100%"/>
+</div>
 
 <div align="center">
   <h3> File Management Page </h3>
@@ -94,10 +100,10 @@ Here are a few glimpses of the Vaze interface.
   <img src="./.github/images/register.png" alt="User Registration Page" width="100%"/>
 </div>
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! If you'd like to help improve Vaze, please feel free to fork the repository, make changes, and submit a pull request.
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
