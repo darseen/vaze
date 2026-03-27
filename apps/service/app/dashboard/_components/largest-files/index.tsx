@@ -10,7 +10,7 @@ import Chart from "./chart";
 
 export default async function LargestFilesChart() {
   const data = db
-    .prepare("SELECT name, size FROM files ORDER BY size DESC")
+    .prepare("SELECT name, size FROM files ORDER BY size DESC LIMIT 5")
     .all() as { name: string; size: number }[];
 
   return (
