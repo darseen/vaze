@@ -20,12 +20,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // fetch all files from the database
     const files = db
       .prepare("SELECT * FROM files ORDER BY created_at DESC")
       .all() as FileDB[];
 
-    return NextResponse.json({ data: { files }, error: null });
+    const filesWithUrls = files.map((file) => ({
+      ...file,
+      url: `${process.env.BASE_URL}/file/${file.name}`,
+    }));
+
+    return NextResponse.json({ data: { files: filesWithUrls }, error: null });
   } catch (error) {
     console.log("get files error", error);
     return NextResponse.json(
@@ -184,8 +188,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const filesWithUrls = uploadedFiles.map((file) => ({
+      ...file,
+      url: `${process.env.BASE_URL}/file/${file.fileName}`,
+    }));
+
     revalidatePath("/dashboard");
-    return NextResponse.json({ data: { files: uploadedFiles }, error: null });
+    return NextResponse.json({ data: { files: filesWithUrls }, error: null });
   } catch (error) {
     console.log("upload file error", error);
     return NextResponse.json(
