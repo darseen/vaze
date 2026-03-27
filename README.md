@@ -44,6 +44,7 @@ Run the Docker container, mapping your volume, port, and setting your `BASE_URL`
 ```bash
 docker run -d \
   -p 3000:3000 \
+  -v /path/on/your/host/machine:/app/data \
   -e BASE_URL="http://your-server-ip-or-domain:3000" \
   --name vaze \
   darseen/vaze:latest
