@@ -12,6 +12,7 @@ export type File = {
   folder_id: string;
   path: string;
   size: number;
+  type: string;
   created_at: string;
   updated_at: string;
 };
