@@ -39,10 +39,14 @@ docker pull darseen/vaze:latest
 
 ## 2. Run the Container
 
-Run the Docker container, making sure to map a local volume to persist your files and map the port.
+Run the Docker container, mapping your volume, port, and setting your `BASE_URL`:
 
 ```bash
-docker run -d -p 3000:3000 --name vaze darseen/vaze:latest
+docker run -d \
+  -p 3000:3000 \
+  -e BASE_URL="http://your-server-ip-or-domain:3000" \
+  --name vaze \
+  darseen/vaze:latest
 ```
 
 - `-p 3000:3000`: Maps port 3000 on your host to the container's port 3000.
