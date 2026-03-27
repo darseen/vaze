@@ -36,3 +36,20 @@ export type ApiKey = {
   created_at: string;
   updated_at: string;
 };
+
+export type ApiRequest = {
+  id: string;
+  user_id: string;
+  key_id: string;
+  created_at: string;
+};
+
+export type ApiResponse<T> =
+  | {
+      data: T;
+      error: null;
+    }
+  | {
+      data: null;
+      error: { message: string };
+    };
