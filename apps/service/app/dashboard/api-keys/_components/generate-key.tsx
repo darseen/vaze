@@ -72,7 +72,19 @@ export default function GenerateKey() {
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(generatedKey.key);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(generatedKey.key);
+      } else {
+        // fallback for non-secure contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = generatedKey.key;
+        textArea.style.position = "absolute";
+        textArea.style.left = "-999999px";
+        document.body.prepend(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        textArea.remove();
+      }
       setCopied(true);
       toast.success("API key copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
