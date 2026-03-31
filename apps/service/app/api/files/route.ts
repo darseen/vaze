@@ -1,6 +1,5 @@
-import { BASE_UPLOADS_PATH } from "@/constants";
 import db from "@/db";
-import { File as FileDB, Folder } from "@repo/types";
+import type { File as FileDB, Folder } from "@repo/types";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
@@ -8,7 +7,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { accessPath } from "../_utils";
+import { accessPath, createNestedFolders, getFilesWithUrls } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export async function GET(request: NextRequest) {
@@ -21,16 +20,72 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const searchParams = request.nextUrl.searchParams;
+
+    const id = searchParams.get("id");
+    const name = searchParams.get("name");
+    const limit = parseInt(searchParams.get("limit") || "-1");
+    const offset = parseInt(searchParams.get("offset") || "0");
+    const orderBy = searchParams.get("orderBy") || "created_at";
+    const orderDirection = searchParams.get("orderDirection") || "DESC";
+
+    const safeOrderBy = ["created_at", "updated_at", "name", "size"].includes(
+      orderBy,
+    )
+      ? orderBy
+      : "created_at";
+    const safeOrderDirection = ["ASC", "DESC"].includes(
+      orderDirection.toUpperCase(),
+    )
+      ? orderDirection
+      : "DESC";
+
+    if (id) {
+      const file = db.prepare(`SELECT * FROM files WHERE id = ?`).get(id) as
+        | FileDB
+        | undefined;
+
+      if (!file) {
+        return NextResponse.json(
+          { data: null, error: { message: "File not found" } },
+          { status: 404 },
+        );
+      }
+
+      return NextResponse.json({
+        data: { file: getFilesWithUrls([file])[0] },
+        error: null,
+      });
+    } else if (name) {
+      const files = db
+        .prepare(
+          `SELECT * FROM files WHERE name = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
+        )
+        .all(name, limit, offset) as FileDB[];
+
+      if (!files || files.length === 0) {
+        return NextResponse.json(
+          { data: null, error: { message: "File not found" } },
+          { status: 404 },
+        );
+      }
+      console.log(files);
+      return NextResponse.json({
+        data: { files: getFilesWithUrls(files)[0] },
+        error: null,
+      });
+    }
+
     const files = db
-      .prepare("SELECT * FROM files ORDER BY created_at DESC")
-      .all() as FileDB[];
+      .prepare(
+        `SELECT * FROM files ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
+      )
+      .all(limit, offset) as FileDB[];
 
-    const filesWithUrls = files.map((file) => ({
-      ...file,
-      url: `${process.env.BASE_URL}/hosting/${file.name}`,
-    }));
-
-    return NextResponse.json({ data: { files: filesWithUrls }, error: null });
+    return NextResponse.json({
+      data: { files: getFilesWithUrls(files) },
+      error: null,
+    });
   } catch (error) {
     console.log("get files error", error);
     return NextResponse.json(
@@ -39,15 +94,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-type FileMetadata = {
-  id: string;
-  folderId: string;
-  path: string;
-  type: string;
-  fileName: string;
-  size: number;
-};
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const folder = formData.get("folder") as string | null;
+    const folder = (formData.get("folder") as string) || "";
     const files = formData.getAll("files") as File[];
 
     if (!files || files.length === 0) {
@@ -70,131 +116,90 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // check if folder contains any dots
-    if (folder && folder.includes(".")) {
+    let targetFolder: Folder;
+    try {
+      targetFolder = await createNestedFolders(folder);
+    } catch (err: any) {
       return NextResponse.json(
-        { error: { message: "Folder name cannot contain dots" }, data: null },
+        { error: { message: err.message }, data: null },
         { status: 400 },
       );
     }
 
-    const folderName = path.basename(folder ? folder : "uploads");
-    const folderAbsolutePath = path.join(
-      BASE_UPLOADS_PATH,
-      // remove leading slash if folder is provided
-      folder ? folder.replace("/", "") : "",
-    );
-    const uploadedFiles: FileMetadata[] = [];
-
-    // create folder if it doesn't exist
-    const folderExists = await accessPath(folderAbsolutePath);
-    if (!folderExists) {
-      await fs.mkdir(folderAbsolutePath, { recursive: true });
-    }
+    const uploadedFiles: Omit<FileDB, "created_at" | "updated_at">[] = [];
+    const filesWrittenToDisk: string[] = []; // track paths for targeted cleanup
 
     try {
       for (const file of files) {
-        // attach random uuid to file name
         const fileName = `${
           path.parse(file.name).name
         }-${crypto.randomUUID().split("-")[0]}${path.extname(file.name)}`;
 
-        // get file type
         const fileType = path.extname(fileName);
+        const fileAbsolutePath = path.join(targetFolder.path, fileName);
 
-        // construct file path
-        const fileAbsolutePath = path.join(folderAbsolutePath, fileName);
+        filesWrittenToDisk.push(fileAbsolutePath);
 
-        // create a readable stream from the file and convert it to a Node stream
         const nodeStream = Readable.fromWeb(file.stream() as any);
-
-        // write file to disk
         const fileToWriteTo = await fs.open(fileAbsolutePath, "w");
         await pipeline(nodeStream, fileToWriteTo.createWriteStream());
-
-        // get folder id from database
-        let folderInDB = db
-          .prepare(`SELECT * FROM folders WHERE path = ?`)
-          .get(folderAbsolutePath) as Folder | undefined;
-
-        // create folder if it doesn't exist
-        if (!folderInDB) {
-          try {
-            db.prepare(
-              `INSERT INTO folders (id, name, path, type) VALUES (?, ?, ?, ?)`,
-            ).run(
-              crypto.randomUUID(),
-              folderName,
-              folderAbsolutePath,
-              fileType,
-            );
-
-            folderInDB = db
-              .prepare(`SELECT * FROM folders WHERE path = ?`)
-              .get(folderAbsolutePath) as Folder;
-          } catch (error) {
-            console.log(error);
-            // revert the changes if there is an error
-            await fs
-              .rm(folderAbsolutePath, { recursive: true, force: true })
-              .catch();
-            db.prepare(`DELETE FROM folders WHERE path = ?`).run(
-              folderAbsolutePath,
-            );
-
-            return NextResponse.json(
-              { data: null, error: { message: "Error creating folder" } },
-              { status: 400 },
-            );
-          }
-        }
 
         uploadedFiles.push({
           id: crypto.randomUUID(),
           path: fileAbsolutePath,
-          folderId: folderInDB.id,
+          folder_id: targetFolder.id,
           type: fileType,
-          fileName,
+          name: fileName,
           size: file.size,
         });
       }
 
-      // run all database inserts within a single, atomic transaction
-      const insertMany = db.transaction((filesToInsert: FileMetadata[]) => {
-        const insertStatement = db.prepare(
-          `INSERT INTO files (id, name, folder_id, path, size, type) VALUES (?, ?, ?, ?, ?, ?)`,
-        );
-        for (const file of filesToInsert) {
-          insertStatement.run(
-            file.id,
-            file.fileName,
-            file.folderId,
-            file.path,
-            file.size,
-            file.type,
+      const insertMany = db.transaction(
+        (filesToInsert: Omit<FileDB, "created_at" | "updated_at">[]) => {
+          const insertStatement = db.prepare(
+            `INSERT INTO files (id, name, folder_id, path, size, type) VALUES (?, ?, ?, ?, ?, ?)`,
           );
-        }
-      });
+          for (const file of filesToInsert) {
+            insertStatement.run(
+              file.id,
+              file.name,
+              file.folder_id,
+              file.path,
+              file.size,
+              file.type,
+            );
+          }
+        },
+      );
       insertMany(uploadedFiles);
     } catch (error) {
-      console.log(error);
-      // revert the changes if there is an error
-      await fs.rm(folderAbsolutePath, { recursive: true, force: true }).catch();
-      db.prepare(`DELETE FROM folders WHERE path = ?`).run(folderAbsolutePath); // files would be deleted by cascade
+      console.error("File processing or DB transaction error:", error);
+      // iterate through only the files this request touched
+      for (const filePath of filesWrittenToDisk) {
+        await fs.unlink(filePath).catch(() => {
+          console.log(
+            `Cleanup note: File ${filePath} was not fully written, skipped deletion.`,
+          );
+        });
+      }
 
       return NextResponse.json(
-        { data: null, error: { message: "Error uploading file" } },
-        { status: 400 },
+        {
+          data: null,
+          error: {
+            message:
+              "Error uploading files. Partial uploads were safely reverted.",
+          },
+        },
+        { status: 500 },
       );
     }
 
-    const filesWithUrls = uploadedFiles.map((file) => ({
-      ...file,
-      url: `${process.env.BASE_URL}/hosting/${file.fileName}`,
-    }));
-
     revalidatePath("/dashboard");
-    return NextResponse.json({ data: { files: filesWithUrls }, error: null });
+    return NextResponse.json({
+      data: { files: getFilesWithUrls(uploadedFiles as FileDB[]) },
+      error: null,
+    });
   } catch (error) {
     console.log("upload file error", error);
     return NextResponse.json(
@@ -235,6 +240,18 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // check if file name already exists in the same folder
+    const existingFile = db
+      .prepare(`SELECT * FROM files WHERE name = ? AND folder_id = ?`)
+      .get(name, file.folder_id) as FileDB | undefined;
+
+    if (existingFile) {
+      return NextResponse.json(
+        { data: null, error: { message: "File name already exists" } },
+        { status: 409 },
+      );
+    }
+
     try {
       const fileDirectory = path.dirname(file.path);
       const newAbsolutePath = path.join(fileDirectory, name);
@@ -247,7 +264,8 @@ export async function PUT(request: NextRequest) {
         newAbsolutePath,
         id,
       );
-    } catch {
+    } catch (error) {
+      console.log("update file error", error);
       return NextResponse.json(
         { data: null, error: { message: "Error updating file" } },
         { status: 500 },

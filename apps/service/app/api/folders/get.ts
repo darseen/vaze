@@ -3,6 +3,7 @@ import db from "@/db";
 import { File, Folder } from "@repo/types";
 import { NextRequest, NextResponse } from "next/server";
 import path from "node:path";
+import { fetchFolderByPath, getFilesWithUrls } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export default async function GET(request: NextRequest) {
@@ -16,8 +17,22 @@ export default async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
+
     const id = searchParams.get("id");
     const folderPath = searchParams.get("path");
+    const limit = parseInt(searchParams.get("limit") || "-1");
+    const offset = parseInt(searchParams.get("offset") || "0");
+    const orderBy = searchParams.get("orderBy") || "created_at";
+    const orderDirection = searchParams.get("orderDirection") || "desc";
+
+    const safeOrderBy = ["created_at", "updated_at", "name"].includes(orderBy)
+      ? orderBy
+      : "created_at";
+    const safeOrderDirection = ["ASC", "DESC"].includes(
+      orderDirection.toUpperCase(),
+    )
+      ? orderDirection
+      : "DESC";
 
     // if nothing is provided, fetch the root folder and its files and folders
     if (!id && !folderPath) {
@@ -55,11 +70,13 @@ export default async function GET(request: NextRequest) {
         .all(searchPattern, excludePattern, folder.path) as Folder[];
 
       const files = db
-        .prepare(`SELECT * FROM files WHERE folder_id = ?`)
-        .all(folder.id) as File[];
+        .prepare(
+          `SELECT * FROM files WHERE folder_id = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
+        )
+        .all(folder.id, limit, offset) as File[];
 
       return NextResponse.json({
-        data: { files, folders },
+        data: { files: getFilesWithUrls(files), folders },
         error: null,
       });
     }
@@ -79,8 +96,10 @@ export default async function GET(request: NextRequest) {
 
       // fetch files in folder
       const files = db
-        .prepare(`SELECT * FROM files WHERE folder_id = ?`)
-        .all(folder.id) as File[];
+        .prepare(
+          `SELECT * FROM files WHERE folder_id = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
+        )
+        .all(folder.id, limit, offset) as File[];
 
       // fetch subfolders in folder
       const searchPattern = path.join(folder.path, "%");
@@ -97,7 +116,10 @@ export default async function GET(request: NextRequest) {
         )
         .all(searchPattern, excludePattern, folder.path) as Folder[];
 
-      return NextResponse.json({ data: { files, folders }, error: null });
+      return NextResponse.json({
+        data: { files: getFilesWithUrls(files), folders },
+        error: null,
+      });
     }
 
     if (folderPath) {
@@ -114,36 +136,4 @@ export default async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
-}
-
-export async function fetchFolderByPath(folderPath: string) {
-  const folder = db
-    .prepare(`SELECT * FROM folders WHERE path = ?`)
-    .get(path.join(BASE_UPLOADS_PATH, folderPath)) as Folder | undefined;
-
-  if (!folder) {
-    return { error: { message: "Folder not found" }, data: null };
-  }
-
-  // fetch files in folder
-  const files = db
-    .prepare(`SELECT * FROM files WHERE folder_id = ?`)
-    .all(folder.id) as File[];
-
-  // fetch subfolders in folder
-  const searchPattern = path.join(folder.path, "%");
-  const excludePattern = path.join(folder.path, "%/%");
-
-  const folders = db
-    .prepare(
-      `
-            SELECT * FROM folders 
-            WHERE path LIKE ? 
-            AND path NOT LIKE ?
-            AND path != ?
-          `,
-    )
-    .all(searchPattern, excludePattern, folder.path) as Folder[];
-
-  return { data: { files, folders }, error: null };
 }
