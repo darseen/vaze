@@ -52,6 +52,10 @@ jobs:
         if: steps.version_check.outputs.should_publish == 'true'
         run: pnpm install --frozen-lockfile
 
+      - name: Build packages
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: pnpm turbo run build --filter=@darseen/vaze
+
       - name: Release to NPM
         if: steps.version_check.outputs.should_publish == 'true'
         run: pnpm --filter @darseen/vaze run release

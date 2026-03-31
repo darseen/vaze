@@ -9,7 +9,8 @@
     "storage",
     "files",
     "file",
-    "file-storage"
+    "file-storage",
+    "vaze"
   ],
   "homepage": "https://github.com/darseen/vaze#readme",
   "bugs": {
