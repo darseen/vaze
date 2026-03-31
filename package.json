@@ -16,7 +16,8 @@
     "lint": "turbo run lint",
     "version:patch": "turbo run version:patch --filter=service",
     "version:minor": "turbo run version:minor --filter=service",
-    "version:major": "turbo run version:major --filter=service"
+    "version:major": "turbo run version:major --filter=service",
+    "clean": "node scripts/clean.js"
   },
   "keywords": [],
   "devDependencies": {
