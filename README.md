@@ -5,14 +5,12 @@
 <img src="./.github/images/vaze.png" alt="logo" width="200"/>
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/darseen/vaze?style=for-the-badge)](https://hub.docker.com/r/darseen/vaze)
+![Docker Image Version (tag)](https://img.shields.io/docker/v/darseen/vaze/latest?style=for-the-badge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 **Vaze** is a self-hosted, local-first file storage and hosting service built with Next.js. Run it easily as a Docker container on your own server or home network. It provides a clean web interface for managing your files and a powerful API to use as a backend for your other applications.
 
 ## </div>
-
-> [!IMPORTANT]  
-> **Vaze is currently under active development.** This project is still in its early stages, and I'm continuously implementing new features and improvements.
 
 ## Features
 
