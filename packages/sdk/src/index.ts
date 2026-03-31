@@ -14,3 +14,5 @@ export default class Vaze extends Base implements IVaze {
     this.folders = new Folders();
   }
 }
+
+export type { ApiResponse, FileWithUrl as File, Folder } from "@repo/types";

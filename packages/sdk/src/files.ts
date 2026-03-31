@@ -1,4 +1,4 @@
-import type { FileWithUrl } from "@repo/types";
+import type { FileWithUrl as File } from "@repo/types";
 import Base from "./base.js";
 
 export default class Files extends Base {
@@ -15,14 +15,14 @@ export default class Files extends Base {
       }
     }
 
-    return await this.request<{ files: FileWithUrl[] }>("GET", url.toString());
+    return await this.request<{ files: File[] }>("GET", url.toString());
   }
 
   public async getById(id: string) {
     const url = new URL(`/api/files`, this.vazeUrl);
     url.searchParams.set("id", id);
 
-    return await this.request<{ file: FileWithUrl }>("GET", url.toString());
+    return await this.request<{ file: File }>("GET", url.toString());
   }
 
   public async getByName(
@@ -42,7 +42,7 @@ export default class Files extends Base {
       }
     }
 
-    return await this.request<{ files: FileWithUrl[] }>("GET", url.toString());
+    return await this.request<{ files: File[] }>("GET", url.toString());
   }
 
   public async upload(data: { files: File[]; folder?: string }) {
@@ -56,7 +56,7 @@ export default class Files extends Base {
       formData.append("files", file);
     });
 
-    return await this.request<{ files: FileWithUrl[] }>(
+    return await this.request<{ files: File[] }>(
       "POST",
       url.toString(),
       formData,

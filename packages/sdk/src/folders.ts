@@ -1,4 +1,4 @@
-import type { FileWithUrl, Folder } from "@repo/types";
+import type { FileWithUrl as File, Folder } from "@repo/types";
 import Base from "./base.js";
 
 export default class Folders extends Base {
@@ -17,7 +17,7 @@ export default class Folders extends Base {
       }
     }
 
-    return await this.request<{ files: FileWithUrl[]; folders: Folder[] }>(
+    return await this.request<{ files: File[]; folders: Folder[] }>(
       "GET",
       url.toString(),
     );
