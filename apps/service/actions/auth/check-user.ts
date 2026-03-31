@@ -11,8 +11,8 @@ export default async function checkUser() {
     if (users.length === 0) {
       return {
         data: null,
-        error: { message: "Invalid credentials" },
-        status: 401,
+        error: { message: "User not found" },
+        status: 404,
       };
     }
 

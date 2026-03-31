@@ -25,9 +25,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { ApiResponse } from "@/types";
 import { formatDate } from "@/utils";
-import { File } from "@repo/types";
+import { ApiResponse, File } from "@repo/types";
 import { Download, Edit, FileText, MoreVertical, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -107,7 +106,7 @@ export default function FileCard({ file }: Props) {
       >
         <CardContent className="p-0">
           {/* File Preview Area */}
-          <div className="from-muted/30 to-muted/60 relative flex h-32 items-center justify-center bg-gradient-to-br">
+          <div className="from-muted/30 to-muted/60 relative flex h-32 items-center justify-center bg-linear-to-br">
             <div className="relative">
               <FileText className="text-muted-foreground/60 group-hover:text-muted-foreground/80 h-12 w-12 transition-colors" />
               {getFileExtension(file.name) && (

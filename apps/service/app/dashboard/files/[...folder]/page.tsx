@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 
-import { fetchFolderByPath } from "@/app/api/folders/get";
+import { fetchFolderByPath } from "@/app/api/_utils";
 import ActionBar from "./_components/action-bar";
 import FilesList from "./_components/files-list";
 

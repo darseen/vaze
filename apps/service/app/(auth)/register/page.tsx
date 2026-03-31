@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function Page() {
   const { error } = await checkUser();
 
-  if (!error) redirect("/");
+  if (!error) redirect("/dashboard");
 
   return (
     <main className="flex min-h-screen flex-col-reverse lg:flex-row">

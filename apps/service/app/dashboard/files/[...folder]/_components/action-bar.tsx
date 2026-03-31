@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import type { ApiResponse } from "@/types";
+import type { ApiResponse } from "@repo/types";
 import { Filter, Plus, Search, Upload } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { type ChangeEvent, useRef, useState } from "react";
@@ -170,7 +170,7 @@ export default function ActionBar() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
             <DialogDescription>

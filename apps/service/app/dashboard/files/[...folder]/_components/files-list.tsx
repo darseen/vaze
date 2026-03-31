@@ -76,7 +76,12 @@ export default function FilesList({ files, folders }: Props) {
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {folders.map((folder) => (
-            <FolderCard key={folder.id} folder={folder} />
+            <FolderCard
+              key={folder.id}
+              folder={folder}
+              filesCount={files.length}
+              foldersCount={folders.length}
+            />
           ))}
 
           {files.map((file) => (

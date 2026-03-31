@@ -27,9 +27,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import type { ApiResponse } from "@/types";
 import { formatDate } from "@/utils";
-import type { Folder } from "@repo/types";
+import type { ApiResponse, Folder } from "@repo/types";
 import { Edit, FolderIcon, MoreVertical, Trash2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -37,9 +36,15 @@ import { toast } from "sonner";
 
 interface Props {
   folder: Folder;
+  foldersCount: number;
+  filesCount: number;
 }
 
-export default function FolderCard({ folder }: Props) {
+export default function FolderCard({
+  folder,
+  foldersCount,
+  filesCount,
+}: Props) {
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -66,7 +71,8 @@ export default function FolderCard({ folder }: Props) {
       setLoading(false);
       console.log(pathname);
       if (pathname === "/dashboard/files/uploads") router.refresh();
-      else router.back();
+      else if (foldersCount === 0 && filesCount === 0) router.back();
+      else router.refresh();
     }
   };
 
@@ -97,7 +103,7 @@ export default function FolderCard({ folder }: Props) {
       >
         <CardContent className="p-0">
           {/* Folder Preview Area */}
-          <div className="relative flex h-32 items-center justify-center bg-gradient-to-br from-blue-50/30 to-blue-100/60 dark:from-blue-950/30 dark:to-blue-900/60">
+          <div className="relative flex h-32 items-center justify-center bg-linear-to-br from-blue-50/30 to-blue-100/60 dark:from-blue-950/30 dark:to-blue-900/60">
             <div className="relative">
               <FolderIcon className="h-12 w-12 fill-current text-blue-500 transition-colors group-hover:text-blue-600" />
             </div>
