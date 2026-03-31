@@ -1,16 +1,42 @@
 {
-  "name": "@repo/sdk",
+  "name": "@darseen/vaze",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "type": "module",
-  "exports": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "scripts": {
-    "dev": "tsc --watch --preserveWatchOutput",
-    "build": "tsc"
+  "description": "Vaze Self-Hosted file storage and hosting service SKD.",
+  "keywords": [
+    "api",
+    "sdk",
+    "self-hosting",
+    "storage",
+    "files",
+    "file"
+  ],
+  "homepage": "https://github.com/darseen/vaze#readme",
+  "bugs": {
+    "url": "https://github.com/darseen/vaze/issues"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/darseen/vaze.git"
+  },
+  "license": "MIT",
+  "author": "darseen",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "prebuild": "pnpm lint && rimraf ./dist",
+    "build": "tsup",
+    "release": "pnpm build && pnpm publish --provenance --no-git-checks --access public"
+  },
+  "devDependencies": {
+    "@repo/types": "workspace:*",
+    "@types/node": "^25.5.0",
+    "rimraf": "^6.1.3",
+    "tsup": "^8.5.1"
+  }
 }

@@ -1,0 +1,9 @@
+/src
+/node_modules
+
+.env
+.gitignore
+
+pnpm-lock.yaml
+tsconfig.json
+tsup.config.ts

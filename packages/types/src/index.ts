@@ -53,3 +53,5 @@ export type ApiResponse<T> =
       data: null;
       error: { message: string };
     };
+
+export type FileWithUrl = File & { url: string };

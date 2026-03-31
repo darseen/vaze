@@ -15,6 +15,7 @@ node_modules
 # Testing
 coverage
 apps/service/data
+testing
 
 # Turbo
 .turbo
