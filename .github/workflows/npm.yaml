@@ -1,0 +1,61 @@
+name: NPM CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/sdk/package.json"
+
+jobs:
+  publish-sdk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org/"
+          cache: "pnpm"
+
+      - name: Check if version needs publishing
+        id: version_check
+        working-directory: ./packages/sdk
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          LOCAL_VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED_VERSION=$(npm view $PACKAGE_NAME version 2>/dev/null || echo "0.0.0")
+
+          echo "Local version: $LOCAL_VERSION"
+          echo "Published version: $PUBLISHED_VERSION"
+
+          if [ "$LOCAL_VERSION" != "$PUBLISHED_VERSION" ]; then
+            echo "Version bump detected! Will publish."
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          else
+            echo "Version matches npm. Skipping publish."
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Release to NPM
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: pnpm --filter @darseen/vaze run release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

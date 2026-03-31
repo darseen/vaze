@@ -15,6 +15,7 @@
     },
     "version:patch": {},
     "version:minor": {},
-    "version:major": {}
+    "version:major": {},
+    "release": {}
   }
 }
