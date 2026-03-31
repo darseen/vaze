@@ -8,7 +8,9 @@
     "self-hosting",
     "storage",
     "files",
-    "file"
+    "file",
+    "file-storage",
+    "file-hosting"
   ],
   "homepage": "https://github.com/darseen/vaze#readme",
   "bugs": {
