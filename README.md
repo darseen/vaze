@@ -37,13 +37,14 @@ docker pull darseen/vaze:latest
 
 ## 2. Run the Container
 
-Run the Docker container, mapping your volume, port, and setting your `BASE_URL`:
+Run the Docker container, mapping your volume, port, and setting your `BASE_URL` and `AUTH_SECRET`:
 
 ```bash
 docker run -d \
   -p 3000:3000 \
-  -v /path/on/your/host/machine:/app/data \
+  -v /path/on/your/machine:/app/apps/service/data \
   -e BASE_URL="http://your-server-ip-or-domain:3000" \
+  -e AUTH_SECRET="your-secret-key" \
   --name vaze \
   darseen/vaze:latest
 ```
@@ -61,22 +62,17 @@ Once the container is running, you need to create your first (admin) user.
 
 That's it! You can now start uploading and managing your files.
 
+## Environment Variables
+
+The following environment variables should be set. If not set, the default values will be used.
+
+- `BASE_URL`: The base URL of your Vaze instance.
+- `AUTH_SECRET`: A secret key used to sign JWT tokens.
+
 ## API Usage
 
 Vaze can be used as a file-hosting backend for your other projects.
-
-1. **Generate an API Key**: From the Vaze web app, go to the "API Keys" dashboard and generate a new key.
-2. **Use the Key**: Pass this key in the Authorization header as a Bearer token in your API requests.
-
-### Example: Uploading a file with cURL
-
-```bash
-curl -X POST http://<your-server-ip>:3000/api/files \
-  -H "API-Key: YOUR_API_KEY" \
-  -F "file=@/path/to/local/file.png"
-```
-
-The API will return a JSON response with the URL of the hosted file.
+You can use Vaze's [official NPM package](https://npmjs.com/package/@darseen/vaze) to interact with the API.
 
 ## Screenshots
 
