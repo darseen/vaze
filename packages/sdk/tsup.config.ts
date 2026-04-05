@@ -6,4 +6,5 @@ export default defineConfig({
   dts: true,
   splitting: true,
   clean: true,
+  noExternal: ["@repo/types"],
 });
