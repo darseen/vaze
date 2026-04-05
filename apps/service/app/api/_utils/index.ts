@@ -24,7 +24,7 @@ export function accessPathSync(path: string) {
 export function getFilesWithUrls(files: File[]) {
   return files.map((file) => ({
     ...file,
-    url: `/api/hosting/${file.name}`,
+    url: `api/hosting/${file.name}`,
   }));
 }
 
