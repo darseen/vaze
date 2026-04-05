@@ -1,5 +1,6 @@
 import type { FileWithUrl as File, Folder } from "@repo/types";
 import Base from "./base.js";
+import { constructFileUrls } from "./utils/index.js";
 
 export default class Folders extends Base {
   public async get(options?: {
@@ -17,10 +18,23 @@ export default class Folders extends Base {
       }
     }
 
-    return await this.request<{ files: File[]; folders: Folder[] }>(
-      "GET",
-      url.toString(),
-    );
+    const { error, data } = await this.request<{
+      files: File[];
+      folders: Folder[];
+    }>("GET", url.toString());
+
+    return {
+      error,
+      data: data
+        ? {
+            files: constructFileUrls({
+              vazeUrl: this.vazeUrl,
+              files: data.files,
+            }),
+            folders: data.folders,
+          }
+        : null,
+    };
   }
 
   public async create(folder: string) {

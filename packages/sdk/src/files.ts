@@ -1,5 +1,6 @@
 import type { FileWithUrl as File } from "@repo/types";
 import Base from "./base.js";
+import { constructFileUrls } from "./utils/index.js";
 
 export default class Files extends Base {
   public async getAll(options?: {
@@ -15,14 +16,44 @@ export default class Files extends Base {
       }
     }
 
-    return await this.request<{ files: File[] }>("GET", url.toString());
+    const { error, data } = await this.request<{ files: File[] }>(
+      "GET",
+      url.toString(),
+    );
+
+    return {
+      error,
+      data: data
+        ? {
+            files: constructFileUrls({
+              vazeUrl: this.vazeUrl,
+              files: data.files,
+            }),
+          }
+        : null,
+    };
   }
 
   public async getById(id: string) {
     const url = new URL(`/api/files`, this.vazeUrl);
     url.searchParams.set("id", id);
 
-    return await this.request<{ file: File }>("GET", url.toString());
+    const { data, error } = await this.request<{ file: File }>(
+      "GET",
+      url.toString(),
+    );
+
+    return {
+      error,
+      data: data
+        ? {
+            file: constructFileUrls({
+              vazeUrl: this.vazeUrl,
+              files: [data.file],
+            })[0],
+          }
+        : null,
+    };
   }
 
   public async getByName(
@@ -42,7 +73,22 @@ export default class Files extends Base {
       }
     }
 
-    return await this.request<{ files: File[] }>("GET", url.toString());
+    const { error, data } = await this.request<{ files: File[] }>(
+      "GET",
+      url.toString(),
+    );
+
+    return {
+      error,
+      data: data
+        ? {
+            files: constructFileUrls({
+              vazeUrl: this.vazeUrl,
+              files: data.files,
+            }),
+          }
+        : null,
+    };
   }
 
   public async upload(data: { files: File[]; folder?: string }) {
@@ -56,11 +102,23 @@ export default class Files extends Base {
       formData.append("files", file);
     });
 
-    return await this.request<{ files: File[] }>(
+    const { error, data: responseData } = await this.request<{ files: File[] }>(
       "POST",
       url.toString(),
       formData,
     );
+
+    return {
+      error,
+      data: responseData
+        ? {
+            files: constructFileUrls({
+              vazeUrl: this.vazeUrl,
+              files: responseData.files,
+            }),
+          }
+        : null,
+    };
   }
 
   public async rename(data: { id: string; name: string }) {
