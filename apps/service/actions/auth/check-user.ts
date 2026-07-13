@@ -1,14 +1,13 @@
 "use server";
 
 import db from "@/db";
-import { User } from "@repo/types";
+import { users } from "@/db/schema";
 
 export default async function checkUser() {
   try {
     // Only ever expose whether an admin account exists — never the user row
     // (this action is intentionally public, used to gate register vs sign-in).
-    const statement = db.prepare(`SELECT id FROM users LIMIT 1;`);
-    const user = statement.get() as Pick<User, "id"> | undefined;
+    const user = db.select({ id: users.id }).from(users).limit(1).get();
 
     if (!user) {
       return {

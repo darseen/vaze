@@ -1,7 +1,9 @@
 "use server";
 
 import db from "@/db";
+import { apiKeys } from "@/db/schema";
 import auth from "@/utils/auth";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function updateApiKey(keyId: string, name: string) {
@@ -10,10 +12,11 @@ export async function updateApiKey(keyId: string, name: string) {
   if (!user) return { error: { message: "Unauthorized" }, data: null };
 
   try {
-    const stmt = db.prepare(
-      "UPDATE api_keys SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?",
-    );
-    const result = stmt.run(name, keyId, user.id);
+    const result = db
+      .update(apiKeys)
+      .set({ name, updated_at: sql`CURRENT_TIMESTAMP` })
+      .where(and(eq(apiKeys.id, keyId), eq(apiKeys.user_id, user.id)))
+      .run();
 
     if (result.changes === 0) {
       return { error: { message: "Key not found" }, data: null };

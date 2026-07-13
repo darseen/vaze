@@ -1,15 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import db from "@/db";
+import { folders } from "@/db/schema";
+import { count } from "drizzle-orm";
 import { FolderOpen } from "lucide-react";
 
 export default async function TotalFolders() {
-  const totalFolders = db
-    .prepare("SELECT COUNT(*) AS count FROM folders")
-    .get() as { count: number };
+  const [{ value: totalFolders }] = db
+    .select({ value: count() })
+    .from(folders)
+    .all();
 
   const stats = {
     title: "Total Folders",
-    value: totalFolders.count,
+    value: totalFolders,
     icon: FolderOpen,
     description: "Organized folders",
   };

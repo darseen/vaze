@@ -1,5 +1,7 @@
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import db from "./db";
+import { users } from "./db/schema";
 import { verifyToken } from "./utils/jwt";
 
 export async function proxy(request: NextRequest) {
@@ -29,8 +31,10 @@ export async function proxy(request: NextRequest) {
 
     // check if user exists in the database
     const user = db
-      .prepare("SELECT * FROM users WHERE id = ?")
-      .get(payload.user.id);
+      .select()
+      .from(users)
+      .where(eq(users.id, payload.user.id))
+      .get();
     if (!user) {
       // Token is invalid, redirect to the homepage and clear the invalid token.
       const response = NextResponse.redirect(new URL("/", request.url));

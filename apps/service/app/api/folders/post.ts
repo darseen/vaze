@@ -1,5 +1,7 @@
 import { BASE_UPLOADS_PATH } from "@/constants";
 import db from "@/db";
+import { folders as foldersTable } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import path from "node:path";
@@ -37,8 +39,10 @@ export default async function POST(request: NextRequest) {
     const fullPathExistsOnDisk = await accessPath(folderAbsolutePath);
 
     const fullPathExistsInDB = db
-      .prepare(`SELECT id FROM folders WHERE path = ?`)
-      .get(folderAbsolutePath);
+      .select({ id: foldersTable.id })
+      .from(foldersTable)
+      .where(eq(foldersTable.path, folderAbsolutePath))
+      .get();
 
     if (fullPathExistsOnDisk || fullPathExistsInDB) {
       return NextResponse.json(

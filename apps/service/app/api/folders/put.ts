@@ -1,5 +1,6 @@
 import db from "@/db";
-import { File, Folder } from "@repo/types";
+import { files as filesTable, folders as foldersTable } from "@/db/schema";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { renameSync } from "node:fs";
@@ -35,9 +36,11 @@ export default async function PUT(request: NextRequest) {
     }
 
     // find in database
-    const folder = db.prepare(`SELECT * FROM folders WHERE id = ?`).get(id) as
-      | Folder
-      | undefined;
+    const folder = db
+      .select()
+      .from(foldersTable)
+      .where(eq(foldersTable.id, id))
+      .get();
 
     if (!folder) {
       return NextResponse.json(
@@ -49,7 +52,7 @@ export default async function PUT(request: NextRequest) {
     // check if folder exists on disk
     if (!accessPathSync(folder.path)) {
       // drop the orphaned row and report it as gone
-      db.prepare(`DELETE FROM folders WHERE id = ?`).run(id);
+      db.delete(foldersTable).where(eq(foldersTable.id, id)).run();
       return NextResponse.json(
         { data: null, error: { message: "Folder not found" } },
         { status: 404 },
@@ -66,16 +69,17 @@ export default async function PUT(request: NextRequest) {
 
     // check for name conflicts among siblings (parent_id may be NULL for root)
     const conflictCheck = db
-      .prepare(
-        `SELECT id FROM folders WHERE parent_id ${
-          folder.parent_id === null ? "IS NULL" : "= ?"
-        } AND name = ?`,
+      .select({ id: foldersTable.id })
+      .from(foldersTable)
+      .where(
+        and(
+          folder.parent_id === null
+            ? isNull(foldersTable.parent_id)
+            : eq(foldersTable.parent_id, folder.parent_id),
+          eq(foldersTable.name, name),
+        ),
       )
-      .get(
-        ...(folder.parent_id === null
-          ? [name]
-          : [folder.parent_id, name]),
-      ) as Pick<Folder, "id"> | undefined;
+      .get();
 
     if (conflictCheck) {
       return NextResponse.json(
@@ -96,13 +100,13 @@ export default async function PUT(request: NextRequest) {
       renameSync(oldPath, newPath);
       renamed = true;
 
-      const updateTx = db.transaction(() => {
-        db.prepare(
-          "UPDATE folders SET name = ?, path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        ).run(name, newPath, id);
-        updateDescendantPaths(id, newPath);
+      db.transaction((tx) => {
+        tx.update(foldersTable)
+          .set({ name, path: newPath, updated_at: sql`CURRENT_TIMESTAMP` })
+          .where(eq(foldersTable.id, id))
+          .run();
+        updateDescendantPaths(tx, id, newPath);
       });
-      updateTx();
     } catch (error) {
       console.log("update folder error", error);
       if (renamed) {
@@ -129,35 +133,46 @@ export default async function PUT(request: NextRequest) {
   }
 }
 
-// a function to update all descendant paths recursively
-function updateDescendantPaths(parentId: string, newParentPath: string) {
-  const subfolders = db
-    .prepare("SELECT id, name FROM folders WHERE parent_id = ?")
-    .all(parentId) as Folder[];
+// the transaction handle passed to db.transaction's callback
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-  const files = db
-    .prepare("SELECT id, name FROM files WHERE folder_id = ?")
-    .all(parentId) as File[];
+// a function to update all descendant paths recursively
+function updateDescendantPaths(
+  tx: Tx,
+  parentId: string,
+  newParentPath: string,
+) {
+  const subfolders = tx
+    .select({ id: foldersTable.id, name: foldersTable.name })
+    .from(foldersTable)
+    .where(eq(foldersTable.parent_id, parentId))
+    .all();
+
+  const files = tx
+    .select({ id: filesTable.id, name: filesTable.name })
+    .from(filesTable)
+    .where(eq(filesTable.folder_id, parentId))
+    .all();
 
   if (subfolders.length === 0 && files.length === 0) return;
 
   for (const file of files) {
     const newFilePath = path.join(newParentPath, file.name);
 
-    db.prepare("UPDATE files SET path = ? WHERE id = ?").run(
-      newFilePath,
-      file.id,
-    );
+    tx.update(filesTable)
+      .set({ path: newFilePath })
+      .where(eq(filesTable.id, file.id))
+      .run();
   }
 
   for (const folder of subfolders) {
     const newFolderPath = path.join(newParentPath, folder.name);
 
-    db.prepare("UPDATE folders SET path = ? WHERE id = ?").run(
-      newFolderPath,
-      folder.id,
-    );
+    tx.update(foldersTable)
+      .set({ path: newFolderPath })
+      .where(eq(foldersTable.id, folder.id))
+      .run();
 
-    updateDescendantPaths(folder.id, newFolderPath);
+    updateDescendantPaths(tx, folder.id, newFolderPath);
   }
 }

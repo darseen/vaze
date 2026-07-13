@@ -1,6 +1,7 @@
 import { accessPathSync, contentDisposition } from "@/app/api/_utils";
 import db from "@/db";
-import { File } from "@repo/types";
+import { files as filesTable } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import mime from "mime-types";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
@@ -30,9 +31,11 @@ export async function GET(
     }
 
     // find in database
-    const file = db.prepare(`SELECT * FROM files WHERE id = ?`).get(id) as
-      | File
-      | undefined;
+    const file = db
+      .select()
+      .from(filesTable)
+      .where(eq(filesTable.id, id))
+      .get();
 
     if (!file) {
       return NextResponse.json(

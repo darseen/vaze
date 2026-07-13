@@ -1,10 +1,25 @@
 import { BASE_UPLOADS_PATH } from "@/constants";
 import db from "@/db";
-import { File, Folder } from "@repo/types";
+import { files as filesTable, folders as foldersTable } from "@/db/schema";
+import { File } from "@repo/types";
+import { asc, desc, eq } from "drizzle-orm";
+import { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import crypto from "node:crypto";
 import { accessSync } from "node:fs";
 import fs, { access, constants } from "node:fs/promises";
 import path from "node:path";
+
+export type OrderBy = "created_at" | "updated_at" | "name" | "size";
+export type OrderDirection = "ASC" | "DESC";
+
+/**
+ * Turn a validated (orderBy, direction) pair into a Drizzle order clause for the
+ * `files` table. Callers must pass already-whitelisted values.
+ */
+export function fileOrderBy(column: OrderBy, direction: OrderDirection) {
+  const col = filesTable[column] as SQLiteColumn;
+  return direction === "ASC" ? asc(col) : desc(col);
+}
 
 export async function accessPath(path: string) {
   return await access(path, constants.F_OK)
@@ -80,22 +95,31 @@ export async function createNestedFolders(folderPath: string) {
   }
 
   let baseFolder = db
-    .prepare(`SELECT * FROM folders WHERE path = ?`)
-    .get(BASE_UPLOADS_PATH) as Folder | undefined;
+    .select()
+    .from(foldersTable)
+    .where(eq(foldersTable.path, BASE_UPLOADS_PATH))
+    .get();
 
   if (!baseFolder) {
     await fs.mkdir(BASE_UPLOADS_PATH, { recursive: true });
     const baseId = crypto.randomUUID();
-    db.prepare(
-      `INSERT INTO folders (id, name, path, parent_id) VALUES (?, ?, ?, ?)`,
-    ).run(baseId, path.basename(BASE_UPLOADS_PATH), BASE_UPLOADS_PATH, null);
+    db.insert(foldersTable)
+      .values({
+        id: baseId,
+        name: path.basename(BASE_UPLOADS_PATH),
+        path: BASE_UPLOADS_PATH,
+        parent_id: null,
+      })
+      .run();
 
     baseFolder = db
-      .prepare(`SELECT * FROM folders WHERE path = ?`)
-      .get(BASE_UPLOADS_PATH) as Folder;
+      .select()
+      .from(foldersTable)
+      .where(eq(foldersTable.path, BASE_UPLOADS_PATH))
+      .get();
   }
 
-  if (!folderPath) return baseFolder as Folder;
+  if (!folderPath) return baseFolder!;
 
   const pathSegments = folderPath.split("/").filter(Boolean);
   let currentPath = BASE_UPLOADS_PATH;
@@ -105,8 +129,10 @@ export async function createNestedFolders(folderPath: string) {
     const segmentAbsolutePath = path.join(currentPath, segment);
 
     const existingSegment = db
-      .prepare(`SELECT id FROM folders WHERE path = ?`)
-      .get(segmentAbsolutePath) as Pick<Folder, "id"> | undefined;
+      .select({ id: foldersTable.id })
+      .from(foldersTable)
+      .where(eq(foldersTable.path, segmentAbsolutePath))
+      .get();
 
     if (existingSegment) {
       currentPath = segmentAbsolutePath;
@@ -115,9 +141,14 @@ export async function createNestedFolders(folderPath: string) {
       await fs.mkdir(segmentAbsolutePath, { recursive: true });
 
       const newSegmentId = crypto.randomUUID();
-      db.prepare(
-        `INSERT INTO folders (id, name, path, parent_id) VALUES (?, ?, ?, ?)`,
-      ).run(newSegmentId, segment, segmentAbsolutePath, currentParentId);
+      db.insert(foldersTable)
+        .values({
+          id: newSegmentId,
+          name: segment,
+          path: segmentAbsolutePath,
+          parent_id: currentParentId,
+        })
+        .run();
 
       currentPath = segmentAbsolutePath;
       currentParentId = newSegmentId;
@@ -126,8 +157,10 @@ export async function createNestedFolders(folderPath: string) {
 
   const targetAbsolutePath = path.join(BASE_UPLOADS_PATH, folderPath);
   const targetFolder = db
-    .prepare(`SELECT * FROM folders WHERE path = ?`)
-    .get(targetAbsolutePath) as Folder | undefined;
+    .select()
+    .from(foldersTable)
+    .where(eq(foldersTable.path, targetAbsolutePath))
+    .get();
 
   if (!targetFolder) {
     throw new Error("Failed to find or create folder in database.");
@@ -146,8 +179,10 @@ export async function fetchFolderByPath(
   },
 ) {
   const folder = db
-    .prepare(`SELECT * FROM folders WHERE path = ?`)
-    .get(path.join(BASE_UPLOADS_PATH, folderPath)) as Folder | undefined;
+    .select()
+    .from(foldersTable)
+    .where(eq(foldersTable.path, path.join(BASE_UPLOADS_PATH, folderPath)))
+    .get();
 
   if (!folder) {
     return { error: { message: "Folder not found" }, data: null };
@@ -162,16 +197,21 @@ export async function fetchFolderByPath(
 
   // fetch files in folder
   const files = db
-    .prepare(
-      `SELECT * FROM files WHERE folder_id = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
-    )
-    .all(folder.id, limit, offset) as File[];
+    .select()
+    .from(filesTable)
+    .where(eq(filesTable.folder_id, folder.id))
+    .orderBy(fileOrderBy(safeOrderBy, safeOrderDirection))
+    .limit(limit)
+    .offset(offset)
+    .all();
 
   // fetch direct subfolders (matching on parent_id is exact, unlike a LIKE on
   // the path which breaks for names containing `%` or `_`).
   const folders = db
-    .prepare(`SELECT * FROM folders WHERE parent_id = ?`)
-    .all(folder.id) as Folder[];
+    .select()
+    .from(foldersTable)
+    .where(eq(foldersTable.parent_id, folder.id))
+    .all();
 
   return { data: { files: getFilesWithUrls(files), folders }, error: null };
 }

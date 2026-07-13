@@ -1,6 +1,7 @@
 import db from "@/db";
+import { apiKeys } from "@/db/schema";
 import auth from "@/utils/auth";
-import { ApiKey } from "@repo/types";
+import { desc, eq } from "drizzle-orm";
 
 export default async function fetchKeys() {
   try {
@@ -9,13 +10,18 @@ export default async function fetchKeys() {
     if (!user) return { data: null, error: { message: "Unauthorized" } };
 
     // fetch keys from database
-    const statement = db.prepare(
-      `SELECT id, name, created_at, last_used, expires_at FROM api_keys WHERE user_id = ? ORDER BY created_at DESC`,
-    );
-    const keys = statement.all(user.id) as Omit<
-      ApiKey,
-      "key_hash" | "user_id"
-    >[];
+    const keys = db
+      .select({
+        id: apiKeys.id,
+        name: apiKeys.name,
+        created_at: apiKeys.created_at,
+        last_used: apiKeys.last_used,
+        expires_at: apiKeys.expires_at,
+      })
+      .from(apiKeys)
+      .where(eq(apiKeys.user_id, user.id))
+      .orderBy(desc(apiKeys.created_at))
+      .all();
 
     return { data: { keys }, error: null };
   } catch (error) {

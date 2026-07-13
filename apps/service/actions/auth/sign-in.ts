@@ -1,9 +1,10 @@
 "use server";
 
 import db from "@/db";
+import { users } from "@/db/schema";
 import { issueJWT } from "@/utils/jwt";
 import { comparePassword } from "@/utils/password";
-import { User } from "@repo/types";
+import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 
 export default async function signIn(formData: FormData) {
@@ -20,8 +21,11 @@ export default async function signIn(formData: FormData) {
 
   try {
     // check if user exists
-    const statement = db.prepare(`SELECT * FROM users WHERE username = ?;`);
-    const user = statement.get(username) as User;
+    const user = db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .get();
 
     if (!user) {
       return {

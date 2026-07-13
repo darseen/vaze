@@ -6,17 +6,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import db from "@/db";
+import { apiRequests } from "@/db/schema";
 import { parseTimestamp } from "@/utils";
+import { gte, sql } from "drizzle-orm";
 import Chart from "./chart";
 
 export default function ApiRequestsChart() {
   // Only the last 7 days, so the "this week" total and the per-weekday buckets
   // actually line up (and we don't load the entire table into memory).
   const result = db
-    .prepare(
-      "SELECT created_at FROM api_requests WHERE created_at >= date('now', '-6 days')",
-    )
-    .all() as { created_at: string }[];
+    .select({ created_at: apiRequests.created_at })
+    .from(apiRequests)
+    .where(gte(apiRequests.created_at, sql`date('now', '-6 days')`))
+    .all();
 
   const totalRequests = result.length;
 

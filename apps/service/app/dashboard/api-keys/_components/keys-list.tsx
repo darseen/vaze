@@ -29,7 +29,7 @@ import {
 import { toast } from "sonner";
 
 interface Props {
-  keys: Omit<ApiKey, "key_hash" | "user_id">[];
+  keys: Omit<ApiKey, "key_hash" | "user_id" | "updated_at">[];
 }
 
 export default function KeysList({ keys }: Props) {

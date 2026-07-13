@@ -1,5 +1,7 @@
 import db from "@/db";
+import { files as filesTable } from "@/db/schema";
 import type { File as FileDB, Folder } from "@repo/types";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
@@ -10,8 +12,11 @@ import { pipeline } from "node:stream/promises";
 import {
   accessPath,
   createNestedFolders,
+  fileOrderBy,
   getFilesWithUrls,
   isValidName,
+  OrderBy,
+  OrderDirection,
   parseIntParam,
 } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
@@ -35,21 +40,23 @@ export async function GET(request: NextRequest) {
     const orderBy = searchParams.get("orderBy") || "created_at";
     const orderDirection = searchParams.get("orderDirection") || "DESC";
 
-    const safeOrderBy = ["created_at", "updated_at", "name", "size"].includes(
-      orderBy,
-    )
-      ? orderBy
+    const safeOrderBy: OrderBy = (
+      ["created_at", "updated_at", "name", "size"] as const
+    ).includes(orderBy as OrderBy)
+      ? (orderBy as OrderBy)
       : "created_at";
-    const safeOrderDirection = ["ASC", "DESC"].includes(
+    const safeOrderDirection: OrderDirection = ["ASC", "DESC"].includes(
       orderDirection.toUpperCase(),
     )
-      ? orderDirection
+      ? (orderDirection.toUpperCase() as OrderDirection)
       : "DESC";
 
     if (id) {
-      const file = db.prepare(`SELECT * FROM files WHERE id = ?`).get(id) as
-        | FileDB
-        | undefined;
+      const file = db
+        .select()
+        .from(filesTable)
+        .where(eq(filesTable.id, id))
+        .get();
 
       if (!file) {
         return NextResponse.json(
@@ -64,10 +71,13 @@ export async function GET(request: NextRequest) {
       });
     } else if (name) {
       const files = db
-        .prepare(
-          `SELECT * FROM files WHERE name = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
-        )
-        .all(name, limit, offset) as FileDB[];
+        .select()
+        .from(filesTable)
+        .where(eq(filesTable.name, name))
+        .orderBy(fileOrderBy(safeOrderBy, safeOrderDirection))
+        .limit(limit)
+        .offset(offset)
+        .all();
 
       if (!files || files.length === 0) {
         return NextResponse.json(
@@ -83,10 +93,12 @@ export async function GET(request: NextRequest) {
     }
 
     const files = db
-      .prepare(
-        `SELECT * FROM files ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
-      )
-      .all(limit, offset) as FileDB[];
+      .select()
+      .from(filesTable)
+      .orderBy(fileOrderBy(safeOrderBy, safeOrderDirection))
+      .limit(limit)
+      .offset(offset)
+      .all();
 
     return NextResponse.json({
       data: { files: getFilesWithUrls(files) },
@@ -162,24 +174,20 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      const insertMany = db.transaction(
-        (filesToInsert: Omit<FileDB, "created_at" | "updated_at">[]) => {
-          const insertStatement = db.prepare(
-            `INSERT INTO files (id, name, folder_id, path, size, type) VALUES (?, ?, ?, ?, ?, ?)`,
-          );
-          for (const file of filesToInsert) {
-            insertStatement.run(
-              file.id,
-              file.name,
-              file.folder_id,
-              file.path,
-              file.size,
-              file.type,
-            );
-          }
-        },
-      );
-      insertMany(uploadedFiles);
+      db.transaction((tx) => {
+        for (const file of uploadedFiles) {
+          tx.insert(filesTable)
+            .values({
+              id: file.id,
+              name: file.name,
+              folder_id: file.folder_id,
+              path: file.path,
+              size: file.size,
+              type: file.type,
+            })
+            .run();
+        }
+      });
     } catch (error) {
       console.error("File processing or DB transaction error:", error);
       // iterate through only the files this request touched
@@ -236,9 +244,11 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const file = db.prepare(`SELECT * FROM files WHERE id = ?`).get(id) as
-      | FileDB
-      | undefined;
+    const file = db
+      .select()
+      .from(filesTable)
+      .where(eq(filesTable.id, id))
+      .get();
 
     if (!file) {
       return NextResponse.json(
@@ -259,8 +269,10 @@ export async function PUT(request: NextRequest) {
     // a per-folder check would let the UNIQUE constraint throw *after* the disk
     // rename, leaving the DB pointing at a stale path.
     const existingFile = db
-      .prepare(`SELECT id FROM files WHERE name = ? AND id != ?`)
-      .get(name, id) as Pick<FileDB, "id"> | undefined;
+      .select({ id: filesTable.id })
+      .from(filesTable)
+      .where(and(eq(filesTable.name, name), ne(filesTable.id, id)))
+      .get();
 
     if (existingFile) {
       return NextResponse.json(
@@ -280,9 +292,15 @@ export async function PUT(request: NextRequest) {
       await fs.rename(file.path, newAbsolutePath);
       renamed = true;
 
-      db.prepare(
-        `UPDATE files SET name = ?, path = ?, type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      ).run(name, newAbsolutePath, newType, id);
+      db.update(filesTable)
+        .set({
+          name,
+          path: newAbsolutePath,
+          type: newType,
+          updated_at: sql`CURRENT_TIMESTAMP`,
+        })
+        .where(eq(filesTable.id, id))
+        .run();
     } catch (error) {
       console.log("update file error", error);
       if (renamed) {
@@ -318,9 +336,11 @@ export async function DELETE(request: NextRequest) {
     const { id }: { id: string } = await request.json();
 
     // find in database
-    const file = db.prepare(`SELECT * FROM files WHERE id = ?`).get(id) as
-      | FileDB
-      | undefined;
+    const file = db
+      .select()
+      .from(filesTable)
+      .where(eq(filesTable.id, id))
+      .get();
 
     if (!file) {
       return NextResponse.json(
@@ -334,7 +354,7 @@ export async function DELETE(request: NextRequest) {
     if (!fileExists) {
       // The file is already gone from disk; drop the orphaned row and treat the
       // delete as successful rather than surfacing a misleading 404.
-      db.prepare(`DELETE FROM files WHERE id = ?`).run(id);
+      db.delete(filesTable).where(eq(filesTable.id, id)).run();
       revalidatePath("/dashboard");
 
       return NextResponse.json({ data: null, error: null });
@@ -343,7 +363,7 @@ export async function DELETE(request: NextRequest) {
     // delete file from disk and database
     try {
       await fs.rm(file.path);
-      db.prepare(`DELETE FROM files WHERE id = ?`).run(id);
+      db.delete(filesTable).where(eq(filesTable.id, id)).run();
     } catch {
       return NextResponse.json(
         { error: { message: "Error deleting file" }, data: null },

@@ -1,15 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import db from "@/db";
+import { files } from "@/db/schema";
+import { count } from "drizzle-orm";
 import { FileText } from "lucide-react";
 
 export default async function TotalFiles() {
-  const totalFiles = db
-    .prepare("SELECT COUNT(*) AS count FROM files")
-    .get() as { count: number };
+  const [{ value: totalFiles }] = db
+    .select({ value: count() })
+    .from(files)
+    .all();
 
   const stats = {
     title: "Total Files",
-    value: totalFiles.count,
+    value: totalFiles,
     icon: FileText,
     description: "Files uploaded",
   };

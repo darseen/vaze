@@ -1,7 +1,9 @@
 "use server";
 
 import db from "@/db";
+import { apiKeys } from "@/db/schema";
 import auth from "@/utils/auth";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createApiKey } from "./_utils";
 
@@ -15,10 +17,11 @@ export default async function generateApiKey(
 
   try {
     // check if name is unique
-    const stmt = db.prepare(
-      "SELECT id FROM api_keys WHERE name = ? AND user_id = ?",
-    );
-    const result = stmt.get(name, user.id);
+    const result = db
+      .select({ id: apiKeys.id })
+      .from(apiKeys)
+      .where(and(eq(apiKeys.name, name), eq(apiKeys.user_id, user.id)))
+      .get();
 
     if (result) {
       return { error: { message: "Key name already exists" }, data: null };

@@ -1,5 +1,6 @@
 import db from "@/db";
-import { Folder } from "@repo/types";
+import { folders as foldersTable } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs/promises";
@@ -19,9 +20,11 @@ export default async function DELETE(request: NextRequest) {
     const { id }: { id: string } = await request.json();
 
     // find in database
-    const folder = db.prepare(`SELECT * FROM folders WHERE id = ?`).get(id) as
-      | Folder
-      | undefined;
+    const folder = db
+      .select()
+      .from(foldersTable)
+      .where(eq(foldersTable.id, id))
+      .get();
 
     if (!folder) {
       return NextResponse.json(
@@ -34,7 +37,7 @@ export default async function DELETE(request: NextRequest) {
     const folderExists = await accessPath(folder.path);
     if (!folderExists) {
       // delete folder from database if it doesn't exist on disk
-      db.prepare(`DELETE FROM folders WHERE id = ?`).run(id);
+      db.delete(foldersTable).where(eq(foldersTable.id, id)).run();
       revalidatePath("/dashboard");
 
       return NextResponse.json(
@@ -46,7 +49,7 @@ export default async function DELETE(request: NextRequest) {
     // delete folder from disk and database
     try {
       await fs.rm(folder.path, { recursive: true });
-      db.prepare(`DELETE FROM folders WHERE id = ?`).run(id);
+      db.delete(foldersTable).where(eq(foldersTable.id, id)).run();
     } catch {
       return NextResponse.json(
         { error: { message: "Error deleting folder" }, data: null },

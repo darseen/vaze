@@ -1,7 +1,8 @@
 import db from "@/db";
+import { apiRequests, users } from "@/db/schema";
 import { validateApiKey } from "@/utils/api-keys";
 import { verifyToken } from "@/utils/jwt";
-import { User } from "@repo/types";
+import { eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 import crypto from "node:crypto";
 
@@ -26,16 +27,18 @@ export default async function authorizeRequest(request: NextRequest) {
     }
 
     const user = db
-      .prepare(`SELECT * FROM users WHERE id = ?`)
-      .get(key.user_id) as User | undefined;
+      .select()
+      .from(users)
+      .where(eq(users.id, key.user_id))
+      .get();
 
     if (!user) {
       return { error: { message: "Unauthorized" }, data: null };
     }
 
-    db.prepare(
-      `INSERT INTO api_requests (id, user_id, key_id) VALUES (?, ?, ?)`,
-    ).run(crypto.randomUUID(), user.id, key.id);
+    db.insert(apiRequests)
+      .values({ id: crypto.randomUUID(), user_id: user.id, key_id: key.id })
+      .run();
 
     return {
       error: null,

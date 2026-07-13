@@ -1,5 +1,6 @@
 import db from "@/db";
-import { File as FileDB } from "@repo/types";
+import { files as filesTable } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import mime from "mime-types";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
@@ -14,8 +15,10 @@ export async function GET(
     const { filename } = await params;
 
     const file = db
-      .prepare("SELECT * FROM files WHERE name = ?")
-      .get(filename) as FileDB | undefined;
+      .select()
+      .from(filesTable)
+      .where(eq(filesTable.name, filename))
+      .get();
 
     if (!file) {
       return NextResponse.json({ error: "File not found" }, { status: 404 });

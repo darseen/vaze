@@ -1,10 +1,18 @@
 import { BASE_UPLOADS_PATH } from "@/constants";
 import db from "@/db";
-import { File, Folder } from "@repo/types";
+import { files as filesTable, folders as foldersTable } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import path from "node:path";
 import crypto from "node:crypto";
-import { fetchFolderByPath, getFilesWithUrls, parseIntParam } from "../_utils";
+import {
+  fetchFolderByPath,
+  fileOrderBy,
+  getFilesWithUrls,
+  OrderBy,
+  OrderDirection,
+  parseIntParam,
+} from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export default async function GET(request: NextRequest) {
@@ -30,35 +38,40 @@ export default async function GET(request: NextRequest) {
       ["created_at", "updated_at", "name", "size"].includes(orderBy)
         ? orderBy
         : "created_at"
-    ) as "created_at" | "updated_at" | "name" | "size";
+    ) as OrderBy;
     const safeOrderDirection = (
       ["ASC", "DESC"].includes(orderDirection.toUpperCase())
         ? orderDirection.toUpperCase()
         : "DESC"
-    ) as "ASC" | "DESC";
+    ) as OrderDirection;
 
     // if nothing is provided, fetch the root folder and its files and folders
     if (!id && !folderPath) {
       let folder = db
-        .prepare(`SELECT * FROM folders WHERE path = ?`)
-        .get(BASE_UPLOADS_PATH) as Folder | undefined;
+        .select()
+        .from(foldersTable)
+        .where(eq(foldersTable.path, BASE_UPLOADS_PATH))
+        .get();
 
       // if the root folder doesn't exist, create it.
       if (!folder) {
-        db.prepare(
-          `INSERT OR IGNORE INTO folders (id, name, path) VALUES (?, ?, ?)`,
-        ).run(
-          crypto.randomUUID(),
-          path.basename(BASE_UPLOADS_PATH),
-          BASE_UPLOADS_PATH,
-        );
+        db.insert(foldersTable)
+          .values({
+            id: crypto.randomUUID(),
+            name: path.basename(BASE_UPLOADS_PATH),
+            path: BASE_UPLOADS_PATH,
+          })
+          .onConflictDoNothing()
+          .run();
 
         folder = db
-          .prepare(`SELECT * FROM folders WHERE path = ?`)
-          .get(BASE_UPLOADS_PATH) as Folder;
+          .select()
+          .from(foldersTable)
+          .where(eq(foldersTable.path, BASE_UPLOADS_PATH))
+          .get();
       }
 
-      const { files, folders } = fetchFolderContents(folder.id, {
+      const { files, folders } = fetchFolderContents(folder!.id, {
         limit,
         offset,
         safeOrderBy,
@@ -74,8 +87,10 @@ export default async function GET(request: NextRequest) {
     // if id is provided, fetch the folder with the given id
     if (id) {
       const folder = db
-        .prepare(`SELECT * FROM folders WHERE id = ?`)
-        .get(id) as Folder | undefined;
+        .select()
+        .from(foldersTable)
+        .where(eq(foldersTable.id, id))
+        .get();
 
       if (!folder) {
         return NextResponse.json(
@@ -127,21 +142,26 @@ function fetchFolderContents(
   options: {
     limit: number;
     offset: number;
-    safeOrderBy: "created_at" | "updated_at" | "name" | "size";
-    safeOrderDirection: "ASC" | "DESC";
+    safeOrderBy: OrderBy;
+    safeOrderDirection: OrderDirection;
   },
 ) {
   const { limit, offset, safeOrderBy, safeOrderDirection } = options;
 
   const files = db
-    .prepare(
-      `SELECT * FROM files WHERE folder_id = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
-    )
-    .all(folderId, limit, offset) as File[];
+    .select()
+    .from(filesTable)
+    .where(eq(filesTable.folder_id, folderId))
+    .orderBy(fileOrderBy(safeOrderBy, safeOrderDirection))
+    .limit(limit)
+    .offset(offset)
+    .all();
 
   const folders = db
-    .prepare(`SELECT * FROM folders WHERE parent_id = ?`)
-    .all(folderId) as Folder[];
+    .select()
+    .from(foldersTable)
+    .where(eq(foldersTable.parent_id, folderId))
+    .all();
 
   return { files, folders };
 }

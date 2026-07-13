@@ -7,7 +7,9 @@ import {
 } from "@/components/ui/card";
 import { BASE_DATA_PATH } from "@/constants";
 import db from "@/db";
+import { files as filesTable } from "@/db/schema";
 import { formatBytes, parseTimestamp } from "@/utils";
+import { desc } from "drizzle-orm";
 import { formatDistanceToNow } from "date-fns";
 import {
   File,
@@ -80,16 +82,17 @@ function getFileIcon(filename: string) {
 
 export default async function RecentFiles() {
   const files = db
-    .prepare(
-      "SELECT id, name, size, path, created_at FROM files ORDER BY created_at DESC LIMIT 5",
-    )
-    .all() as {
-    id: string;
-    name: string;
-    size: number;
-    path: string;
-    created_at: string;
-  }[];
+    .select({
+      id: filesTable.id,
+      name: filesTable.name,
+      size: filesTable.size,
+      path: filesTable.path,
+      created_at: filesTable.created_at,
+    })
+    .from(filesTable)
+    .orderBy(desc(filesTable.created_at))
+    .limit(5)
+    .all();
 
   return (
     <Card className="border-border/50 bg-card/50">

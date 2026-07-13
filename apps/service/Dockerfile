@@ -45,6 +45,8 @@ ENV DATA_PATH=/app/data
 COPY --from=installer /app/apps/service/.next/standalone ./
 COPY --from=installer /app/apps/service/.next/static ./apps/service/.next/static
 COPY --from=installer /app/apps/service/public ./apps/service/public
+# Drizzle migrations are applied at runtime via migrate() (read from <cwd>/drizzle).
+COPY --from=builder /app/apps/service/drizzle ./apps/service/drizzle
 COPY --from=builder /app/apps/service/entrypoint.sh ./apps/service/entrypoint.sh
 
 RUN chmod +x ./apps/service/entrypoint.sh

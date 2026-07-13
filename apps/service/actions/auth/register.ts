@@ -1,8 +1,10 @@
 "use server";
 
 import db from "@/db";
+import { users } from "@/db/schema";
 import { issueJWT } from "@/utils/jwt";
 import { hashPassword } from "@/utils/password";
+import { count } from "drizzle-orm";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
 
@@ -35,20 +37,20 @@ export default async function register(formData: FormData) {
     try {
       // Single-admin model: atomically re-check that no user exists, then
       // insert — so two concurrent registrations can't both succeed.
-      const createUser = db.transaction(() => {
-        const { count } = db
-          .prepare(`SELECT COUNT(*) AS count FROM users`)
-          .get() as { count: number };
+      db.transaction((tx) => {
+        const [{ value: userCount }] = tx
+          .select({ value: count() })
+          .from(users)
+          .all();
 
-        if (count > 0) {
+        if (userCount > 0) {
           throw new Error("USER_EXISTS");
         }
 
-        db.prepare(
-          `INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?);`,
-        ).run(userId, username, passwordHash);
+        tx.insert(users)
+          .values({ id: userId, username, password_hash: passwordHash })
+          .run();
       });
-      createUser();
     } catch (error) {
       if (error instanceof Error && error.message === "USER_EXISTS") {
         return {

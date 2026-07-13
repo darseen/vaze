@@ -1,4 +1,5 @@
 import db from "@/db";
+import { apiKeys } from "@/db/schema";
 import { hashKey } from "@/utils/api-keys";
 import crypto from "node:crypto";
 
@@ -18,10 +19,16 @@ export function createApiKey(
   const createdAt = new Date().toISOString();
 
   // store the key hash and metadata in the database.
-  const stmt = db.prepare(
-    "INSERT INTO api_keys (id, name, user_id, key_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
-  );
-  stmt.run(keyId, name, userId, keyHash, createdAt, expiresAt?.toISOString());
+  db.insert(apiKeys)
+    .values({
+      id: keyId,
+      name,
+      user_id: userId,
+      key_hash: keyHash,
+      created_at: createdAt,
+      expires_at: expiresAt?.toISOString() ?? null,
+    })
+    .run();
 
   return {
     id: keyId,

@@ -6,14 +6,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import db from "@/db";
+import { files } from "@/db/schema";
+import { desc, sql } from "drizzle-orm";
 import Chart from "./chart";
 
 export default async function FileTypesChart() {
+  const value = sql<number>`sum(${files.size})`;
   const result = db
-    .prepare(
-      "SELECT type AS name, SUM(size) AS value FROM files GROUP BY type ORDER BY value DESC",
-    )
-    .all() as { name: string; value: number }[];
+    .select({ name: files.type, value })
+    .from(files)
+    .groupBy(files.type)
+    .orderBy(desc(value))
+    .all();
 
   const palette = [
     "oklch(0.7 0.15 220)", // Blue
