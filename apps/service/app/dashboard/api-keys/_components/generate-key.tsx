@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { copyToClipboard } from "@/utils/clipboard";
 import { Check, Copy, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -68,27 +69,15 @@ export default function GenerateKey() {
     setExpiresAt(calculateExpirationDate(type));
   };
 
-  const copyToClipboard = async () => {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(generatedKey.key);
-      } else {
-        // fallback for non-secure contexts
-        const textArea = document.createElement("textarea");
-        textArea.value = generatedKey.key;
-        textArea.style.position = "absolute";
-        textArea.style.left = "-999999px";
-        document.body.prepend(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        textArea.remove();
-      }
-      setCopied(true);
-      toast.success("API key copied to clipboard");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
+  const handleCopyKey = async () => {
+    const success = await copyToClipboard(generatedKey.key);
+    if (!success) {
       toast.error("Failed to copy to clipboard");
+      return;
     }
+    setCopied(true);
+    toast.success("API key copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleGenerateApiKey = async () => {
@@ -209,7 +198,7 @@ export default function GenerateKey() {
                 readOnly
                 className="font-mono text-sm"
               />
-              <Button size="sm" onClick={copyToClipboard} className="shrink-0">
+              <Button size="sm" onClick={handleCopyKey} className="shrink-0">
                 {copied ? (
                   <Check className="h-4 w-4" />
                 ) : (

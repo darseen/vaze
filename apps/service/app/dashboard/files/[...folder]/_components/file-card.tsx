@@ -26,18 +26,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { formatBytes, formatDate } from "@/utils";
-import { ApiResponse, File } from "@repo/types";
-import { Download, Edit, FileText, MoreVertical, Trash2 } from "lucide-react";
+import { copyToClipboard } from "@/utils/clipboard";
+import { ApiResponse, FileWithUrl } from "@repo/types";
+import {
+  Download,
+  Edit,
+  FileText,
+  Link as LinkIcon,
+  MoreVertical,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
 interface Props {
-  file: File;
+  file: FileWithUrl;
 }
 
 export default function FileCard({ file }: Props) {
-  const [editingFile, setEditingFile] = useState<File | null>(null);
+  const [editingFile, setEditingFile] = useState<FileWithUrl | null>(null);
   const [newFileName, setNewFileName] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -81,6 +89,15 @@ export default function FileCard({ file }: Props) {
       setLoading(false);
       router.refresh();
     }
+  };
+
+  const handleCopyLink = async () => {
+    // `file.url` is the relative `api/hosting/<name>`; resolve it against the
+    // current origin so the copied link is a full, shareable URL.
+    const hostingUrl = new URL(file.url, window.location.origin).href;
+    const success = await copyToClipboard(hostingUrl);
+    if (success) toast.success("Link copied to clipboard");
+    else toast.error("Failed to copy link");
   };
 
   const getFileExtension = (filename: string) => {
@@ -130,6 +147,13 @@ export default function FileCard({ file }: Props) {
                   >
                     <Edit className="mr-3 h-4 w-4" />
                     Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleCopyLink}
+                    className="cursor-pointer"
+                  >
+                    <LinkIcon className="mr-3 h-4 w-4" />
+                    Copy link
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer" asChild>
                     <a
