@@ -13,26 +13,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FilesIcon, KeyIcon, LogOut, Settings, UserIcon } from "lucide-react";
+import { FilesIcon, KeyIcon, LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { redirect, usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const navLinks = [
   { name: "Dashboard", href: "/dashboard" },
   { name: "Files", href: "/dashboard/files/uploads" },
   { name: "API Keys", href: "/dashboard/api-keys" },
-  { name: "Settings", href: "/dashboard/settings" },
 ];
 
 export default function Header() {
   const [username, setUsername] = useState<string | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
-    if (!error) redirect("/");
+    if (!error) router.replace("/");
   };
 
   useEffect(() => {
@@ -49,12 +49,10 @@ export default function Header() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-foreground text-2xl font-bold">
-              <Link href={"/dashboard"} className="flex items-center gap-1">
-                <Image src={logo} alt="Vaze Logo" className="size-12" />
-                <h1 className="text-2xl font-bold">Vaze</h1>
-              </Link>
-            </h1>
+            <Link href={"/dashboard"} className="flex items-center gap-1">
+              <Image src={logo} alt="Vaze Logo" className="size-12" />
+              <h1 className="text-foreground text-2xl font-bold">Vaze</h1>
+            </Link>
           </div>
 
           <nav className="hidden items-center gap-6 md:flex">
@@ -87,7 +85,7 @@ export default function Header() {
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>
-                      {username?.[0].toUpperCase() ?? "N/A"}
+                      {username?.[0]?.toUpperCase() ?? "N/A"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -99,11 +97,6 @@ export default function Header() {
                   </div>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <UserIcon className="mr-2 size-4" />
-                  Profile
-                </DropdownMenuItem>
-
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/api-keys">
                     <KeyIcon className="mr-2 size-4" />
@@ -115,10 +108,6 @@ export default function Header() {
                     <FilesIcon className="mr-2 size-4" />
                     Files
                   </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 size-4" />
-                  Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>

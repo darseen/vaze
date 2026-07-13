@@ -4,7 +4,7 @@ import mime from "mime-types";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
 import { Readable } from "node:stream";
-import { accessPathSync } from "../../_utils";
+import { accessPathSync, contentDisposition } from "../../_utils";
 
 export async function GET(
   request: NextRequest,
@@ -37,7 +37,7 @@ export async function GET(
       status: 200,
       headers: {
         "Content-Type": mimeType,
-        "Content-Disposition": `inline; filename="${file.name}"`,
+        "Content-Disposition": contentDisposition("inline", file.name),
         "Content-Length": file.size.toString(),
         "Access-Control-Allow-Origin": "*",
       },

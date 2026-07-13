@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/card";
 import { BASE_DATA_PATH } from "@/constants";
 import db from "@/db";
-import { formatBytes } from "@/utils";
+import { formatBytes, parseTimestamp } from "@/utils";
 import { formatDistanceToNow } from "date-fns";
 import {
   File,
@@ -106,8 +106,7 @@ export default async function RecentFiles() {
           </p>
         ) : (
           files.map((file) => {
-            const utcDateString = file.created_at.replace(" ", "T") + "Z";
-            const dateObj = new Date(utcDateString);
+            const dateObj = parseTimestamp(file.created_at);
 
             return (
               <div key={file.id} className="flex items-center gap-3">

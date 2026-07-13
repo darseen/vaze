@@ -1,7 +1,20 @@
+/**
+ * Parse a timestamp coming from the database. SQLite's `CURRENT_TIMESTAMP`
+ * produces `"YYYY-MM-DD HH:MM:SS"` in UTC with no timezone marker, which
+ * `new Date()` would otherwise interpret as *local* time. ISO strings (used for
+ * api-key timestamps) already carry a `Z` and pass straight through.
+ */
+export const parseTimestamp = (value: string): Date => {
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) {
+    return new Date(value.replace(" ", "T") + "Z");
+  }
+  return new Date(value);
+};
+
 export const formatDate = (date: string | null) => {
   if (!date) return;
 
-  return new Date(date).toLocaleDateString("en-US", {
+  return parseTimestamp(date).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",

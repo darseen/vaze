@@ -67,21 +67,14 @@ export default function FilesList({ files, folders }: Props) {
           <h3 className="text-foreground mb-2 text-lg font-medium">
             No files found
           </h3>
-          {/* <p className="text-muted-foreground">
-          {searchTerm
-            ? "Try adjusting your search terms"
-            : "Upload your first file to get started"}
-        </p> */}
+          <p className="text-muted-foreground">
+            Upload your first file to get started
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {folders.map((folder) => (
-            <FolderCard
-              key={folder.id}
-              folder={folder}
-              filesCount={files.length}
-              foldersCount={folders.length}
-            />
+            <FolderCard key={folder.id} folder={folder} />
           ))}
 
           {files.map((file) => (

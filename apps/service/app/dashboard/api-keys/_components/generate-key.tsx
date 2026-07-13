@@ -65,9 +65,7 @@ export default function GenerateKey() {
 
   const handleExpirationTypeChange = (type: string) => {
     setExpirationType(type);
-    if (type !== "custom") {
-      setExpiresAt(calculateExpirationDate(type));
-    }
+    setExpiresAt(calculateExpirationDate(type));
   };
 
   const copyToClipboard = async () => {
@@ -97,11 +95,6 @@ export default function GenerateKey() {
     try {
       if (!keyName.trim()) {
         toast.error("Please enter a key name");
-        return;
-      }
-
-      if (expirationType === "custom" && expiresAt && expiresAt <= new Date()) {
-        toast.error("Please select a valid future date for expiration");
         return;
       }
 

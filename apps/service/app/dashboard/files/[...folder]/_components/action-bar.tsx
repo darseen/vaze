@@ -9,22 +9,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import type { ApiResponse } from "@repo/types";
-import { Filter, Plus, Search, Upload } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { type ChangeEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import getFolderPath from "../_utils/get-folder-path";
 
 export default function ActionBar() {
-  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [folderName, setFolderName] = useState("");
@@ -139,33 +132,6 @@ export default function ActionBar() {
             <Plus className="mr-2 h-4 w-4" />
             New Folder
           </Button>
-        </div>
-
-        <div className="flex gap-2">
-          <div className="relative max-w-md flex-1">
-            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
-            <Input
-              placeholder="Search files..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 lg:min-w-md"
-            />
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem>All Files</DropdownMenuItem>
-              <DropdownMenuItem>Documents</DropdownMenuItem>
-              <DropdownMenuItem>Images</DropdownMenuItem>
-              <DropdownMenuItem>Shared</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 

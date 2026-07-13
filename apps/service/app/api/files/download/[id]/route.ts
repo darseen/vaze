@@ -1,9 +1,10 @@
-import { accessPath } from "@/app/api/_utils";
+import { accessPathSync, contentDisposition } from "@/app/api/_utils";
 import db from "@/db";
 import { File } from "@repo/types";
-import fs from "fs/promises";
+import mime from "mime-types";
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
+import fs from "node:fs";
+import { Readable } from "node:stream";
 import authorizeRequest from "../../../_utils/authorize-request";
 
 export async function GET(
@@ -40,36 +41,25 @@ export async function GET(
       );
     }
 
-    const filePath = path.join(file.path);
-
     // check if file exists
-    const fileExists = await accessPath(filePath);
-    if (!fileExists) {
+    if (!accessPathSync(file.path)) {
       return NextResponse.json(
         { data: null, error: { message: "File not found" } },
         { status: 404 },
       );
     }
 
-    // read file from disk
-    const fileBuffer = await fs.readFile(filePath);
-    const stats = await fs.stat(filePath);
+    const mimeType = mime.lookup(file.name) || "application/octet-stream";
 
-    // convert Buffer to Uint8Array
-    const fileArray = new Uint8Array(fileBuffer);
+    // stream the file rather than buffering the whole thing into memory
+    const nodeStream = fs.createReadStream(file.path);
+    const webStream = Readable.toWeb(nodeStream);
 
-    // get filename
-    const filename = path.basename(filePath);
-
-    // get MIME type
-    const mimeType = getMimeType(filename);
-
-    // return the file with appropriate headers
-    return new NextResponse(fileArray, {
+    return new NextResponse(webStream as ReadableStream, {
       headers: {
         "Content-Type": mimeType,
-        "Content-Disposition": `attachment; filename="${filename}"`,
-        "Content-Length": stats.size.toString(),
+        "Content-Disposition": contentDisposition("attachment", file.name),
+        "Content-Length": file.size.toString(),
       },
     });
   } catch (error) {
@@ -79,24 +69,4 @@ export async function GET(
       { status: 500 },
     );
   }
-}
-
-function getMimeType(filename: string): string {
-  const ext = path.extname(filename).toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    ".pdf": "application/pdf",
-    ".txt": "text/plain",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".png": "image/png",
-    ".gif": "image/gif",
-    ".zip": "application/zip",
-    ".doc": "application/msword",
-    ".docx":
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ".xls": "application/vnd.ms-excel",
-    ".xlsx":
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  };
-  return mimeTypes[ext] || "application/octet-stream";
 }

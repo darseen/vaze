@@ -36,15 +36,9 @@ import { toast } from "sonner";
 
 interface Props {
   folder: Folder;
-  foldersCount: number;
-  filesCount: number;
 }
 
-export default function FolderCard({
-  folder,
-  foldersCount,
-  filesCount,
-}: Props) {
+export default function FolderCard({ folder }: Props) {
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,10 +63,7 @@ export default function FolderCard({
       toast.error("Something went wrong");
     } finally {
       setLoading(false);
-      console.log(pathname);
-      if (pathname === "/dashboard/files/uploads") router.refresh();
-      else if (foldersCount === 0 && filesCount === 0) router.back();
-      else router.refresh();
+      router.refresh();
     }
   };
 
@@ -99,7 +90,9 @@ export default function FolderCard({
       <Card
         key={folder.id}
         className="group border-border/50 bg-card/50 hover:border-border hover:bg-card relative cursor-pointer overflow-hidden border backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5"
-        onClick={() => router.push(`${pathname}/${folder.name}`)}
+        onClick={() =>
+          router.push(`${pathname}/${encodeURIComponent(folder.name)}`)
+        }
       >
         <CardContent className="p-0">
           {/* Folder Preview Area */}

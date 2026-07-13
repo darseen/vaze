@@ -54,7 +54,11 @@ export default async function signIn(formData: FormData) {
       path: "/",
     });
 
-    return { data: { user }, error: null, status: 200 };
+    return {
+      data: { user: { id: user.id, username: user.username } },
+      error: null,
+      status: 200,
+    };
   } catch (error) {
     console.log(error);
     return {

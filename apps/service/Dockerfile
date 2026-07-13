@@ -40,6 +40,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# Pin the data directory to the mounted volume, independent of the process cwd.
+ENV DATA_PATH=/app/data
 
 COPY --from=installer /app/apps/service/.next/standalone ./
 COPY --from=installer /app/apps/service/.next/static ./apps/service/.next/static

@@ -15,8 +15,12 @@ export async function deleteApiKey(keyId: string) {
     );
     const result = stmt.run(keyId, user.id);
 
+    if (result.changes === 0) {
+      return { error: { message: "Key not found" }, data: null };
+    }
+
     revalidatePath("/dashboard/api-keys");
-    return { error: null, data: { result } };
+    return { error: null, data: {} };
   } catch (error) {
     console.log("delete api key error", error);
     return { error: { message: "Something went wrong" }, data: null };

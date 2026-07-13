@@ -7,7 +7,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { accessPath, createNestedFolders, getFilesWithUrls } from "../_utils";
+import {
+  accessPath,
+  createNestedFolders,
+  getFilesWithUrls,
+  isValidName,
+  parseIntParam,
+} from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export async function GET(request: NextRequest) {
@@ -24,8 +30,8 @@ export async function GET(request: NextRequest) {
 
     const id = searchParams.get("id");
     const name = searchParams.get("name");
-    const limit = parseInt(searchParams.get("limit") || "-1");
-    const offset = parseInt(searchParams.get("offset") || "0");
+    const limit = parseIntParam(searchParams.get("limit"), -1);
+    const offset = parseIntParam(searchParams.get("offset"), 0);
     const orderBy = searchParams.get("orderBy") || "created_at";
     const orderDirection = searchParams.get("orderDirection") || "DESC";
 
@@ -69,9 +75,9 @@ export async function GET(request: NextRequest) {
           { status: 404 },
         );
       }
-      console.log(files);
+
       return NextResponse.json({
-        data: { files: getFilesWithUrls(files)[0] },
+        data: { files: getFilesWithUrls(files) },
         error: null,
       });
     }
@@ -141,7 +147,9 @@ export async function POST(request: NextRequest) {
         filesWrittenToDisk.push(fileAbsolutePath);
 
         const nodeStream = Readable.fromWeb(file.stream() as any);
-        const fileToWriteTo = await fs.open(fileAbsolutePath, "w");
+        // "wx" fails if the path already exists, so a suffix collision can
+        // never silently truncate an existing file.
+        const fileToWriteTo = await fs.open(fileAbsolutePath, "wx");
         await pipeline(nodeStream, fileToWriteTo.createWriteStream());
 
         uploadedFiles.push({
@@ -221,6 +229,13 @@ export async function PUT(request: NextRequest) {
 
     const { id, name }: { id: string; name: string } = await request.json();
 
+    if (!isValidName(name, { allowDots: true })) {
+      return NextResponse.json(
+        { data: null, error: { message: "Invalid file name" } },
+        { status: 400 },
+      );
+    }
+
     const file = db.prepare(`SELECT * FROM files WHERE id = ?`).get(id) as
       | FileDB
       | undefined;
@@ -240,10 +255,12 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // check if file name already exists in the same folder
+    // `files.name` is globally unique, so the conflict check must be global —
+    // a per-folder check would let the UNIQUE constraint throw *after* the disk
+    // rename, leaving the DB pointing at a stale path.
     const existingFile = db
-      .prepare(`SELECT * FROM files WHERE name = ? AND folder_id = ?`)
-      .get(name, file.folder_id) as FileDB | undefined;
+      .prepare(`SELECT id FROM files WHERE name = ? AND id != ?`)
+      .get(name, id) as Pick<FileDB, "id"> | undefined;
 
     if (existingFile) {
       return NextResponse.json(
@@ -252,20 +269,25 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const fileDirectory = path.dirname(file.path);
+    const newAbsolutePath = path.join(fileDirectory, name);
+    const newType = path.extname(name);
+
+    let renamed = false;
     try {
-      const fileDirectory = path.dirname(file.path);
-      const newAbsolutePath = path.join(fileDirectory, name);
-
-      // update file name on disk
+      // rename on disk first, then update the DB; if the DB write fails we
+      // roll the disk change back so the two never diverge.
       await fs.rename(file.path, newAbsolutePath);
+      renamed = true;
 
-      db.prepare(`UPDATE files SET name = ?, path = ? WHERE id = ?`).run(
-        name,
-        newAbsolutePath,
-        id,
-      );
+      db.prepare(
+        `UPDATE files SET name = ?, path = ?, type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      ).run(name, newAbsolutePath, newType, id);
     } catch (error) {
       console.log("update file error", error);
+      if (renamed) {
+        await fs.rename(newAbsolutePath, file.path).catch(() => {});
+      }
       return NextResponse.json(
         { data: null, error: { message: "Error updating file" } },
         { status: 500 },
@@ -310,14 +332,12 @@ export async function DELETE(request: NextRequest) {
     // check if file exists on disk
     const fileExists = await accessPath(file.path);
     if (!fileExists) {
-      // delete file from database if it doesn't exist on disk
+      // The file is already gone from disk; drop the orphaned row and treat the
+      // delete as successful rather than surfacing a misleading 404.
       db.prepare(`DELETE FROM files WHERE id = ?`).run(id);
       revalidatePath("/dashboard");
 
-      return NextResponse.json(
-        { error: { message: "File not found" }, data: null },
-        { status: 404 },
-      );
+      return NextResponse.json({ data: null, error: null });
     }
 
     // delete file from disk and database

@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { formatDate } from "@/utils";
+import { formatBytes, formatDate } from "@/utils";
 import { ApiResponse, File } from "@repo/types";
 import { Download, Edit, FileText, MoreVertical, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -53,6 +53,7 @@ export default function FileCard({ file }: Props) {
       const { error } = (await response.json()) as ApiResponse<null>;
       if (error) return toast.error(error.message);
       toast.success("File renamed successfully");
+      setEditingFile(null);
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -80,18 +81,6 @@ export default function FileCard({ file }: Props) {
       setLoading(false);
       router.refresh();
     }
-  };
-
-  const formatSize = (bytes: number) => {
-    const kb = bytes / 1024;
-    const mb = kb / 1024;
-    const gb = mb / 1024;
-
-    if (gb >= 1) return `${gb.toFixed(1)} GB`;
-    if (mb >= 1) return `${mb.toFixed(1)} MB`;
-    if (kb >= 1) return `${kb.toFixed(1)} KB`;
-
-    return `${bytes} B`;
   };
 
   const getFileExtension = (filename: string) => {
@@ -195,9 +184,9 @@ export default function FileCard({ file }: Props) {
                 {file.name}
               </h3>
               <div className="mt-1 flex items-center gap-1">
-                {file.size && (
+                {file.size > 0 && (
                   <span className="text-muted-foreground text-xs font-medium">
-                    {formatSize(file.size)}
+                    {formatBytes(file.size)}
                   </span>
                 )}
               </div>

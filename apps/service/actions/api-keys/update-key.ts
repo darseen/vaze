@@ -11,12 +11,16 @@ export async function updateApiKey(keyId: string, name: string) {
 
   try {
     const stmt = db.prepare(
-      "UPDATE api_keys SET name = ? WHERE id = ? AND user_id = ?",
+      "UPDATE api_keys SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?",
     );
     const result = stmt.run(name, keyId, user.id);
 
+    if (result.changes === 0) {
+      return { error: { message: "Key not found" }, data: null };
+    }
+
     revalidatePath("/dashboard/api-keys");
-    return { error: null, data: { result } };
+    return { error: null, data: {} };
   } catch (error) {
     console.log("update api key error", error);
     return { error: { message: "Something went wrong" }, data: null };

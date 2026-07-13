@@ -21,6 +21,52 @@ export function accessPathSync(path: string) {
   }
 }
 
+/**
+ * Validate a single file/folder name (not a path). Rejects path separators,
+ * NUL bytes and `.`/`..` so a rename can never escape its parent directory.
+ * Folder names additionally disallow dots to stay consistent with creation.
+ */
+export function isValidName(
+  name: unknown,
+  { allowDots = true }: { allowDots?: boolean } = {},
+): name is string {
+  if (typeof name !== "string" || name.trim().length === 0) return false;
+  if (/[/\\\0]/.test(name)) return false;
+  if (name === "." || name === "..") return false;
+  if (!allowDots && name.includes(".")) return false;
+  return true;
+}
+
+/**
+ * Parse an integer query param, falling back when it is missing or not a
+ * finite number (so `?limit=abc` yields the default instead of a 500).
+ */
+export function parseIntParam(
+  value: string | null,
+  fallback: number,
+): number {
+  if (value === null) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+/**
+ * Build an RFC 5987 compliant Content-Disposition header value. The ASCII
+ * fallback strips characters that would make the header invalid, while the
+ * `filename*` form carries the real (possibly non-ASCII) name.
+ */
+export function contentDisposition(
+  type: "inline" | "attachment",
+  filename: string,
+): string {
+  const asciiFallback = filename
+    .replace(/[^\x20-\x7e]/g, "_")
+    .replace(/["\\]/g, "_");
+  return `${type}; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(
+    filename,
+  )}`;
+}
+
 export function getFilesWithUrls(files: File[]) {
   return files.map((file) => ({
     ...file,
@@ -93,10 +139,10 @@ export async function createNestedFolders(folderPath: string) {
 export async function fetchFolderByPath(
   folderPath: string,
   options?: {
-    limit: number;
-    offset: number;
-    safeOrderBy: "created_at" | "updated_at" | "name";
-    safeOrderDirection: "ASC" | "DESC";
+    limit?: number;
+    offset?: number;
+    safeOrderBy?: "created_at" | "updated_at" | "name" | "size";
+    safeOrderDirection?: "ASC" | "DESC";
   },
 ) {
   const folder = db
@@ -107,37 +153,25 @@ export async function fetchFolderByPath(
     return { error: { message: "Folder not found" }, data: null };
   }
 
-  let files: File[] = [];
+  const {
+    limit = -1,
+    offset = 0,
+    safeOrderBy = "created_at",
+    safeOrderDirection = "DESC",
+  } = options ?? {};
 
-  if (options && Object.keys(options).length > 0) {
-    const { limit, offset, safeOrderBy, safeOrderDirection } = options;
-
-    // fetch files in folder
-    files = db
-      .prepare(
-        `SELECT * FROM files WHERE folder_id = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
-      )
-      .all(folder.id, limit, offset) as File[];
-  } else {
-    files = db
-      .prepare(`SELECT * FROM files WHERE folder_id = ?`)
-      .all(folder.id) as File[];
-  }
-
-  // fetch subfolders in folder
-  const searchPattern = path.join(folder.path, "%");
-  const excludePattern = path.join(folder.path, "%/%");
-
-  const folders = db
+  // fetch files in folder
+  const files = db
     .prepare(
-      `
-            SELECT * FROM folders 
-            WHERE path LIKE ? 
-            AND path NOT LIKE ?
-            AND path != ?
-          `,
+      `SELECT * FROM files WHERE folder_id = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
     )
-    .all(searchPattern, excludePattern, folder.path) as Folder[];
+    .all(folder.id, limit, offset) as File[];
+
+  // fetch direct subfolders (matching on parent_id is exact, unlike a LIKE on
+  // the path which breaks for names containing `%` or `_`).
+  const folders = db
+    .prepare(`SELECT * FROM folders WHERE parent_id = ?`)
+    .all(folder.id) as Folder[];
 
   return { data: { files: getFilesWithUrls(files), folders }, error: null };
 }

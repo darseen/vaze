@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   title: "Dashboard",
 };
 
+// Stats are read live from the database on every request; without this the
+// route would be statically prerendered at build time against an empty DB.
+export const dynamic = "force-dynamic";
+
 export default function DashboardPage() {
   return (
     <div className="bg-background min-h-screen">

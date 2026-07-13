@@ -3,7 +3,8 @@ import db from "@/db";
 import { File, Folder } from "@repo/types";
 import { NextRequest, NextResponse } from "next/server";
 import path from "node:path";
-import { fetchFolderByPath, getFilesWithUrls } from "../_utils";
+import crypto from "node:crypto";
+import { fetchFolderByPath, getFilesWithUrls, parseIntParam } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export default async function GET(request: NextRequest) {
@@ -20,19 +21,21 @@ export default async function GET(request: NextRequest) {
 
     const id = searchParams.get("id");
     const folderPath = searchParams.get("path");
-    const limit = parseInt(searchParams.get("limit") || "-1");
-    const offset = parseInt(searchParams.get("offset") || "0");
+    const limit = parseIntParam(searchParams.get("limit"), -1);
+    const offset = parseIntParam(searchParams.get("offset"), 0);
     const orderBy = searchParams.get("orderBy") || "created_at";
-    const orderDirection = searchParams.get("orderDirection") || "desc";
+    const orderDirection = searchParams.get("orderDirection") || "DESC";
 
-    const safeOrderBy = ["created_at", "updated_at", "name"].includes(orderBy)
-      ? orderBy
-      : "created_at";
-    const safeOrderDirection = ["ASC", "DESC"].includes(
-      orderDirection.toUpperCase(),
-    )
-      ? orderDirection
-      : "DESC";
+    const safeOrderBy = (
+      ["created_at", "updated_at", "name", "size"].includes(orderBy)
+        ? orderBy
+        : "created_at"
+    ) as "created_at" | "updated_at" | "name" | "size";
+    const safeOrderDirection = (
+      ["ASC", "DESC"].includes(orderDirection.toUpperCase())
+        ? orderDirection.toUpperCase()
+        : "DESC"
+    ) as "ASC" | "DESC";
 
     // if nothing is provided, fetch the root folder and its files and folders
     if (!id && !folderPath) {
@@ -55,25 +58,12 @@ export default async function GET(request: NextRequest) {
           .get(BASE_UPLOADS_PATH) as Folder;
       }
 
-      const searchPattern = path.join(folder.path, "%");
-      const excludePattern = path.join(folder.path, "%/%");
-
-      const folders = db
-        .prepare(
-          `
-            SELECT * FROM folders 
-            WHERE path LIKE ? 
-            AND path NOT LIKE ?
-            AND path != ?
-          `,
-        )
-        .all(searchPattern, excludePattern, folder.path) as Folder[];
-
-      const files = db
-        .prepare(
-          `SELECT * FROM files WHERE folder_id = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
-        )
-        .all(folder.id, limit, offset) as File[];
+      const { files, folders } = fetchFolderContents(folder.id, {
+        limit,
+        offset,
+        safeOrderBy,
+        safeOrderDirection,
+      });
 
       return NextResponse.json({
         data: { files: getFilesWithUrls(files), folders },
@@ -94,27 +84,12 @@ export default async function GET(request: NextRequest) {
         );
       }
 
-      // fetch files in folder
-      const files = db
-        .prepare(
-          `SELECT * FROM files WHERE folder_id = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
-        )
-        .all(folder.id, limit, offset) as File[];
-
-      // fetch subfolders in folder
-      const searchPattern = path.join(folder.path, "%");
-      const excludePattern = path.join(folder.path, "%/%");
-
-      const folders = db
-        .prepare(
-          `
-            SELECT * FROM folders 
-            WHERE path LIKE ? 
-            AND path NOT LIKE ?
-            AND path != ?
-          `,
-        )
-        .all(searchPattern, excludePattern, folder.path) as Folder[];
+      const { files, folders } = fetchFolderContents(folder.id, {
+        limit,
+        offset,
+        safeOrderBy,
+        safeOrderDirection,
+      });
 
       return NextResponse.json({
         data: { files: getFilesWithUrls(files), folders },
@@ -123,8 +98,16 @@ export default async function GET(request: NextRequest) {
     }
 
     if (folderPath) {
-      const { error, data } = await fetchFolderByPath(folderPath);
-      return NextResponse.json({ data, error });
+      const { error, data } = await fetchFolderByPath(folderPath, {
+        limit,
+        offset,
+        safeOrderBy,
+        safeOrderDirection,
+      });
+      return NextResponse.json(
+        { data, error },
+        { status: error ? 404 : 200 },
+      );
     }
 
     // throw an error if somehow all the if's didn't trigger, just in case.
@@ -136,4 +119,29 @@ export default async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+// fetch the files and direct subfolders of a folder by id
+function fetchFolderContents(
+  folderId: string,
+  options: {
+    limit: number;
+    offset: number;
+    safeOrderBy: "created_at" | "updated_at" | "name" | "size";
+    safeOrderDirection: "ASC" | "DESC";
+  },
+) {
+  const { limit, offset, safeOrderBy, safeOrderDirection } = options;
+
+  const files = db
+    .prepare(
+      `SELECT * FROM files WHERE folder_id = ? ORDER BY ${safeOrderBy} ${safeOrderDirection} LIMIT ? OFFSET ?`,
+    )
+    .all(folderId, limit, offset) as File[];
+
+  const folders = db
+    .prepare(`SELECT * FROM folders WHERE parent_id = ?`)
+    .all(folderId) as Folder[];
+
+  return { files, folders };
 }

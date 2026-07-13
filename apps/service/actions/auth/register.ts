@@ -3,7 +3,6 @@
 import db from "@/db";
 import { issueJWT } from "@/utils/jwt";
 import { hashPassword } from "@/utils/password";
-import { User } from "@repo/types";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
 
@@ -29,37 +28,37 @@ export default async function register(formData: FormData) {
   }
 
   try {
-    // check if a user is already registered
-    const statement = db.prepare(`SELECT * FROM users;`);
-    const users = statement.all() as User[];
-
-    if (users.length > 0) {
-      return {
-        data: null,
-        error: { message: "User already exists" },
-        status: 409,
-      };
-    }
-
-    // check if username is already taken
-    const statement1 = db.prepare(`SELECT * FROM users WHERE username = ?;`);
-    const user = statement1.get(username) as User;
-
-    if (user) {
-      return {
-        data: null,
-        error: { message: "User already exists" },
-        status: 409,
-      };
-    }
-
+    // Hash before the transaction (scrypt is async; better-sqlite3 txns are sync).
     const passwordHash = await hashPassword(password);
-
-    const statement2 = db.prepare(
-      `INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?);`,
-    );
     const userId = crypto.randomUUID();
-    statement2.run(userId, username, passwordHash);
+
+    try {
+      // Single-admin model: atomically re-check that no user exists, then
+      // insert — so two concurrent registrations can't both succeed.
+      const createUser = db.transaction(() => {
+        const { count } = db
+          .prepare(`SELECT COUNT(*) AS count FROM users`)
+          .get() as { count: number };
+
+        if (count > 0) {
+          throw new Error("USER_EXISTS");
+        }
+
+        db.prepare(
+          `INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?);`,
+        ).run(userId, username, passwordHash);
+      });
+      createUser();
+    } catch (error) {
+      if (error instanceof Error && error.message === "USER_EXISTS") {
+        return {
+          data: null,
+          error: { message: "User already exists" },
+          status: 409,
+        };
+      }
+      throw error;
+    }
 
     // generate token
     const token = await issueJWT({ username, id: userId });

@@ -3,9 +3,8 @@ import { File, Folder } from "@repo/types";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { renameSync } from "node:fs";
-import fs from "node:fs/promises";
 import path from "node:path";
-import { accessPathSync } from "../_utils";
+import { accessPathSync, isValidName } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export default async function PUT(request: NextRequest) {
@@ -26,83 +25,101 @@ export default async function PUT(request: NextRequest) {
       );
     }
 
-    // made global so that if rename fails, we can rename back to old path
-    let oldPath: string | null = null;
-    let newPath: string | null = null;
-
-    // Run the entire operation in a transaction
-    const updateTx = db.transaction(() => {
-      // find in database
-      const folder = db
-        .prepare(`SELECT * FROM folders WHERE id = ?`)
-        .get(id) as Folder | undefined;
-
-      if (!folder) {
-        throw new Error("Folder not found");
-      }
-
-      // check if folder exists on disk
-      const folderExists = accessPathSync(folder.path);
-      if (!folderExists) {
-        // delete folder from database if it doesn't exist on disk
-        db.prepare(`DELETE FROM folders WHERE id = ?`).run(id);
-        throw new Error("Folder not found");
-      }
-
-      if (folder.name === name) return;
-
-      oldPath = folder.path;
-      const parentPath = path.dirname(oldPath);
-      newPath = path.join(parentPath, name);
-
-      // check for name conflicts
-      const conflictCheck = db
-        .prepare(
-          "SELECT id FROM folders WHERE parent_id " +
-            (folder.parent_id ? "= ?" : "IS NULL") +
-            " AND name = ?",
-        )
-        .get(folder.parent_id, name) as Pick<Folder, "id"> | undefined;
-
-      if (conflictCheck) {
-        throw new Error(
-          `A folder named "${name}" already exists in this directory.`,
-        );
-      }
-
-      // rename folder on disk
-      try {
-        renameSync(path.join(oldPath), path.join(newPath));
-      } catch {
-        throw new Error(`Failed to rename folder on disk`);
-      }
-
-      // update folder in database
-      const updateStmt = db.prepare(
-        "UPDATE folders SET name = ?, path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    // Folder names must be a single path segment with no dots (consistent with
+    // folder creation) so a rename can never escape its parent directory.
+    if (!isValidName(name, { allowDots: false })) {
+      return NextResponse.json(
+        { data: null, error: { message: "Invalid folder name" } },
+        { status: 400 },
       );
-      updateStmt.run(name, newPath, id);
+    }
 
-      // recursively update all descendant paths
-      updateDescendantPaths(id, newPath);
-    });
+    // find in database
+    const folder = db.prepare(`SELECT * FROM folders WHERE id = ?`).get(id) as
+      | Folder
+      | undefined;
 
-    try {
-      updateTx();
+    if (!folder) {
+      return NextResponse.json(
+        { data: null, error: { message: "Folder not found" } },
+        { status: 404 },
+      );
+    }
 
-      revalidatePath("/dashboard");
+    // check if folder exists on disk
+    if (!accessPathSync(folder.path)) {
+      // drop the orphaned row and report it as gone
+      db.prepare(`DELETE FROM folders WHERE id = ?`).run(id);
+      return NextResponse.json(
+        { data: null, error: { message: "Folder not found" } },
+        { status: 404 },
+      );
+    }
+
+    // no-op rename
+    if (folder.name === name) {
       return NextResponse.json({ data: null, error: null });
+    }
+
+    const oldPath = folder.path;
+    const newPath = path.join(path.dirname(oldPath), name);
+
+    // check for name conflicts among siblings (parent_id may be NULL for root)
+    const conflictCheck = db
+      .prepare(
+        `SELECT id FROM folders WHERE parent_id ${
+          folder.parent_id === null ? "IS NULL" : "= ?"
+        } AND name = ?`,
+      )
+      .get(
+        ...(folder.parent_id === null
+          ? [name]
+          : [folder.parent_id, name]),
+      ) as Pick<Folder, "id"> | undefined;
+
+    if (conflictCheck) {
+      return NextResponse.json(
+        {
+          data: null,
+          error: {
+            message: `A folder named "${name}" already exists in this directory.`,
+          },
+        },
+        { status: 409 },
+      );
+    }
+
+    // Rename on disk first, then update the DB (folder + all descendant paths)
+    // atomically. If the DB write fails, roll the disk rename back.
+    let renamed = false;
+    try {
+      renameSync(oldPath, newPath);
+      renamed = true;
+
+      const updateTx = db.transaction(() => {
+        db.prepare(
+          "UPDATE folders SET name = ?, path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        ).run(name, newPath, id);
+        updateDescendantPaths(id, newPath);
+      });
+      updateTx();
     } catch (error) {
       console.log("update folder error", error);
-      // rename back to old path
-      if (oldPath && newPath) {
-        await fs.rename(newPath, oldPath);
+      if (renamed) {
+        try {
+          renameSync(newPath, oldPath);
+        } catch {
+          // best-effort rollback
+        }
       }
       return NextResponse.json(
-        { data: null, error: { message: "Internal server error" } },
+        { data: null, error: { message: "Error renaming folder" } },
         { status: 500 },
       );
     }
+
+    revalidatePath("/dashboard");
+    return NextResponse.json({ data: null, error: null });
   } catch (error) {
     console.log("update folder error", error);
     return NextResponse.json(

@@ -6,29 +6,40 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import db from "@/db";
+import { parseTimestamp } from "@/utils";
 import Chart from "./chart";
 
 export default function ApiRequestsChart() {
+  // Only the last 7 days, so the "this week" total and the per-weekday buckets
+  // actually line up (and we don't load the entire table into memory).
   const result = db
-    .prepare("SELECT created_at FROM api_requests ORDER BY created_at ASC")
-    .all() as { created_at: number }[];
+    .prepare(
+      "SELECT created_at FROM api_requests WHERE created_at >= date('now', '-6 days')",
+    )
+    .all() as { created_at: string }[];
 
   const totalRequests = result.length;
 
-  const groupedData: Record<string, number> = {};
+  // Pre-seed one bucket per day for the last 7 days, in chronological order,
+  // keyed by local calendar date.
+  const buckets = new Map<string, { dayOfTheWeek: string; requests: number }>();
+  for (let i = 6; i >= 0; i--) {
+    const day = new Date();
+    day.setDate(day.getDate() - i);
+    const key = day.toLocaleDateString("en-US");
+    buckets.set(key, {
+      dayOfTheWeek: day.toLocaleDateString("en-US", { weekday: "short" }),
+      requests: 0,
+    });
+  }
 
   result.forEach((item) => {
-    const day = new Date(item.created_at).toLocaleDateString("en-US", {
-      weekday: "short",
-    });
-
-    groupedData[day] = (groupedData[day] || 0) + 1;
+    const key = parseTimestamp(item.created_at).toLocaleDateString("en-US");
+    const bucket = buckets.get(key);
+    if (bucket) bucket.requests += 1;
   });
 
-  const data = Object.entries(groupedData).map(([dayOfTheWeek, requests]) => ({
-    dayOfTheWeek,
-    requests,
-  }));
+  const data = Array.from(buckets.values());
 
   return (
     <Card className="border-border/50 bg-card/50">
@@ -49,7 +60,7 @@ export default function ApiRequestsChart() {
         </div>
       </CardHeader>
       <CardContent className="flex h-64 items-center justify-center">
-        {data.length === 0 ? (
+        {totalRequests === 0 ? (
           <p className="text-muted-foreground text-center text-sm">
             No API requests yet
           </p>
