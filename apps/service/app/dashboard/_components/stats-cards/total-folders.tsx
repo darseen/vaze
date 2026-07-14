@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import db from "@/db";
-import { folders } from "@/db/schema";
+import { db } from "@/db";
+import { folders } from "@repo/db";
 import { count } from "drizzle-orm";
 import { FolderOpen } from "lucide-react";
 

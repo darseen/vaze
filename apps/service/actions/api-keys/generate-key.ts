@@ -1,7 +1,7 @@
 "use server";
 
-import db from "@/db";
-import { apiKeys } from "@/db/schema";
+import { db } from "@/db";
+import { apiKeys } from "@repo/db";
 import auth from "@/utils/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -20,7 +20,7 @@ export default async function generateApiKey(
     const result = db
       .select({ id: apiKeys.id })
       .from(apiKeys)
-      .where(and(eq(apiKeys.name, name), eq(apiKeys.user_id, user.id)))
+      .where(and(eq(apiKeys.name, name), eq(apiKeys.userId, user.id)))
       .get();
 
     if (result) {

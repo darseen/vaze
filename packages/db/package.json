@@ -1,0 +1,26 @@
+{
+  "name": "@repo/db",
+  "version": "1.0.0",
+  "description": "Drizzle schema, relations, and inferred row types for Vaze.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "lint": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "drizzle-orm": "^0.45.2",
+    "typescript": "^6.0.2"
+  }
+}

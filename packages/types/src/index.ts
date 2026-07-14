@@ -1,48 +1,15 @@
-export type User = {
-  id: string;
-  username: string;
-  password_hash: string;
-  created_at: string;
-  updated_at: string;
-};
+export type {
+  Account,
+  ApiKey,
+  ApiRequest,
+  File,
+  Folder,
+  Session,
+  User,
+  Verification,
+} from "@repo/db";
 
-export type File = {
-  id: string;
-  name: string;
-  folder_id: string;
-  path: string;
-  size: number;
-  type: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export type Folder = {
-  id: string;
-  name: string;
-  path: string;
-  parent_id: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type ApiKey = {
-  id: string;
-  name: string;
-  user_id: string;
-  key_hash: string;
-  last_used: string | null;
-  expires_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type ApiRequest = {
-  id: string;
-  user_id: string;
-  key_id: string;
-  created_at: string;
-};
+import type { File } from "@repo/db";
 
 export type ApiResponse<T> =
   | {

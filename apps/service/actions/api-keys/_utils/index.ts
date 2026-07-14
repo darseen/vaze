@@ -1,5 +1,5 @@
-import db from "@/db";
-import { apiKeys } from "@/db/schema";
+import { db } from "@/db";
+import { apiKeys } from "@repo/db";
 import { hashKey } from "@/utils/api-keys";
 import crypto from "node:crypto";
 
@@ -23,10 +23,10 @@ export function createApiKey(
     .values({
       id: keyId,
       name,
-      user_id: userId,
-      key_hash: keyHash,
-      created_at: createdAt,
-      expires_at: expiresAt?.toISOString() ?? null,
+      userId: userId,
+      keyHash: keyHash,
+      createdAt: createdAt,
+      expiresAt: expiresAt?.toISOString() ?? null,
     })
     .run();
 

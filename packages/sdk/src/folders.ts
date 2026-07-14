@@ -8,7 +8,7 @@ export default class Folders extends Base {
     path?: string;
     limit?: number;
     offset?: number;
-    orderBy?: "created_at" | "updated_at" | "name";
+    orderBy?: "createdAt" | "updatedAt" | "name";
     orderDirection?: "ASC" | "DESC";
   }) {
     const url = new URL("/api/folders", this.vazeUrl);

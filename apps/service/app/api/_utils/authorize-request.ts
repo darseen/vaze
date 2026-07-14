@@ -1,5 +1,5 @@
-import db from "@/db";
-import { apiRequests, users } from "@/db/schema";
+import { db } from "@/db";
+import { apiRequests, users } from "@repo/db";
 import { auth } from "@/lib/auth";
 import { validateApiKey } from "@/utils/api-keys";
 import { eq } from "drizzle-orm";
@@ -28,7 +28,7 @@ export default async function authorizeRequest(request: NextRequest) {
     const user = db
       .select()
       .from(users)
-      .where(eq(users.id, key.user_id))
+      .where(eq(users.id, key.userId))
       .get();
 
     if (!user) {
@@ -36,7 +36,7 @@ export default async function authorizeRequest(request: NextRequest) {
     }
 
     db.insert(apiRequests)
-      .values({ id: crypto.randomUUID(), user_id: user.id, key_id: key.id })
+      .values({ id: crypto.randomUUID(), userId: user.id, keyId: key.id })
       .run();
 
     return {

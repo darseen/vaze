@@ -29,19 +29,19 @@ interface Props {
   folders: Folder[];
 }
 
-type SortField = "name" | "size" | "created_at";
+type SortField = "name" | "size" | "createdAt";
 type SortDirection = "asc" | "desc";
 
 const SORT_LABELS: Record<SortField, string> = {
   name: "Name",
   size: "Size",
-  created_at: "Date",
+  createdAt: "Date",
 };
 
 export default function FilesList({ files, folders }: Props) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<FileCategory | "all">("all");
-  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const query = search.trim().toLowerCase();
@@ -54,11 +54,11 @@ export default function FilesList({ files, folders }: Props) {
     return [...filtered].sort((a, b) => {
       // Folders have no size; fall back to name when sorting by size.
       const dir = sortDirection === "asc" ? 1 : -1;
-      if (sortField === "created_at") {
+      if (sortField === "createdAt") {
         return (
           dir *
-          (parseTimestamp(a.created_at).getTime() -
-            parseTimestamp(b.created_at).getTime())
+          (parseTimestamp(a.createdAt).getTime() -
+            parseTimestamp(b.createdAt).getTime())
         );
       }
       return dir * a.name.localeCompare(b.name);
@@ -80,11 +80,11 @@ export default function FilesList({ files, folders }: Props) {
           return dir * a.name.localeCompare(b.name);
         case "size":
           return dir * (a.size - b.size);
-        case "created_at":
+        case "createdAt":
           return (
             dir *
-            (parseTimestamp(a.created_at).getTime() -
-              parseTimestamp(b.created_at).getTime())
+            (parseTimestamp(a.createdAt).getTime() -
+              parseTimestamp(b.createdAt).getTime())
           );
       }
     });

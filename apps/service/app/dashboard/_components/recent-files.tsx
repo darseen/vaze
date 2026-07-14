@@ -6,8 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BASE_DATA_PATH } from "@/constants";
-import db from "@/db";
-import { files as filesTable } from "@/db/schema";
+import { db } from "@/db";
+import { files as filesTable } from "@repo/db";
 import { formatBytes, parseTimestamp } from "@/utils";
 import { desc } from "drizzle-orm";
 import { formatDistanceToNow } from "date-fns";
@@ -87,10 +87,10 @@ export default async function RecentFiles() {
       name: filesTable.name,
       size: filesTable.size,
       path: filesTable.path,
-      created_at: filesTable.created_at,
+      createdAt: filesTable.createdAt,
     })
     .from(filesTable)
-    .orderBy(desc(filesTable.created_at))
+    .orderBy(desc(filesTable.createdAt))
     .limit(5)
     .all();
 
@@ -109,7 +109,7 @@ export default async function RecentFiles() {
           </p>
         ) : (
           files.map((file) => {
-            const dateObj = parseTimestamp(file.created_at);
+            const dateObj = parseTimestamp(file.createdAt);
 
             return (
               <div key={file.id} className="flex items-center gap-3">

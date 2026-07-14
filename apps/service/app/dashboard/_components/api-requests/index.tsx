@@ -5,8 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import db from "@/db";
-import { apiRequests } from "@/db/schema";
+import { db } from "@/db";
+import { apiRequests } from "@repo/db";
 import { parseTimestamp } from "@/utils";
 import { gte, sql } from "drizzle-orm";
 import Chart from "./chart";
@@ -15,9 +15,9 @@ export default function ApiRequestsChart() {
   // Only the last 7 days, so the "this week" total and the per-weekday buckets
   // actually line up (and we don't load the entire table into memory).
   const result = db
-    .select({ created_at: apiRequests.created_at })
+    .select({ createdAt: apiRequests.createdAt })
     .from(apiRequests)
-    .where(gte(apiRequests.created_at, sql`date('now', '-6 days')`))
+    .where(gte(apiRequests.createdAt, sql`date('now', '-6 days')`))
     .all();
 
   const totalRequests = result.length;
@@ -36,7 +36,7 @@ export default function ApiRequestsChart() {
   }
 
   result.forEach((item) => {
-    const key = parseTimestamp(item.created_at).toLocaleDateString("en-US");
+    const key = parseTimestamp(item.createdAt).toLocaleDateString("en-US");
     const bucket = buckets.get(key);
     if (bucket) bucket.requests += 1;
   });

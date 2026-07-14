@@ -1,7 +1,7 @@
 "use server";
 
-import db from "@/db";
-import { apiKeys } from "@/db/schema";
+import { db } from "@/db";
+import { apiKeys } from "@repo/db";
 import auth from "@/utils/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -14,7 +14,7 @@ export async function deleteApiKey(keyId: string) {
   try {
     const result = db
       .delete(apiKeys)
-      .where(and(eq(apiKeys.id, keyId), eq(apiKeys.user_id, user.id)))
+      .where(and(eq(apiKeys.id, keyId), eq(apiKeys.userId, user.id)))
       .run();
 
     if (result.changes === 0) {

@@ -1,6 +1,6 @@
 import { BASE_UPLOADS_PATH } from "@/constants";
-import db from "@/db";
-import { folders as foldersTable } from "@/db/schema";
+import { db } from "@/db";
+import { folders as foldersTable } from "@repo/db";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";

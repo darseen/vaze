@@ -1,6 +1,6 @@
 import { accessPathSync, contentDisposition } from "@/app/api/_utils";
-import db from "@/db";
-import { files as filesTable } from "@/db/schema";
+import { db } from "@/db";
+import { files as filesTable } from "@repo/db";
 import { eq } from "drizzle-orm";
 import mime from "mime-types";
 import { NextRequest, NextResponse } from "next/server";

@@ -1,5 +1,5 @@
-import db from "@/db";
-import { files as filesTable } from "@/db/schema";
+import { db } from "@/db";
+import { files as filesTable } from "@repo/db";
 import type { File as FileDB, Folder } from "@repo/types";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -37,14 +37,14 @@ export async function GET(request: NextRequest) {
     const name = searchParams.get("name");
     const limit = parseIntParam(searchParams.get("limit"), -1);
     const offset = parseIntParam(searchParams.get("offset"), 0);
-    const orderBy = searchParams.get("orderBy") || "created_at";
+    const orderBy = searchParams.get("orderBy") || "createdAt";
     const orderDirection = searchParams.get("orderDirection") || "DESC";
 
     const safeOrderBy: OrderBy = (
-      ["created_at", "updated_at", "name", "size"] as const
+      ["createdAt", "updatedAt", "name", "size"] as const
     ).includes(orderBy as OrderBy)
       ? (orderBy as OrderBy)
-      : "created_at";
+      : "createdAt";
     const safeOrderDirection: OrderDirection = ["ASC", "DESC"].includes(
       orderDirection.toUpperCase(),
     )
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploadedFiles: Omit<FileDB, "created_at" | "updated_at">[] = [];
+    const uploadedFiles: Omit<FileDB, "createdAt" | "updatedAt">[] = [];
     const filesWrittenToDisk: string[] = []; // track paths for targeted cleanup
 
     try {
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
         uploadedFiles.push({
           id: crypto.randomUUID(),
           path: fileAbsolutePath,
-          folder_id: targetFolder.id,
+          folderId: targetFolder.id,
           type: fileType,
           name: fileName,
           size: file.size,
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
             .values({
               id: file.id,
               name: file.name,
-              folder_id: file.folder_id,
+              folderId: file.folderId,
               path: file.path,
               size: file.size,
               type: file.type,
@@ -297,7 +297,7 @@ export async function PUT(request: NextRequest) {
           name,
           path: newAbsolutePath,
           type: newType,
-          updated_at: sql`CURRENT_TIMESTAMP`,
+          updatedAt: sql`CURRENT_TIMESTAMP`,
         })
         .where(eq(filesTable.id, id))
         .run();

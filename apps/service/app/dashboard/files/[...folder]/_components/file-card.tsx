@@ -216,7 +216,7 @@ export default function FileCard({ file }: Props) {
               </div>
               <div className="absolute right-4 bottom-2 flex items-center gap-1">
                 <span className="text-muted-foreground text-xs font-medium">
-                  {formatDate(file.created_at)}
+                  {formatDate(file.createdAt)}
                 </span>
               </div>
             </div>

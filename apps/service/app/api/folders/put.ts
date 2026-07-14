@@ -1,5 +1,5 @@
-import db from "@/db";
-import { files as filesTable, folders as foldersTable } from "@/db/schema";
+import { db } from "@/db";
+import { files as filesTable, folders as foldersTable } from "@repo/db";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
@@ -67,15 +67,15 @@ export default async function PUT(request: NextRequest) {
     const oldPath = folder.path;
     const newPath = path.join(path.dirname(oldPath), name);
 
-    // check for name conflicts among siblings (parent_id may be NULL for root)
+    // check for name conflicts among siblings (parentId may be NULL for root)
     const conflictCheck = db
       .select({ id: foldersTable.id })
       .from(foldersTable)
       .where(
         and(
-          folder.parent_id === null
-            ? isNull(foldersTable.parent_id)
-            : eq(foldersTable.parent_id, folder.parent_id),
+          folder.parentId === null
+            ? isNull(foldersTable.parentId)
+            : eq(foldersTable.parentId, folder.parentId),
           eq(foldersTable.name, name),
         ),
       )
@@ -102,7 +102,7 @@ export default async function PUT(request: NextRequest) {
 
       db.transaction((tx) => {
         tx.update(foldersTable)
-          .set({ name, path: newPath, updated_at: sql`CURRENT_TIMESTAMP` })
+          .set({ name, path: newPath, updatedAt: sql`CURRENT_TIMESTAMP` })
           .where(eq(foldersTable.id, id))
           .run();
         updateDescendantPaths(tx, id, newPath);
@@ -145,13 +145,13 @@ function updateDescendantPaths(
   const subfolders = tx
     .select({ id: foldersTable.id, name: foldersTable.name })
     .from(foldersTable)
-    .where(eq(foldersTable.parent_id, parentId))
+    .where(eq(foldersTable.parentId, parentId))
     .all();
 
   const files = tx
     .select({ id: filesTable.id, name: filesTable.name })
     .from(filesTable)
-    .where(eq(filesTable.folder_id, parentId))
+    .where(eq(filesTable.folderId, parentId))
     .all();
 
   if (subfolders.length === 0 && files.length === 0) return;

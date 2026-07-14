@@ -6,7 +6,7 @@ export default class Files extends Base {
   public async getAll(options?: {
     limit?: number;
     offset?: number;
-    orderBy?: "created_at" | "updated_at" | "name" | "size";
+    orderBy?: "createdAt" | "updatedAt" | "name" | "size";
     orderDirection?: "ASC" | "DESC";
   }) {
     const url = new URL("/api/files", this.vazeUrl);
@@ -61,7 +61,7 @@ export default class Files extends Base {
     options?: {
       limit?: number;
       offset?: number;
-      orderBy?: "created_at" | "updated_at" | "name" | "size";
+      orderBy?: "createdAt" | "updatedAt" | "name" | "size";
       orderDirection?: "ASC" | "DESC";
     },
   ) {

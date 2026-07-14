@@ -1,7 +1,7 @@
 "use server";
 
-import db from "@/db";
-import { users } from "@/db/schema";
+import { db } from "@/db";
+import { users } from "@repo/db";
 
 export default async function checkUser() {
   try {

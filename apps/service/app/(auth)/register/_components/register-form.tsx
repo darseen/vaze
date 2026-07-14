@@ -85,7 +85,7 @@ export default function RegisterForm() {
           </div>
           <div className="bg-accent text-accent-foreground rounded-lg p-3">
             <div className="flex items-start gap-2">
-              <Shield className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <Shield className="mt-0.5 h-4 w-4 shrink-0" />
               <p className="text-xs sm:text-sm">
                 This will create an administrator account with full access to
                 the Vaze file storage system.

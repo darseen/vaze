@@ -184,7 +184,7 @@ export default function FolderCard({ folder }: Props) {
               </div>
               <div className="absolute right-4 bottom-2 flex items-center gap-1">
                 <span className="text-muted-foreground text-xs font-medium">
-                  {formatDate(folder.created_at)}
+                  {formatDate(folder.createdAt)}
                 </span>
               </div>
             </div>

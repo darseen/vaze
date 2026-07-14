@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import db from "@/db";
-import { apiKeys } from "@/db/schema";
+import { db } from "@/db";
+import { apiKeys } from "@repo/db";
 import { count } from "drizzle-orm";
 import { Key } from "lucide-react";
 

@@ -1,7 +1,7 @@
 import { BASE_UPLOADS_PATH } from "@/constants";
-import db from "@/db";
-import { files as filesTable, folders as foldersTable } from "@/db/schema";
-import { File } from "@repo/types";
+import { db } from "@/db";
+import { files as filesTable, folders as foldersTable } from "@repo/db";
+import type { File } from "@repo/types";
 import { asc, desc, eq } from "drizzle-orm";
 import { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import crypto from "node:crypto";
@@ -9,7 +9,7 @@ import { accessSync } from "node:fs";
 import fs, { access, constants } from "node:fs/promises";
 import path from "node:path";
 
-export type OrderBy = "created_at" | "updated_at" | "name" | "size";
+export type OrderBy = "createdAt" | "updatedAt" | "name" | "size";
 export type OrderDirection = "ASC" | "DESC";
 
 /**
@@ -108,7 +108,7 @@ export async function createNestedFolders(folderPath: string) {
         id: baseId,
         name: path.basename(BASE_UPLOADS_PATH),
         path: BASE_UPLOADS_PATH,
-        parent_id: null,
+        parentId: null,
       })
       .run();
 
@@ -146,7 +146,7 @@ export async function createNestedFolders(folderPath: string) {
           id: newSegmentId,
           name: segment,
           path: segmentAbsolutePath,
-          parent_id: currentParentId,
+          parentId: currentParentId,
         })
         .run();
 
@@ -174,7 +174,7 @@ export async function fetchFolderByPath(
   options?: {
     limit?: number;
     offset?: number;
-    safeOrderBy?: "created_at" | "updated_at" | "name" | "size";
+    safeOrderBy?: "createdAt" | "updatedAt" | "name" | "size";
     safeOrderDirection?: "ASC" | "DESC";
   },
 ) {
@@ -191,7 +191,7 @@ export async function fetchFolderByPath(
   const {
     limit = -1,
     offset = 0,
-    safeOrderBy = "created_at",
+    safeOrderBy = "createdAt",
     safeOrderDirection = "DESC",
   } = options ?? {};
 
@@ -199,18 +199,18 @@ export async function fetchFolderByPath(
   const files = db
     .select()
     .from(filesTable)
-    .where(eq(filesTable.folder_id, folder.id))
+    .where(eq(filesTable.folderId, folder.id))
     .orderBy(fileOrderBy(safeOrderBy, safeOrderDirection))
     .limit(limit)
     .offset(offset)
     .all();
 
-  // fetch direct subfolders (matching on parent_id is exact, unlike a LIKE on
+  // fetch direct subfolders (matching on parentId is exact, unlike a LIKE on
   // the path which breaks for names containing `%` or `_`).
   const folders = db
     .select()
     .from(foldersTable)
-    .where(eq(foldersTable.parent_id, folder.id))
+    .where(eq(foldersTable.parentId, folder.id))
     .all();
 
   return { data: { files: getFilesWithUrls(files), folders }, error: null };

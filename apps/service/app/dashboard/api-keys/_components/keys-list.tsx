@@ -29,7 +29,7 @@ import {
 import { toast } from "sonner";
 
 interface Props {
-  keys: Omit<ApiKey, "key_hash" | "user_id" | "updated_at">[];
+  keys: Omit<ApiKey, "keyHash" | "userId" | "updatedAt">[];
 }
 
 export default function KeysList({ keys }: Props) {
@@ -59,7 +59,7 @@ export default function KeysList({ keys }: Props) {
   };
 
   const activeKeysCount = keys.filter((key) =>
-    isKeyActive(key.last_used),
+    isKeyActive(key.lastUsed),
   ).length;
 
   return (
@@ -96,7 +96,7 @@ export default function KeysList({ keys }: Props) {
       ) : (
         <div className="grid gap-3">
           {keys.map((key) => {
-            const keyIsActive = isKeyActive(key.last_used);
+            const keyIsActive = isKeyActive(key.lastUsed);
             return (
               <Card
                 key={key.id}
@@ -123,7 +123,7 @@ export default function KeysList({ keys }: Props) {
                         {keyIsActive ? "Active" : "Inactive"}
                       </Badge>
 
-                      {key.expires_at && isExpiringSoon(key.expires_at) && (
+                      {key.expiresAt && isExpiringSoon(key.expiresAt) && (
                         <Badge
                           variant="destructive"
                           className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
@@ -203,7 +203,7 @@ export default function KeysList({ keys }: Props) {
                           Created
                         </p>
                         <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                          {formatDate(key.created_at)}
+                          {formatDate(key.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -215,7 +215,7 @@ export default function KeysList({ keys }: Props) {
                           Last Used
                         </p>
                         <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                          {formatDate(key.last_used) || "Never"}
+                          {formatDate(key.lastUsed) || "Never"}
                         </p>
                       </div>
                     </div>
@@ -228,12 +228,12 @@ export default function KeysList({ keys }: Props) {
                         </p>
                         <p
                           className={`truncate text-sm font-medium ${
-                            key.expires_at && isExpiringSoon(key.expires_at)
+                            key.expiresAt && isExpiringSoon(key.expiresAt)
                               ? "text-red-600 dark:text-red-400"
                               : "text-zinc-900 dark:text-zinc-100"
                           }`}
                         >
-                          {formatDate(key.expires_at) || "Never"}
+                          {formatDate(key.expiresAt) || "Never"}
                         </p>
                       </div>
                     </div>

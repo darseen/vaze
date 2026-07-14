@@ -5,8 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import db from "@/db";
-import { files } from "@/db/schema";
+import { db } from "@/db";
+import { files } from "@repo/db";
 import { desc } from "drizzle-orm";
 import Chart from "./chart";
 

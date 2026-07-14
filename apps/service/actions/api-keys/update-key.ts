@@ -1,7 +1,7 @@
 "use server";
 
-import db from "@/db";
-import { apiKeys } from "@/db/schema";
+import { db } from "@/db";
+import { apiKeys } from "@repo/db";
 import auth from "@/utils/auth";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -14,8 +14,8 @@ export async function updateApiKey(keyId: string, name: string) {
   try {
     const result = db
       .update(apiKeys)
-      .set({ name, updated_at: sql`CURRENT_TIMESTAMP` })
-      .where(and(eq(apiKeys.id, keyId), eq(apiKeys.user_id, user.id)))
+      .set({ name, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .where(and(eq(apiKeys.id, keyId), eq(apiKeys.userId, user.id)))
       .run();
 
     if (result.changes === 0) {

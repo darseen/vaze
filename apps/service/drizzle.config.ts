@@ -4,7 +4,7 @@ import { BASE_DB_PATH } from "./constants";
 
 export default defineConfig({
   dialect: "sqlite",
-  schema: "./db/schema.ts",
+  schema: "../../packages/db/src/schema/index.ts",
   out: "./drizzle",
   dbCredentials: {
     url: path.join(BASE_DB_PATH, "vaze.db"),

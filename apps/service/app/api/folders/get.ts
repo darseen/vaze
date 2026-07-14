@@ -1,6 +1,6 @@
 import { BASE_UPLOADS_PATH } from "@/constants";
-import db from "@/db";
-import { files as filesTable, folders as foldersTable } from "@/db/schema";
+import { db } from "@/db";
+import { files as filesTable, folders as foldersTable } from "@repo/db";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import path from "node:path";
@@ -31,13 +31,13 @@ export default async function GET(request: NextRequest) {
     const folderPath = searchParams.get("path");
     const limit = parseIntParam(searchParams.get("limit"), -1);
     const offset = parseIntParam(searchParams.get("offset"), 0);
-    const orderBy = searchParams.get("orderBy") || "created_at";
+    const orderBy = searchParams.get("orderBy") || "createdAt";
     const orderDirection = searchParams.get("orderDirection") || "DESC";
 
     const safeOrderBy = (
-      ["created_at", "updated_at", "name", "size"].includes(orderBy)
+      ["createdAt", "updatedAt", "name", "size"].includes(orderBy)
         ? orderBy
-        : "created_at"
+        : "createdAt"
     ) as OrderBy;
     const safeOrderDirection = (
       ["ASC", "DESC"].includes(orderDirection.toUpperCase())
@@ -151,7 +151,7 @@ function fetchFolderContents(
   const files = db
     .select()
     .from(filesTable)
-    .where(eq(filesTable.folder_id, folderId))
+    .where(eq(filesTable.folderId, folderId))
     .orderBy(fileOrderBy(safeOrderBy, safeOrderDirection))
     .limit(limit)
     .offset(offset)
@@ -160,7 +160,7 @@ function fetchFolderContents(
   const folders = db
     .select()
     .from(foldersTable)
-    .where(eq(foldersTable.parent_id, folderId))
+    .where(eq(foldersTable.parentId, folderId))
     .all();
 
   return { files, folders };
