@@ -6,9 +6,14 @@ import {
   text,
 } from "drizzle-orm/sqlite-core";
 
-// Column/property names are kept in snake_case so that the objects Drizzle
-// returns line up 1:1 with the shared `@repo/types` shapes (File, Folder, User,
-// ApiKey, ApiRequest) and existing consumers keep working unchanged.
+// Domain tables (folders, files, api_keys, api_requests) keep snake_case for
+// both column and property names so the objects Drizzle returns line up 1:1
+// with the shared `@repo/types` shapes (File, Folder, ApiKey, ApiRequest).
+//
+// The auth tables (users, sessions, accounts, verifications) are owned by
+// Better Auth. They follow Better Auth's own convention instead — camelCase
+// properties mapped to snake_case columns, millisecond-integer timestamps — so
+// the Drizzle adapter maps its model fields onto them with no extra config.
 
 const timestamps = {
   created_at: text("created_at")
@@ -41,12 +46,71 @@ export const files = sqliteTable("files", {
   ...timestamps,
 });
 
+// ---------------------------------------------------------------------------
+// Better Auth tables
+// ---------------------------------------------------------------------------
+
 export const users = sqliteTable("users", {
   id: text("id").primaryKey().notNull(),
-  username: text("username").notNull().unique(),
-  password_hash: text("password_hash").notNull(),
-  ...timestamps,
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: integer("email_verified", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  image: text("image"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
 });
+
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey().notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+});
+
+export const accounts = sqliteTable("accounts", {
+  id: text("id").primaryKey().notNull(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: integer("access_token_expires_at", {
+    mode: "timestamp_ms",
+  }),
+  refreshTokenExpiresAt: integer("refresh_token_expires_at", {
+    mode: "timestamp_ms",
+  }),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const verifications = sqliteTable("verifications", {
+  id: text("id").primaryKey().notNull(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+// ---------------------------------------------------------------------------
 
 export const apiKeys = sqliteTable("api_keys", {
   id: text("id").primaryKey().notNull(),

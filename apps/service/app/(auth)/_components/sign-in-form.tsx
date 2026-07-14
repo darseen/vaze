@@ -38,12 +38,12 @@ export default function SignInForm() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="username"
-              name="username"
-              type="text"
-              placeholder="Enter your username"
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Enter your email"
               required
             />
           </div>

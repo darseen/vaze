@@ -1,26 +1,25 @@
 import db from "@/db";
 import { apiRequests, users } from "@/db/schema";
+import { auth } from "@/lib/auth";
 import { validateApiKey } from "@/utils/api-keys";
-import { verifyToken } from "@/utils/jwt";
 import { eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 import crypto from "node:crypto";
 
 export default async function authorizeRequest(request: NextRequest) {
-  // authorize the request using the jwt token or an api key
-  const token = request.cookies.get("token")?.value;
+  // authorize the request using the Better Auth session cookie or an api key
   const apiKey = request.headers.get("API-Key");
 
-  if (!token && !apiKey) {
-    return { error: { message: "Unauthorized" }, data: null };
-  } else if (token) {
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return { error: { message: "Unauthorized" }, data: null };
-    }
+  // Session auth (dashboard / browser) takes precedence when a cookie is present.
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (session) {
+    return {
+      error: null,
+      data: { user: { id: session.user.id, username: session.user.name } },
+    };
+  }
 
-    return { error: null, data: { user: payload.user } };
-  } else if (apiKey) {
+  if (apiKey) {
     const key = validateApiKey(apiKey);
     if (!key) {
       return { error: { message: "Unauthorized" }, data: null };
@@ -42,10 +41,10 @@ export default async function authorizeRequest(request: NextRequest) {
 
     return {
       error: null,
-      data: { user: { id: user.id, username: user.username } },
+      data: { user: { id: user.id, username: user.name } },
     };
   }
 
-  // Should be unreachable, but never fall through as "authorized".
+  // No session and no api key.
   return { error: { message: "Unauthorized" }, data: null };
 }

@@ -1,24 +1,20 @@
 "use server";
 
-import { verifyToken } from "@/utils/jwt";
-import { cookies } from "next/headers";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function getUserFromToken() {
   try {
-    const cookiesStore = await cookies();
-    const token = cookiesStore.get("token")?.value;
-    if (!token)
-      return { data: null, error: { message: "Unauthorized" }, status: 401 };
+    const session = await auth.api.getSession({ headers: await headers() });
 
-    const payload = await verifyToken(token);
-
-    if (!payload) {
-      cookiesStore.delete("token");
+    if (!session) {
       return { data: null, error: { message: "Unauthorized" }, status: 401 };
     }
 
+    // The admin's display name is stored in Better Auth's `name` field; the UI
+    // still refers to it as `username`.
     return {
-      data: { username: payload.user.username as string },
+      data: { username: session.user.name },
       error: null,
       status: 200,
     };

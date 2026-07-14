@@ -1,51 +1,26 @@
-import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import db from "./db";
-import { users } from "./db/schema";
-import { verifyToken } from "./utils/jwt";
+import { auth } from "./lib/auth";
 
 export async function proxy(request: NextRequest) {
-  const token = request.cookies.get("token")?.value;
   const { pathname } = request.nextUrl;
 
-  // If the user has a token and is on the homepage, redirect to the dashboard.
-  if (token && pathname === "/") {
+  // Validate the Better Auth session (checks the session row + user in the DB).
+  const session = await auth.api.getSession({ headers: request.headers });
+
+  // If the user is signed in and on the homepage, send them to the dashboard.
+  if (session && pathname === "/") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // If the user is trying to access a protected dashboard route without a token, redirect to the homepage.
-  if (!token && pathname.startsWith("/dashboard")) {
+  // If the user is trying to access a protected dashboard route without a valid
+  // session, redirect to the homepage.
+  if (!session && pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  // If a token exists for a protected route, verify it.
-  if (token && pathname.startsWith("/dashboard")) {
-    // verify token
-    const payload = await verifyToken(token);
-    if (!payload) {
-      // Token is invalid, redirect to the homepage and clear the invalid token.
-      const response = NextResponse.redirect(new URL("/", request.url));
-      response.cookies.delete("token");
-      return response;
-    }
-
-    // check if user exists in the database
-    const user = db
-      .select()
-      .from(users)
-      .where(eq(users.id, payload.user.id))
-      .get();
-    if (!user) {
-      // Token is invalid, redirect to the homepage and clear the invalid token.
-      const response = NextResponse.redirect(new URL("/", request.url));
-      response.cookies.delete("token");
-      return response;
-    }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/dashboard/:path*"]
+  matcher: ["/", "/dashboard/:path*"],
 };

@@ -1,17 +1,13 @@
 "use server";
 
-import db from "@/db";
-import { users } from "@/db/schema";
-import { issueJWT } from "@/utils/jwt";
-import { comparePassword } from "@/utils/password";
-import { eq } from "drizzle-orm";
-import { cookies } from "next/headers";
+import { auth } from "@/lib/auth";
+import { APIError } from "better-auth/api";
 
 export default async function signIn(formData: FormData) {
-  const username = formData.get("username") as string | null;
+  const email = formData.get("email") as string | null;
   const password = formData.get("password") as string | null;
 
-  if (!username || !password) {
+  if (!email || !password) {
     return {
       data: null,
       error: { message: "Missing required fields" },
@@ -20,51 +16,21 @@ export default async function signIn(formData: FormData) {
   }
 
   try {
-    // check if user exists
-    const user = db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .get();
+    // Better Auth sets the session cookie via the nextCookies plugin.
+    await auth.api.signInEmail({ body: { email, password } });
 
-    if (!user) {
-      return {
-        data: null,
-        error: { message: "Invalid credentials" },
-        status: 401,
-      };
-    }
-
-    // check if password is correct
-    const passwordHash = user.password_hash;
-    const isPasswordCorrect = await comparePassword(password, passwordHash);
-    if (!isPasswordCorrect) {
-      return {
-        data: null,
-        error: { message: "Invalid credentials" },
-        status: 401,
-      };
-    }
-
-    // generate token
-    const token = await issueJWT({ username: user.username, id: user.id });
-
-    // set token cookie
-    (await cookies()).set("token", token, {
-      httpOnly: true,
-      secure: process.env.BASE_URL?.startsWith("https://") ?? false,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
-
-    return {
-      data: { user: { id: user.id, username: user.username } },
-      error: null,
-      status: 200,
-    };
+    return { data: {}, error: null, status: 200 };
   } catch (error) {
-    console.log(error);
+    if (error instanceof APIError) {
+      // Don't leak whether the email or the password was wrong.
+      return {
+        data: null,
+        error: { message: "Invalid credentials" },
+        status: 401,
+      };
+    }
+
+    console.log("sign in error", error);
     return {
       data: null,
       error: { message: "Internal server error" },
