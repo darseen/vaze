@@ -1,0 +1,102 @@
+---
+title: Folders
+description: Folder endpoints of the REST API
+icon: Folder
+---
+
+All endpoints below require the [`API-Key`
+header](/docs/api-reference#authentication).
+
+Folder objects in responses have this shape:
+
+```json
+{
+  "id": "9c8b7a6d-...",
+  "name": "demo",
+  "path": "/app/data/uploads/projects/demo",
+  "parentId": "3e2d1c0b-...",
+  "createdAt": "2026-07-15 12:00:00",
+  "updatedAt": "2026-07-15 12:00:00"
+}
+```
+
+## Browse a folder
+
+```
+GET /api/folders
+GET /api/folders?id=<folder-id>
+GET /api/folders?path=<relative/path>
+```
+
+Returns the files and direct subfolders of a folder. With no `id` or `path`,
+the **root folder** is returned. The files list supports the [list query
+parameters](/docs/api-reference#list-query-parameters).
+
+```bash
+curl "https://files.example.com/api/folders?path=projects/demo&orderBy=name&orderDirection=ASC" \
+  -H "API-Key: your-api-key"
+```
+
+```json
+{
+  "data": {
+    "files": [ ... ],
+    "folders": [ ... ]
+  },
+  "error": null
+}
+```
+
+Responds `404` when the folder doesn't exist.
+
+## Create a folder
+
+```
+POST /api/folders
+```
+
+JSON body — a path relative to the root folder; intermediate folders are
+created automatically:
+
+```json
+{ "folder": "projects/demo/assets" }
+```
+
+```json
+{ "data": { "folder": { ... } }, "error": null }
+```
+
+Folder names cannot contain dots (`.`); such requests respond `400`.
+
+## Rename a folder
+
+```
+PUT /api/folders
+```
+
+JSON body:
+
+```json
+{ "id": "<folder-id>", "name": "new-name" }
+```
+
+The new name must be a single path segment without dots. Renaming also
+updates the stored paths of all files and subfolders inside. A sibling folder
+with the same name responds `409`.
+
+## Delete a folder
+
+```
+DELETE /api/folders
+```
+
+JSON body:
+
+```json
+{ "id": "<folder-id>" }
+```
+
+<Callout type="warn">
+  Deletes the folder **recursively**, including all files and subfolders
+  inside it. This cannot be undone.
+</Callout>

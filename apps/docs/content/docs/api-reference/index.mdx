@@ -1,0 +1,91 @@
+---
+title: Overview
+description: Authentication, conventions, and the response envelope
+icon: Terminal
+---
+
+Vaze exposes a REST API under `/api` on your instance. Anything you can do in
+the dashboard, you can do over HTTP from any language.
+
+```
+https://<your-vaze-instance>/api
+```
+
+## Authentication
+
+Create an API key from the **API Keys** page in the dashboard, then send it
+in the `API-Key` header on every request:
+
+```bash
+curl https://files.example.com/api/files \
+  -H "API-Key: your-api-key"
+```
+
+Requests without a valid key receive a `401` response:
+
+```json
+{ "data": null, "error": { "message": "Unauthorized" } }
+```
+
+<Callout>
+  The only endpoints that skip authentication are the [health
+  check](#health-check) and the public [file hosting
+  endpoint](/docs/api-reference/files#serve-a-file-publicly).
+</Callout>
+
+## Response envelope
+
+Every JSON endpoint responds with the same envelope:
+
+```json
+// success
+{ "data": { ... }, "error": null }
+
+// failure
+{ "data": null, "error": { "message": "File not found" } }
+```
+
+Errors also carry a meaningful HTTP status code:
+
+| Status | Meaning                                        |
+| ------ | ---------------------------------------------- |
+| `400`  | Invalid input (missing fields, invalid names)  |
+| `401`  | Missing or invalid API key                     |
+| `404`  | File or folder not found                       |
+| `409`  | Name conflict (rename to an existing name)     |
+| `500`  | Unexpected server error                        |
+
+## List query parameters
+
+Endpoints that return lists of files accept these query parameters:
+
+| Parameter        | Default     | Description                                     |
+| ---------------- | ----------- | ----------------------------------------------- |
+| `limit`          | unlimited   | Maximum number of files to return               |
+| `offset`         | `0`         | Number of files to skip (for pagination)        |
+| `orderBy`        | `createdAt` | One of `createdAt`, `updatedAt`, `name`, `size` |
+| `orderDirection` | `DESC`      | `ASC` or `DESC`                                 |
+
+## Health check
+
+`GET /api/health` — no authentication required. Useful for uptime monitoring
+and container health checks:
+
+```json
+{ "data": { "message": "Vaze is running!" }, "error": null }
+```
+
+## Endpoints
+
+<Cards>
+  <Card
+    title="Files"
+    description="Upload, list, search, download, rename, delete, and publicly serve files."
+    href="/docs/api-reference/files"
+  />
+  <Card
+    title="Folders"
+    description="Browse, create, rename, and delete folders."
+    href="/docs/api-reference/folders"
+  />
+</Cards>

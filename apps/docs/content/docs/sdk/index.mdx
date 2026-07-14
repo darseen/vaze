@@ -1,0 +1,90 @@
+---
+title: Overview
+description: Install and configure the official Vaze SDK
+icon: Package
+---
+
+[`@darseen/vaze`](https://www.npmjs.com/package/@darseen/vaze) is the official
+TypeScript/JavaScript client for the Vaze API. It works in Node.js and any
+runtime with the Fetch API, and ships with full type definitions.
+
+## Installation
+
+```npm
+npm install @darseen/vaze
+```
+
+## Create a client
+
+```ts
+import Vaze from "@darseen/vaze";
+
+const vaze = new Vaze({
+  vazeUrl: "https://files.example.com", // your Vaze instance URL
+  apiKey: "your-api-key", // created in the dashboard
+});
+```
+
+Both options can also be provided through environment variables, in which case
+`new Vaze()` needs no arguments:
+
+| Environment variable | Equivalent option |
+| -------------------- | ----------------- |
+| `VAZE_URL`           | `vazeUrl`         |
+| `VAZE_API_KEY`       | `apiKey`          |
+
+<Callout>
+  The constructor throws if no URL or API key can be resolved, so
+  misconfiguration fails fast at startup rather than on the first request.
+</Callout>
+
+## Response shape
+
+Every SDK method returns the same result envelope instead of throwing on API
+errors:
+
+```ts
+type ApiResponse<T> =
+  | { data: T; error: null }
+  | { data: null; error: { message: string } };
+```
+
+Check `error` before using `data`:
+
+```ts
+const { data, error } = await vaze.files.getAll();
+
+if (error) {
+  console.error(error.message);
+  return;
+}
+
+console.log(data.files); // typed as File[]
+```
+
+Network failures are caught and surfaced the same way, so a single `error`
+check covers everything.
+
+## Health check
+
+Verify connectivity and that your instance is up:
+
+```ts
+const { data, error } = await vaze.health();
+// data => { message: "Vaze is running!" }
+```
+
+## What's next
+
+<Cards>
+  <Card
+    title="Files"
+    description="Upload, list, search, download, rename, and delete files."
+    href="/docs/sdk/files"
+  />
+  <Card
+    title="Folders"
+    description="Browse and manage folders and their contents."
+    href="/docs/sdk/folders"
+  />
+</Cards>

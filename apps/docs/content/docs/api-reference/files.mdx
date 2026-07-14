@@ -1,0 +1,162 @@
+---
+title: Files
+description: File endpoints of the REST API
+icon: File
+---
+
+All endpoints below require the [`API-Key`
+header](/docs/api-reference#authentication) unless noted otherwise.
+
+File objects in responses have this shape:
+
+```json
+{
+  "id": "5f2d4a1e-...",
+  "name": "photo-1a2b3c4d.png",
+  "type": ".png",
+  "size": 102400,
+  "folderId": "9c8b7a6d-...",
+  "path": "/app/data/uploads/photo-1a2b3c4d.png",
+  "url": "api/hosting/photo-1a2b3c4d.png",
+  "createdAt": "2026-07-15 12:00:00",
+  "updatedAt": "2026-07-15 12:00:00"
+}
+```
+
+`url` is relative to your instance's base URL. Resolve it against the base
+URL to get the public hosting link (the SDK does this for you).
+
+## List files
+
+```
+GET /api/files
+```
+
+Returns every file on the instance. Supports the [list query
+parameters](/docs/api-reference#list-query-parameters).
+
+```bash
+curl "https://files.example.com/api/files?limit=20&orderBy=size&orderDirection=DESC" \
+  -H "API-Key: your-api-key"
+```
+
+```json
+{ "data": { "files": [ ... ] }, "error": null }
+```
+
+## Get a file by ID
+
+```
+GET /api/files?id=<file-id>
+```
+
+```json
+{ "data": { "file": { ... } }, "error": null }
+```
+
+Responds `404` when no file matches.
+
+## Search files by name
+
+```
+GET /api/files?name=<file-name>
+```
+
+Matches against the exact stored file name. Also supports the list query
+parameters. An empty result is a success with an empty `files` array.
+
+## Upload files
+
+```
+POST /api/files
+```
+
+Send a `multipart/form-data` body:
+
+| Field    | Type   | Description                                                        |
+| -------- | ------ | ------------------------------------------------------------------ |
+| `files`  | file   | One or more files to upload (repeat the field for multiple files)  |
+| `folder` | string | Optional target folder path, e.g. `projects/demo`. Nested folders are created automatically. Defaults to the root folder. |
+
+```bash
+curl -X POST https://files.example.com/api/files \
+  -H "API-Key: your-api-key" \
+  -F "folder=projects/demo" \
+  -F "files=@./photo.png" \
+  -F "files=@./notes.txt"
+```
+
+```json
+{ "data": { "files": [ ... ] }, "error": null }
+```
+
+A short unique suffix is appended to each stored file name (e.g.
+`photo-1a2b3c4d.png`) so uploads never collide. If any file in the batch
+fails, the already-written files from that request are cleaned up and the
+whole upload fails.
+
+## Rename a file
+
+```
+PUT /api/files
+```
+
+JSON body:
+
+```json
+{ "id": "<file-id>", "name": "new-name.png" }
+```
+
+File names are unique across the instance — renaming to an existing name
+responds `409`. Invalid names (path separators, etc.) respond `400`.
+
+## Delete a file
+
+```
+DELETE /api/files
+```
+
+JSON body:
+
+```json
+{ "id": "<file-id>" }
+```
+
+Removes the file from disk and the database. Responds `404` if the file
+doesn't exist.
+
+## Download a file
+
+```
+GET /api/files/download/<file-id>
+```
+
+Streams the raw file with `Content-Disposition: attachment`, so it works
+directly as a download link in authenticated contexts.
+
+```bash
+curl -OJ https://files.example.com/api/files/download/<file-id> \
+  -H "API-Key: your-api-key"
+```
+
+## Serve a file publicly
+
+```
+GET /api/hosting/<file-name>
+```
+
+**No authentication required.** Streams the file inline with the correct
+`Content-Type`, which makes it suitable for embedding in web pages:
+
+```html
+<img src="https://files.example.com/api/hosting/photo-1a2b3c4d.png" />
+```
+
+This is the URL carried in the `url` field of file objects and shown as the
+"hosting URL" in the dashboard.
+
+<Callout type="warn">
+  Hosting URLs are public: anyone who knows a file's name can fetch it
+  through this endpoint. Don't upload secrets you wouldn't want reachable by
+  URL.
+</Callout>

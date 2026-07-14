@@ -1,0 +1,66 @@
+---
+title: Installation
+description: Run Vaze with Docker in minutes
+icon: Download
+---
+
+All you need to run Vaze is [Docker](https://docs.docker.com/get-docker/)
+installed on your server.
+
+## Docker run
+
+Pull the latest image from Docker Hub and start the container:
+
+```bash
+docker pull darseen/vaze:latest
+```
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -v /path/on/your/machine:/app/data \
+  -e BASE_URL="http://your-server-ip-or-domain:3000" \
+  -e AUTH_SECRET="your-secret-key" \
+  --name vaze \
+  darseen/vaze:latest
+```
+
+- `-p 3000:3000` maps port 3000 on your host to the container's port 3000.
+- `-v /path/on/your/machine:/app/data` mounts a host directory into the
+  container. Your uploaded files and the database live there, so they persist
+  across container updates and removals.
+- `-e BASE_URL` and `-e AUTH_SECRET` configure the instance — see
+  [Configuration](/docs/getting-started/configuration).
+
+## Docker Compose
+
+The same setup as a `compose.yaml`:
+
+```yaml title="compose.yaml"
+services:
+  vaze:
+    image: darseen/vaze:latest
+    container_name: vaze
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./vaze-data:/app/data
+    environment:
+      BASE_URL: "http://your-server-ip-or-domain:3000"
+      AUTH_SECRET: "your-secret-key"
+    restart: always
+```
+
+```bash
+docker compose up -d
+```
+
+## Deploy on Railway
+
+Prefer the cloud? Vaze ships as a one-click
+[Railway template](https://railway.com/deploy/vaze).
+
+## Next steps
+
+Once the container is running, open `http://<your-server-ip>:3000` in your
+browser and continue with [First Steps](/docs/getting-started/first-steps).

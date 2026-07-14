@@ -1,0 +1,49 @@
+---
+title: Configuration
+description: Environment variables and persistent storage
+icon: Settings
+---
+
+Vaze is configured entirely through environment variables and a single
+mounted volume.
+
+## Environment variables
+
+| Variable      | Required    | Description                                                                                                    |
+| ------------- | ----------- | -------------------------------------------------------------------------------------------------------------- |
+| `BASE_URL`    | Yes         | The public base URL of your Vaze instance, e.g. `https://files.example.com`. Used by authentication and for building absolute URLs. |
+| `AUTH_SECRET` | Yes         | A long random string used to sign session tokens. Keep it secret and stable — rotating it invalidates existing sessions. |
+| `PORT`        | No (`3000`) | The port the server listens on inside the container.                                                           |
+
+Generate a strong secret with:
+
+```bash
+openssl rand -base64 32
+```
+
+## Persistent storage
+
+Inside the container, Vaze keeps everything under `/app/data`:
+
+- `uploads/` — all uploaded files and folders, stored as plain files on disk.
+- the SQLite database with file metadata, users, and API keys.
+
+Mount a host directory (or named volume) at `/app/data` so your data survives
+container upgrades:
+
+```bash
+-v /path/on/your/machine:/app/data
+```
+
+<Callout type="warn">
+  Without a volume mounted at `/app/data`, all files and accounts are lost
+  when the container is removed.
+</Callout>
+
+## Reverse proxy
+
+If you put Vaze behind a reverse proxy (nginx, Caddy, Traefik, …), set
+`BASE_URL` to the public URL served by the proxy — for example
+`https://files.example.com` — so login and generated file URLs use the right
+origin. Remember to raise your proxy's request body size limit if you plan to
+upload large files (e.g. `client_max_body_size` in nginx).

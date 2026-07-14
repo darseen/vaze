@@ -1,0 +1,129 @@
+---
+title: Files
+description: Work with files through the SDK
+icon: File
+---
+
+All file operations live on `vaze.files`. Every method returns the
+[response envelope](/docs/sdk#response-shape) — check `error` before using
+`data`.
+
+## The `File` object
+
+File objects returned by the SDK look like this:
+
+```ts
+type File = {
+  id: string;
+  name: string; // unique across the instance
+  type: string; // file extension, e.g. ".png"
+  size: number; // bytes
+  folderId: string | null;
+  path: string; // location on the server's disk
+  url: string; // absolute public hosting URL
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
+The `url` field is a public, unauthenticated hosting URL — ready to embed in
+an `<img>` tag or share directly.
+
+## List options
+
+Methods that return multiple files accept an optional `ListOptions` object:
+
+```ts
+type ListOptions = {
+  limit?: number; // default: no limit
+  offset?: number; // default: 0
+  orderBy?: "createdAt" | "updatedAt" | "name" | "size"; // default: "createdAt"
+  orderDirection?: "ASC" | "DESC"; // default: "DESC"
+};
+```
+
+## Upload files
+
+Upload one or more `File` objects (Web API `File`, e.g. from `fetch`, form
+inputs, or Node's `fs.openAsBlob`). Optionally pass a target folder path —
+nested folders are created automatically:
+
+```ts
+const { data, error } = await vaze.files.upload({
+  files: [new File(["hello"], "hello.txt", { type: "text/plain" })],
+  folder: "projects/demo", // optional, defaults to the root folder
+});
+
+// data => { files: File[] } including the public hosting URLs
+```
+
+<Callout>
+  Vaze appends a short unique suffix to uploaded file names (e.g.
+  `hello-1a2b3c4d.txt`) so uploads never collide.
+</Callout>
+
+## Get all files
+
+```ts
+const { data, error } = await vaze.files.getAll({
+  limit: 20,
+  orderBy: "size",
+  orderDirection: "DESC",
+});
+
+// data => { files: File[] }
+```
+
+## Get a file by ID
+
+```ts
+const { data, error } = await vaze.files.getById("file-id");
+
+// data => { file: File }
+```
+
+Returns an error with status `404` if no file matches.
+
+## Search files by name
+
+```ts
+const { data, error } = await vaze.files.getByName(
+  "hello-1a2b3c4d.txt",
+  { limit: 10 }, // optional ListOptions
+);
+
+// data => { files: File[] } — empty array when nothing matches
+```
+
+## Download a file
+
+Downloads the raw file content as a `Blob`:
+
+```ts
+const { data, error } = await vaze.files.download("file-id");
+
+if (data) {
+  const { blob, filename, contentType } = data;
+  await fs.writeFile(filename ?? "download", Buffer.from(await blob.arrayBuffer()));
+}
+```
+
+## Rename a file
+
+```ts
+const { error } = await vaze.files.rename({
+  id: "file-id",
+  name: "new-name.txt",
+});
+```
+
+File names are unique across the instance; renaming to a name that already
+exists returns a `409` error.
+
+## Delete a file
+
+```ts
+const { error } = await vaze.files.delete("file-id");
+```
+
+Removes the file from both disk and the database.

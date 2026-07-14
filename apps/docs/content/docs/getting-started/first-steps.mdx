@@ -1,0 +1,55 @@
+---
+title: First Steps
+description: Create your admin account and explore the dashboard
+icon: Flag
+---
+
+## Create the admin account
+
+1. Open `http://<your-server-ip>:3000` in your browser.
+2. You'll be prompted to register. **The first user to register automatically
+   becomes the admin.**
+3. Log in with your new credentials.
+
+## The dashboard
+
+After logging in you land on the dashboard, which gives you an overview of
+your instance: storage usage, recent uploads, and API activity.
+
+From the **Files** page you can:
+
+- Upload files and folders via drag-and-drop.
+- Create, rename, move, and delete files and folders.
+- Search and filter your files.
+- Download single files, or export whole folders as a zip archive.
+- Copy a file's public **hosting URL** to share or embed it anywhere.
+
+## Create an API key
+
+To use Vaze from other applications you need an API key:
+
+1. Go to the **API Keys** page in the dashboard.
+2. Create a new key and give it a recognizable name.
+3. Copy the key — you'll pass it in the `API-Key` header on every request.
+
+<Callout type="warn">
+  Treat API keys like passwords. Anyone holding a key has full access to the
+  files on your instance.
+</Callout>
+
+## Use Vaze from your apps
+
+With a key in hand, you can integrate Vaze into your own projects:
+
+<Cards>
+  <Card
+    title="Use the SDK"
+    description="The official TypeScript/JavaScript client — the fastest way to integrate."
+    href="/docs/sdk"
+  />
+  <Card
+    title="Call the REST API"
+    description="Plain HTTP endpoints, usable from any language."
+    href="/docs/api-reference"
+  />
+</Cards>
