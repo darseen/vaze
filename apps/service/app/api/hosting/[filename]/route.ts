@@ -12,7 +12,10 @@ export async function GET(
   { params }: { params: Promise<{ filename: string }> },
 ) {
   try {
-    const { filename } = await params;
+    const { filename: rawFilename } = await params;
+    // the route param arrives percent-encoded (hosting URLs are built with
+    // encodeURIComponent), so decode it before the DB lookup
+    const filename = decodeURIComponent(rawFilename);
 
     const file = db
       .select()
@@ -21,12 +24,15 @@ export async function GET(
       .get();
 
     if (!file) {
-      return NextResponse.json({ error: "File not found" }, { status: 404 });
+      return NextResponse.json(
+        { data: null, error: { message: "File not found" } },
+        { status: 404 },
+      );
     }
 
     if (!accessPathSync(file.path)) {
       return NextResponse.json(
-        { error: "File missing from local storage" },
+        { data: null, error: { message: "File missing from local storage" } },
         { status: 404 },
       );
     }
@@ -48,7 +54,7 @@ export async function GET(
   } catch (error) {
     console.error("Error serving file:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { data: null, error: { message: "Internal server error" } },
       { status: 500 },
     );
   }

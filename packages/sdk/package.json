@@ -1,7 +1,7 @@
 {
   "name": "@darseen/vaze",
-  "version": "1.1.1",
-  "description": "Vaze Self-Hosted file storage and hosting service SKD.",
+  "version": "1.2.0",
+  "description": "Vaze Self-Hosted file storage and hosting service SDK.",
   "keywords": [
     "api",
     "sdk",
@@ -25,10 +25,22 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "lint": "tsc --noEmit",
     "prebuild": "pnpm lint && rimraf ./dist",

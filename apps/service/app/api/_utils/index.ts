@@ -85,7 +85,9 @@ export function contentDisposition(
 export function getFilesWithUrls(files: File[]) {
   return files.map((file) => ({
     ...file,
-    url: `api/hosting/${file.name}`,
+    // encode the name so files containing spaces, `#`, `?`, etc. still
+    // produce a valid hosting URL
+    url: `api/hosting/${encodeURIComponent(file.name)}`,
   }));
 }
 

@@ -79,13 +79,7 @@ export async function GET(request: NextRequest) {
         .offset(offset)
         .all();
 
-      if (!files || files.length === 0) {
-        return NextResponse.json(
-          { data: null, error: { message: "File not found" } },
-          { status: 404 },
-        );
-      }
-
+      // zero matches is a valid search result, not an error
       return NextResponse.json({
         data: { files: getFilesWithUrls(files) },
         error: null,
@@ -146,6 +140,7 @@ export async function POST(request: NextRequest) {
 
     const uploadedFiles: Omit<FileDB, "createdAt" | "updatedAt">[] = [];
     const filesWrittenToDisk: string[] = []; // track paths for targeted cleanup
+    let insertedFiles: FileDB[] = [];
 
     try {
       for (const file of files) {
@@ -174,9 +169,12 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      db.transaction((tx) => {
-        for (const file of uploadedFiles) {
-          tx.insert(filesTable)
+      // return the inserted rows so the response carries the DB-generated
+      // createdAt/updatedAt timestamps
+      insertedFiles = db.transaction((tx) =>
+        uploadedFiles.map((file) =>
+          tx
+            .insert(filesTable)
             .values({
               id: file.id,
               name: file.name,
@@ -185,9 +183,10 @@ export async function POST(request: NextRequest) {
               size: file.size,
               type: file.type,
             })
-            .run();
-        }
-      });
+            .returning()
+            .get(),
+        ),
+      );
     } catch (error) {
       console.error("File processing or DB transaction error:", error);
       // iterate through only the files this request touched
@@ -213,7 +212,7 @@ export async function POST(request: NextRequest) {
 
     revalidatePath("/dashboard");
     return NextResponse.json({
-      data: { files: getFilesWithUrls(uploadedFiles as FileDB[]) },
+      data: { files: getFilesWithUrls(insertedFiles) },
       error: null,
     });
   } catch (error) {

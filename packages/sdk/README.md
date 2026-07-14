@@ -61,7 +61,7 @@ The SDK is divided into two main modules: `files` and `folders`. All methods are
 ```ts
 const { data, error } = await vaze.files.getAll({
   limit: 10,
-  orderBy: "created_at",
+  orderBy: "createdAt",
   orderDirection: "DESC",
 });
 
@@ -76,7 +76,7 @@ if (data) {
 const { data, error } = await vaze.files.getById("file-id");
 ```
 
-`getByName(name, options?)` Search for files by name.
+`getByName(name, options?)` Search for files by name. Returns an empty `files` array when nothing matches.
 
 ```ts
 const { data, error } = await vaze.files.getByName("document.pdf", {
@@ -87,14 +87,26 @@ const { data, error } = await vaze.files.getByName("document.pdf", {
 `upload(data)` Upload one or multiple files to your Vaze instance.
 
 - data:
-  - `files` (File[]): An array of standard `File` objects.
-  - `folder?` (string): The ID or name of the target folder.
+  - `files` (File[]): An array of standard web [`File`](https://developer.mozilla.org/en-US/docs/Web/API/File) objects.
+  - `folder?` (string): The path of the target folder, created if it doesn't exist.
 
 ```ts
 const { data, error } = await vaze.files.upload({
   files,
   folder: "optional-folder-name", // example: "documents" or "projects/work" (supports sub-folders)
 });
+```
+
+`download(id)` Download a file's contents by its ID.
+
+```ts
+const { data, error } = await vaze.files.download("file-id-123");
+
+if (data) {
+  console.log(data.filename); // original file name
+  console.log(data.contentType); // e.g. "image/png"
+  const buffer = Buffer.from(await data.blob.arrayBuffer());
+}
 ```
 
 `rename(data)` Rename an existing file.
@@ -165,6 +177,18 @@ const { data, error } = await vaze.folders.rename({
 const { data, error } = await vaze.folders.delete("folder-id");
 ```
 
+# Health Check
+
+`vaze.health()` pings the instance to verify connectivity.
+
+```ts
+const { data, error } = await vaze.health();
+
+if (data) {
+  console.log(data.message); // "Vaze is running!"
+}
+```
+
 # Types
 
-This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `FileWithUrl`, `Folder`, and `ApiResponse`.
+This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `File`, `Folder`, `ApiResponse`, `ListOptions`, and `VazeOptions`.

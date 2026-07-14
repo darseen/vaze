@@ -1,24 +1,15 @@
-import type { FileWithUrl as File } from "@repo/types";
+import type { FileWithUrl } from "@repo/types";
 import Base from "./base.js";
+import type { ListOptions } from "./types/index.js";
 import { constructFileUrls } from "./utils/index.js";
 
 export default class Files extends Base {
-  public async getAll(options?: {
-    limit?: number;
-    offset?: number;
-    orderBy?: "createdAt" | "updatedAt" | "name" | "size";
-    orderDirection?: "ASC" | "DESC";
-  }) {
-    const url = new URL("/api/files", this.vazeUrl);
-    if (options) {
-      for (const [key, value] of Object.entries(options)) {
-        url.searchParams.set(key, value.toString());
-      }
-    }
+  public async getAll(options?: ListOptions) {
+    const url = this.apiUrl("/api/files", options);
 
-    const { error, data } = await this.request<{ files: File[] }>(
+    const { error, data } = await this.request<{ files: FileWithUrl[] }>(
       "GET",
-      url.toString(),
+      url,
     );
 
     return {
@@ -35,12 +26,11 @@ export default class Files extends Base {
   }
 
   public async getById(id: string) {
-    const url = new URL(`/api/files`, this.vazeUrl);
-    url.searchParams.set("id", id);
+    const url = this.apiUrl("/api/files", { id });
 
-    const { data, error } = await this.request<{ file: File }>(
+    const { data, error } = await this.request<{ file: FileWithUrl }>(
       "GET",
-      url.toString(),
+      url,
     );
 
     return {
@@ -56,26 +46,12 @@ export default class Files extends Base {
     };
   }
 
-  public async getByName(
-    name: string,
-    options?: {
-      limit?: number;
-      offset?: number;
-      orderBy?: "createdAt" | "updatedAt" | "name" | "size";
-      orderDirection?: "ASC" | "DESC";
-    },
-  ) {
-    const url = new URL(`/api/files`, this.vazeUrl);
-    url.searchParams.set("name", name);
-    if (options) {
-      for (const [key, value] of Object.entries(options)) {
-        url.searchParams.set(key, value.toString());
-      }
-    }
+  public async getByName(name: string, options?: ListOptions) {
+    const url = this.apiUrl("/api/files", { name, ...options });
 
-    const { error, data } = await this.request<{ files: File[] }>(
+    const { error, data } = await this.request<{ files: FileWithUrl[] }>(
       "GET",
-      url.toString(),
+      url,
     );
 
     return {
@@ -93,7 +69,7 @@ export default class Files extends Base {
 
   public async upload(data: { files: File[]; folder?: string }) {
     const { files, folder } = data;
-    const url = new URL("/api/files", this.vazeUrl);
+    const url = this.apiUrl("/api/files");
     const formData = new FormData();
 
     if (folder) formData.append("folder", folder);
@@ -102,11 +78,9 @@ export default class Files extends Base {
       formData.append("files", file);
     });
 
-    const { error, data: responseData } = await this.request<{ files: File[] }>(
-      "POST",
-      url.toString(),
-      formData,
-    );
+    const { error, data: responseData } = await this.request<{
+      files: FileWithUrl[];
+    }>("POST", url, formData);
 
     return {
       error,
@@ -121,13 +95,18 @@ export default class Files extends Base {
     };
   }
 
+  public async download(id: string) {
+    const url = this.apiUrl(`/api/files/download/${encodeURIComponent(id)}`);
+    return await this.requestBlob(url);
+  }
+
   public async rename(data: { id: string; name: string }) {
-    const url = new URL(`/api/files`, this.vazeUrl);
-    return await this.request<null>("PUT", url.toString(), data);
+    return await this.request<null>("PUT", this.apiUrl("/api/files"), data);
   }
 
   public async delete(id: string) {
-    const url = new URL(`/api/files`, this.vazeUrl);
-    return await this.request<null>("DELETE", url.toString(), { id });
+    return await this.request<null>("DELETE", this.apiUrl("/api/files"), {
+      id,
+    });
   }
 }
