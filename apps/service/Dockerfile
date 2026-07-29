@@ -53,6 +53,8 @@ RUN chmod +x ./apps/service/entrypoint.sh
 
 EXPOSE 3000
 ENV PORT=3000
+# Without this the standalone server binds to the container id only.
+ENV HOSTNAME=0.0.0.0
 
 ENTRYPOINT ["./apps/service/entrypoint.sh"]
 CMD ["node", "apps/service/server.js"]

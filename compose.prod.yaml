@@ -1,0 +1,37 @@
+name: vaze
+
+services:
+  vaze:
+    image: darseen/vaze:${VAZE_VERSION:-latest}
+    container_name: vaze
+    restart: unless-stopped
+    environment:
+      BASE_URL: ${BASE_URL:?set BASE_URL in .env — the URL you open vaze on}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env — generate with openssl rand -base64 32}
+      TZ: ${TZ:-UTC}
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "${VAZE_BIND_ADDR:-0.0.0.0}:${VAZE_PORT:-3000}:3000"
+    volumes:
+      - vaze_data:/app/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  vaze_data:

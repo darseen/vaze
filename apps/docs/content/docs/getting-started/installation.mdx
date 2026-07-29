@@ -4,56 +4,125 @@ description: Run Vaze with Docker in minutes
 icon: Download
 ---
 
-All you need to run Vaze is [Docker](https://docs.docker.com/get-docker/)
-installed on your server.
+All you need to run Vaze is [Docker](https://docs.docker.com/engine/install/)
+with the Compose plugin, installed on your server.
+
+## Quick install
+
+One command sets up everything — it checks Docker, downloads
+`compose.prod.yaml`, generates your `AUTH_SECRET` into a `.env`, and starts the
+container:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh | sh
+```
+
+The only thing it asks for is the URL you'll open Vaze on, defaulting to this
+machine's LAN address. Pass it in to skip the prompt entirely:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh \
+  | BASE_URL=https://files.example.com sh
+```
+
+It installs into `./vaze` in the current directory and prints your URL once the
+container reports healthy. Nothing else to configure.
+
+<Callout type="info">
+  Prefer to read a script before piping it to a shell? Download it first, or
+  follow the manual steps below.
+</Callout>
+
+### Options
+
+| Flag / variable  | Default              | Description                                            |
+| ---------------- | -------------------- | ------------------------------------------------------ |
+| `--dir=PATH`     | `./vaze`             | Where `compose.prod.yaml` and `.env` are written        |
+| `--no-start`     | —                    | Write the config but don't start the container          |
+| `BASE_URL`       | detected LAN address | The URL you open Vaze on                                |
+| `VAZE_PORT`      | `3000`               | Host port to publish                                    |
+| `VAZE_BIND_ADDR` | `0.0.0.0`            | Host address to bind to                                 |
+| `VAZE_VERSION`   | `latest`             | Image tag to run                                        |
+
+Environment variables go before `sh`, flags after it:
+
+```bash
+curl -fsSL .../install.sh | VAZE_PORT=8080 sh -s -- --dir=/opt/vaze
+```
+
+## Upgrading
+
+Re-run the installer from your install directory:
+
+```bash
+cd vaze
+curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh | sh
+```
+
+It detects the existing install and upgrades in place: refreshes
+`compose.prod.yaml` (keeping a `.bak` of the old one), pulls the newer image, and
+recreates the container. It never overwrites a value already in your `.env`, and
+never touches the volume holding your uploads and database.
+
+To pin a version instead of tracking `latest`, set `VAZE_VERSION` in your `.env`
+and re-run `docker compose -f compose.prod.yaml up -d`.
+
+## Docker Compose
+
+Prefer to set it up yourself? Download
+[`compose.prod.yaml`](https://github.com/darseen/vaze/blob/main/compose.prod.yaml)
+and put a `.env` next to it:
+
+```ini title=".env"
+AUTH_SECRET=generate-with-openssl-rand-base64-32
+BASE_URL=http://your-server-ip-or-domain:3000
+VAZE_PORT=3000
+VAZE_VERSION=latest
+```
+
+```bash
+docker compose -f compose.prod.yaml up -d
+```
+
+`BASE_URL` and `AUTH_SECRET` are the only required values — Compose refuses to
+start without them rather than booting a half-configured instance.
 
 ## Docker run
 
-Pull the latest image from Docker Hub and start the container:
-
-```bash
-docker pull darseen/vaze:latest
-```
+Without Compose:
 
 ```bash
 docker run -d \
   -p 3000:3000 \
-  -v /path/on/your/machine:/app/data \
+  -v vaze_data:/app/data \
   -e BASE_URL="http://your-server-ip-or-domain:3000" \
-  -e AUTH_SECRET="your-secret-key" \
+  -e AUTH_SECRET="$(openssl rand -base64 32)" \
+  --restart unless-stopped \
   --name vaze \
   darseen/vaze:latest
 ```
 
 - `-p 3000:3000` maps port 3000 on your host to the container's port 3000.
-- `-v /path/on/your/machine:/app/data` mounts a host directory into the
-  container. Your uploaded files and the database live there, so they persist
-  across container updates and removals.
-- `-e BASE_URL` and `-e AUTH_SECRET` configure the instance — see
+- `-v vaze_data:/app/data` keeps uploads and the database in a Docker volume, so
+  they persist across container updates and removals.
+- `BASE_URL` and `AUTH_SECRET` configure the instance — see
   [Configuration](/docs/getting-started/configuration).
 
-## Docker Compose
+## Managing your instance
 
-The same setup as a `compose.yaml`:
-
-```yaml title="compose.yaml"
-services:
-  vaze:
-    image: darseen/vaze:latest
-    container_name: vaze
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./vaze-data:/app/data
-    environment:
-      BASE_URL: "http://your-server-ip-or-domain:3000"
-      AUTH_SECRET: "your-secret-key"
-    restart: always
-```
+Run these from your install directory:
 
 ```bash
-docker compose up -d
+docker compose -f compose.prod.yaml logs -f   # follow logs
+docker compose -f compose.prod.yaml ps        # status and health
+docker compose -f compose.prod.yaml restart   # restart
+docker compose -f compose.prod.yaml down      # stop, keeping your data
 ```
+
+<Callout type="warn">
+  `docker compose -f compose.prod.yaml down -v` also deletes the `vaze_vaze_data`
+  volume — every uploaded file and account goes with it.
+</Callout>
 
 ## Deploy on Railway
 
@@ -62,5 +131,5 @@ Prefer the cloud? Vaze ships as a one-click
 
 ## Next steps
 
-Once the container is running, open `http://<your-server-ip>:3000` in your
-browser and continue with [First Steps](/docs/getting-started/first-steps).
+Once the container is running, open the URL the installer printed and continue
+with [First Steps](/docs/getting-started/first-steps).
