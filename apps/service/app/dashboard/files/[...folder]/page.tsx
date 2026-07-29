@@ -24,11 +24,9 @@ export default async function Page({
 
   const { files, folders } = data;
   return (
-    <div className="bg-background min-h-screen">
-      <div className="container mx-auto px-4 py-6">
-        <ActionBar />
-        <FilesList files={files} folders={folders} />
-      </div>
+    <div className="mx-auto w-full max-w-7xl">
+      <ActionBar />
+      <FilesList files={files} folders={folders} />
     </div>
   );
 }

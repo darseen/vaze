@@ -20,7 +20,6 @@ import {
 import type { FileWithUrl, Folder } from "@repo/types";
 import { ArrowDownAZ, ArrowUpAZ, FileIcon, FolderIcon, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import Breadcrumb from "./breadcrumb";
 import FileCard from "./file-card";
 import FolderCard from "./folder-card";
 
@@ -95,8 +94,6 @@ export default function FilesList({ files, folders }: Props) {
 
   return (
     <section className="space-y-4">
-      <Breadcrumb />
-
       {/* Search / filter / sort toolbar */}
       {hasContent && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
