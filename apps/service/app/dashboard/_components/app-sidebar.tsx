@@ -49,11 +49,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         icon: FolderOpen,
         isActive: (pathname) => pathname.startsWith("/dashboard/files"),
       },
-    ],
-  },
-  {
-    label: "Developer",
-    items: [
       {
         title: "API Keys",
         href: "/dashboard/api-keys",
