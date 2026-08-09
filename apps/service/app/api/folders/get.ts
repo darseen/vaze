@@ -1,13 +1,11 @@
-import { BASE_UPLOADS_PATH } from "@/constants";
 import { db } from "@/db";
-import { files as filesTable, folders as foldersTable } from "@repo/db";
+import { folders as foldersTable } from "@repo/db";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import path from "node:path";
-import crypto from "node:crypto";
 import {
-  fetchFolderByPath,
-  fileOrderBy,
+  ensureRootFolder,
+  fetchFolderByKey,
+  fetchFolderContents,
   getFilesWithUrls,
   OrderBy,
   OrderDirection,
@@ -21,14 +19,15 @@ export default async function GET(request: NextRequest) {
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },
-        { status: 401 },
+        { status: authError.status },
       );
     }
 
     const searchParams = request.nextUrl.searchParams;
 
     const id = searchParams.get("id");
-    const folderPath = searchParams.get("path");
+    // `path` is kept as an alias so existing callers keep working
+    const folderKey = searchParams.get("key") ?? searchParams.get("path");
     const limit = parseIntParam(searchParams.get("limit"), -1);
     const offset = parseIntParam(searchParams.get("offset"), 0);
     const orderBy = searchParams.get("orderBy") || "createdAt";
@@ -45,46 +44,9 @@ export default async function GET(request: NextRequest) {
         : "DESC"
     ) as OrderDirection;
 
-    // if nothing is provided, fetch the root folder and its files and folders
-    if (!id && !folderPath) {
-      let folder = db
-        .select()
-        .from(foldersTable)
-        .where(eq(foldersTable.path, BASE_UPLOADS_PATH))
-        .get();
+    const options = { limit, offset, safeOrderBy, safeOrderDirection };
 
-      // if the root folder doesn't exist, create it.
-      if (!folder) {
-        db.insert(foldersTable)
-          .values({
-            id: crypto.randomUUID(),
-            name: path.basename(BASE_UPLOADS_PATH),
-            path: BASE_UPLOADS_PATH,
-          })
-          .onConflictDoNothing()
-          .run();
-
-        folder = db
-          .select()
-          .from(foldersTable)
-          .where(eq(foldersTable.path, BASE_UPLOADS_PATH))
-          .get();
-      }
-
-      const { files, folders } = fetchFolderContents(folder!.id, {
-        limit,
-        offset,
-        safeOrderBy,
-        safeOrderDirection,
-      });
-
-      return NextResponse.json({
-        data: { files: getFilesWithUrls(files), folders },
-        error: null,
-      });
-    }
-
-    // if id is provided, fetch the folder with the given id
+    // by id
     if (id) {
       const folder = db
         .select()
@@ -99,12 +61,7 @@ export default async function GET(request: NextRequest) {
         );
       }
 
-      const { files, folders } = fetchFolderContents(folder.id, {
-        limit,
-        offset,
-        safeOrderBy,
-        safeOrderDirection,
-      });
+      const { files, folders } = fetchFolderContents(folder.id, options);
 
       return NextResponse.json({
         data: { files: getFilesWithUrls(files), folders },
@@ -112,56 +69,25 @@ export default async function GET(request: NextRequest) {
       });
     }
 
-    if (folderPath) {
-      const { error, data } = await fetchFolderByPath(folderPath, {
-        limit,
-        offset,
-        safeOrderBy,
-        safeOrderDirection,
-      });
-      return NextResponse.json(
-        { data, error },
-        { status: error ? 404 : 200 },
-      );
+    // by key
+    if (folderKey) {
+      const { error, data } = await fetchFolderByKey(folderKey, options);
+      return NextResponse.json({ data, error }, { status: error ? 404 : 200 });
     }
 
-    // throw an error if somehow all the if's didn't trigger, just in case.
-    throw new Error("Invalid request");
+    // neither given — the root folder and its contents
+    const root = await ensureRootFolder();
+    const { files, folders } = fetchFolderContents(root.id, options);
+
+    return NextResponse.json({
+      data: { files: getFilesWithUrls(files), folders },
+      error: null,
+    });
   } catch (error) {
-    console.log("fetch folders error", error);
+    console.error("fetch folders error", error);
     return NextResponse.json(
       { error: { message: "Internal server error" }, data: null },
       { status: 500 },
     );
   }
-}
-
-// fetch the files and direct subfolders of a folder by id
-function fetchFolderContents(
-  folderId: string,
-  options: {
-    limit: number;
-    offset: number;
-    safeOrderBy: OrderBy;
-    safeOrderDirection: OrderDirection;
-  },
-) {
-  const { limit, offset, safeOrderBy, safeOrderDirection } = options;
-
-  const files = db
-    .select()
-    .from(filesTable)
-    .where(eq(filesTable.folderId, folderId))
-    .orderBy(fileOrderBy(safeOrderBy, safeOrderDirection))
-    .limit(limit)
-    .offset(offset)
-    .all();
-
-  const folders = db
-    .select()
-    .from(foldersTable)
-    .where(eq(foldersTable.parentId, folderId))
-    .all();
-
-  return { files, folders };
 }

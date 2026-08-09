@@ -9,8 +9,25 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "1tb",
+      bodySizeLimit: "10mb",
     },
+  },
+  async headers() {
+    return [
+      {
+        // `/api/hosting` sets its own headers — it serves untrusted content and
+        // must stay embeddable cross-origin.
+        source: "/:path((?!api/hosting).*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+        ],
+      },
+    ];
   },
 };
 

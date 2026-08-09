@@ -27,9 +27,9 @@ function buildCrumbs(pathname: string): Crumb[] {
   }
 
   if (segments[0] === "files") {
-    const root = "/dashboard/files/uploads";
-    // The first segment after "files" is the fixed "uploads" root.
-    const folders = segments.slice(2).map(decodeURIComponent);
+    const root = "/dashboard/files";
+    // everything after "files" is the folder key
+    const folders = segments.slice(1).map(decodeURIComponent);
 
     return [
       { label: "Dashboard", href: "/dashboard" },
@@ -39,7 +39,7 @@ function buildCrumbs(pathname: string): Crumb[] {
         href:
           index === folders.length - 1
             ? undefined
-            : `${root}/${segments.slice(2, index + 3).join("/")}`,
+            : `${root}/${segments.slice(1, index + 2).join("/")}`,
       })),
     ];
   }

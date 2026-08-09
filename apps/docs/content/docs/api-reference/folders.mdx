@@ -13,27 +13,30 @@ Folder objects in responses have this shape:
 {
   "id": "9c8b7a6d-...",
   "name": "demo",
-  "path": "/app/data/uploads/projects/demo",
+  "key": "projects/demo",
   "parentId": "3e2d1c0b-...",
   "createdAt": "2026-07-15 12:00:00",
   "updatedAt": "2026-07-15 12:00:00"
 }
 ```
 
+`key` is the folder's path relative to the storage root. The root folder's
+key is the empty string.
+
 ## Browse a folder
 
 ```
 GET /api/folders
 GET /api/folders?id=<folder-id>
-GET /api/folders?path=<relative/path>
+GET /api/folders?key=<folder/key>
 ```
 
-Returns the files and direct subfolders of a folder. With no `id` or `path`,
+Returns the files and direct subfolders of a folder. With no `id` or `key`,
 the **root folder** is returned. The files list supports the [list query
 parameters](/docs/api-reference#list-query-parameters).
 
 ```bash
-curl "https://files.example.com/api/folders?path=projects/demo&orderBy=name&orderDirection=ASC" \
+curl "https://files.example.com/api/folders?key=projects/demo&orderBy=name&orderDirection=ASC" \
   -H "API-Key: your-api-key"
 ```
 
@@ -47,7 +50,8 @@ curl "https://files.example.com/api/folders?path=projects/demo&orderBy=name&orde
 }
 ```
 
-Responds `404` when the folder doesn't exist.
+Responds `404` when the folder doesn't exist. `path` is accepted as an alias
+for `key`.
 
 ## Create a folder
 
@@ -66,7 +70,10 @@ created automatically:
 { "data": { "folder": { ... } }, "error": null }
 ```
 
-Folder names cannot contain dots (`.`); such requests respond `400`.
+Folder names may contain dots (`release/v1.0` is fine). What is rejected with
+`400` is anything that could escape the storage root: the segments `.` and
+`..`, path separators inside a name, and NUL bytes. An existing folder
+responds `409`.
 
 ## Rename a folder
 
@@ -80,9 +87,9 @@ JSON body:
 { "id": "<folder-id>", "name": "new-name" }
 ```
 
-The new name must be a single path segment without dots. Renaming also
-updates the stored paths of all files and subfolders inside. A sibling folder
-with the same name responds `409`.
+The new name must be a single path segment. Renaming also rewrites the keys
+of every file and subfolder inside. A sibling folder with the same name
+responds `409`.
 
 ## Delete a folder
 
@@ -100,3 +107,6 @@ JSON body:
   Deletes the folder **recursively**, including all files and subfolders
   inside it. This cannot be undone.
 </Callout>
+
+The root folder cannot be renamed or deleted — both respond `400`. Removing
+it would take the entire storage tree with it.

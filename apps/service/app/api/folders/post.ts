@@ -1,11 +1,15 @@
-import { BASE_UPLOADS_PATH } from "@/constants";
 import { db } from "@/db";
 import { folders as foldersTable } from "@repo/db";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
-import path from "node:path";
-import { accessPath, createNestedFolders } from "../_utils";
+import {
+  accessPath,
+  createNestedFolders,
+  isValidKey,
+  normalizeKey,
+  revalidateDashboard,
+  toStoragePath,
+} from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export default async function POST(request: NextRequest) {
@@ -14,49 +18,47 @@ export default async function POST(request: NextRequest) {
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },
-        { status: 401 },
+        { status: authError.status },
       );
     }
 
     const { folder }: { folder: string } = await request.json();
 
-    if (!folder) {
+    const key = normalizeKey(folder);
+
+    if (!key) {
       return NextResponse.json(
         { data: null, error: { message: "Missing folder" } },
         { status: 400 },
       );
     }
 
-    if (folder.includes(".")) {
+    if (!isValidKey(key)) {
       return NextResponse.json(
-        { error: { message: "Folder name cannot contain dots" }, data: null },
+        { error: { message: "Invalid folder path" }, data: null },
         { status: 400 },
       );
     }
 
-    const folderAbsolutePath = path.join(BASE_UPLOADS_PATH, folder);
-
-    const fullPathExistsOnDisk = await accessPath(folderAbsolutePath);
-
-    const fullPathExistsInDB = db
+    const existsInDb = db
       .select({ id: foldersTable.id })
       .from(foldersTable)
-      .where(eq(foldersTable.path, folderAbsolutePath))
+      .where(eq(foldersTable.key, key))
       .get();
 
-    if (fullPathExistsOnDisk || fullPathExistsInDB) {
+    if (existsInDb || (await accessPath(toStoragePath(key)))) {
       return NextResponse.json(
         { data: null, error: { message: "Folder already exists" } },
         { status: 409 },
       );
     }
 
-    const newFolder = await createNestedFolders(folder);
+    const newFolder = await createNestedFolders(key);
 
-    revalidatePath("/dashboard");
+    revalidateDashboard();
     return NextResponse.json({ data: { folder: newFolder }, error: null });
   } catch (error) {
-    console.log("create folder error ", error);
+    console.error("create folder error ", error);
     return NextResponse.json(
       { error: { message: "Internal server error" }, data: null },
       { status: 500 },

@@ -1,14 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BASE_DATA_PATH } from "@/constants";
+import { db } from "@/db";
+import { files } from "@repo/db";
 import { formatBytes } from "@/utils";
-import { getAvailableStorage, getDirectorySize } from "@/utils/storage";
+import { getAvailableStorage } from "@/utils/storage";
+import { sql } from "drizzle-orm";
 import { HardDrive } from "lucide-react";
 
 export default async function TotalStorage() {
-  const [storageSize, availableStorage] = await Promise.all([
-    getDirectorySize(BASE_DATA_PATH),
-    getAvailableStorage(BASE_DATA_PATH),
-  ]);
+  // summing the column beats walking the uploads tree on every render
+  const usage = db
+    .select({ total: sql<number | null>`sum(${files.size})` })
+    .from(files)
+    .get();
+
+  const storageSize = usage?.total ?? 0;
+  const availableStorage = await getAvailableStorage(BASE_DATA_PATH);
 
   const stats = {
     title: "Total Storage",

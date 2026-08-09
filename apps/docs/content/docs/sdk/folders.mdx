@@ -13,7 +13,7 @@ All folder operations live on `vaze.folders`. Every method returns the
 type Folder = {
   id: string;
   name: string;
-  path: string; // location on the server's disk
+  key: string; // path relative to the storage root; "" for the root folder
   parentId: string | null; // null for the root folder
   createdAt: string;
   updatedAt: string;
@@ -24,7 +24,7 @@ type Folder = {
 
 `get()` returns the files and direct subfolders of a folder. Call it with no
 arguments for the root folder, or target a specific folder by `id` or by
-`path`:
+`key`:
 
 ```ts
 // root folder
@@ -33,8 +33,8 @@ const root = await vaze.folders.get();
 // by id
 const byId = await vaze.folders.get({ id: "folder-id" });
 
-// by relative path
-const byPath = await vaze.folders.get({ path: "projects/demo" });
+// by key
+const byKey = await vaze.folders.get({ key: "projects/demo" });
 
 // data => { files: File[], folders: Folder[] }
 ```
@@ -44,7 +44,7 @@ file methods to paginate and sort the files inside the folder:
 
 ```ts
 const { data, error } = await vaze.folders.get({
-  path: "projects/demo",
+  key: "projects/demo",
   limit: 50,
   orderBy: "name",
   orderDirection: "ASC",
@@ -62,7 +62,8 @@ const { data, error } = await vaze.folders.create("projects/demo/assets");
 // data => { folder: Folder } — the deepest folder in the path
 ```
 
-<Callout type="warn">Folder names cannot contain dots (`.`).</Callout>
+Folder names may contain dots (`release/v1.0` is fine). Only the segments `.`
+and `..`, path separators inside a name, and NUL bytes are rejected.
 
 ## Rename a folder
 
@@ -73,8 +74,9 @@ const { error } = await vaze.folders.rename({
 });
 ```
 
-Renaming a folder also updates the paths of everything inside it. A sibling
-folder with the same name causes a `409` error.
+Renaming a folder also rewrites the keys of everything inside it. A sibling
+folder with the same name causes a `409` error, and the root folder cannot be
+renamed at all (`400`).
 
 ## Delete a folder
 
@@ -86,3 +88,5 @@ const { error } = await vaze.folders.delete("folder-id");
   Deleting a folder removes the folder **and all files and subfolders inside
   it** from disk and the database. This cannot be undone.
 </Callout>
+
+The root folder cannot be deleted (`400`) — it holds the entire storage tree.

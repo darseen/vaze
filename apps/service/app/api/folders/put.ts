@@ -1,11 +1,17 @@
 import { db } from "@/db";
 import { files as filesTable, folders as foldersTable } from "@repo/db";
-import { and, eq, isNull, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import { renameSync } from "node:fs";
-import path from "node:path";
-import { accessPathSync, isValidName } from "../_utils";
+import fs from "node:fs/promises";
+import {
+  accessPath,
+  isRootFolder,
+  isValidName,
+  joinKey,
+  parentKeyOf,
+  revalidateDashboard,
+  toStoragePath,
+} from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export default async function PUT(request: NextRequest) {
@@ -14,7 +20,7 @@ export default async function PUT(request: NextRequest) {
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },
-        { status: 401 },
+        { status: authError.status },
       );
     }
     const { id, name }: { id: string; name: string } = await request.json();
@@ -26,16 +32,15 @@ export default async function PUT(request: NextRequest) {
       );
     }
 
-    // Folder names must be a single path segment with no dots (consistent with
-    // folder creation) so a rename can never escape its parent directory.
-    if (!isValidName(name, { allowDots: false })) {
+    // A folder name is a single path segment, so a rename can never move a
+    // folder or escape its parent directory.
+    if (!isValidName(name)) {
       return NextResponse.json(
         { data: null, error: { message: "Invalid folder name" } },
         { status: 400 },
       );
     }
 
-    // find in database
     const folder = db
       .select()
       .from(foldersTable)
@@ -49,8 +54,18 @@ export default async function PUT(request: NextRequest) {
       );
     }
 
-    // check if folder exists on disk
-    if (!accessPathSync(folder.path)) {
+    // Renaming the root would move the uploads directory out from under the
+    // instance and orphan every row beneath it.
+    if (isRootFolder(folder)) {
+      return NextResponse.json(
+        { data: null, error: { message: "The root folder cannot be renamed" } },
+        { status: 400 },
+      );
+    }
+
+    const oldPath = toStoragePath(folder.key);
+
+    if (!(await accessPath(oldPath))) {
       // drop the orphaned row and report it as gone
       db.delete(foldersTable).where(eq(foldersTable.id, id)).run();
       return NextResponse.json(
@@ -59,29 +74,20 @@ export default async function PUT(request: NextRequest) {
       );
     }
 
-    // no-op rename
     if (folder.name === name) {
       return NextResponse.json({ data: null, error: null });
     }
 
-    const oldPath = folder.path;
-    const newPath = path.join(path.dirname(oldPath), name);
+    const newKey = joinKey(parentKeyOf(folder.key), name);
+    const newPath = toStoragePath(newKey);
 
-    // check for name conflicts among siblings (parentId may be NULL for root)
-    const conflictCheck = db
+    const conflict = db
       .select({ id: foldersTable.id })
       .from(foldersTable)
-      .where(
-        and(
-          folder.parentId === null
-            ? isNull(foldersTable.parentId)
-            : eq(foldersTable.parentId, folder.parentId),
-          eq(foldersTable.name, name),
-        ),
-      )
+      .where(eq(foldersTable.key, newKey))
       .get();
 
-    if (conflictCheck) {
+    if (conflict) {
       return NextResponse.json(
         {
           data: null,
@@ -93,28 +99,24 @@ export default async function PUT(request: NextRequest) {
       );
     }
 
-    // Rename on disk first, then update the DB (folder + all descendant paths)
+    // Rename on disk first, then update the DB (folder + all descendant keys)
     // atomically. If the DB write fails, roll the disk rename back.
     let renamed = false;
     try {
-      renameSync(oldPath, newPath);
+      await fs.rename(oldPath, newPath);
       renamed = true;
 
       db.transaction((tx) => {
         tx.update(foldersTable)
-          .set({ name, path: newPath, updatedAt: sql`CURRENT_TIMESTAMP` })
+          .set({ name, key: newKey, updatedAt: sql`CURRENT_TIMESTAMP` })
           .where(eq(foldersTable.id, id))
           .run();
-        updateDescendantPaths(tx, id, newPath);
+        updateDescendantKeys(tx, id, newKey);
       });
     } catch (error) {
-      console.log("update folder error", error);
+      console.error("update folder error", error);
       if (renamed) {
-        try {
-          renameSync(newPath, oldPath);
-        } catch {
-          // best-effort rollback
-        }
+        await fs.rename(newPath, oldPath).catch(() => {});
       }
       return NextResponse.json(
         { data: null, error: { message: "Error renaming folder" } },
@@ -122,10 +124,10 @@ export default async function PUT(request: NextRequest) {
       );
     }
 
-    revalidatePath("/dashboard");
+    revalidateDashboard();
     return NextResponse.json({ data: null, error: null });
   } catch (error) {
-    console.log("update folder error", error);
+    console.error("update folder error", error);
     return NextResponse.json(
       { error: { message: "Internal server error" }, data: null },
       { status: 500 },
@@ -136,12 +138,9 @@ export default async function PUT(request: NextRequest) {
 // the transaction handle passed to db.transaction's callback
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-// a function to update all descendant paths recursively
-function updateDescendantPaths(
-  tx: Tx,
-  parentId: string,
-  newParentPath: string,
-) {
+// Rewrite the keys of everything below a moved folder. Walking by parentId is
+// exact, unlike a LIKE prefix match which breaks on names containing `%` or `_`.
+function updateDescendantKeys(tx: Tx, parentId: string, newParentKey: string) {
   const subfolders = tx
     .select({ id: foldersTable.id, name: foldersTable.name })
     .from(foldersTable)
@@ -154,25 +153,21 @@ function updateDescendantPaths(
     .where(eq(filesTable.folderId, parentId))
     .all();
 
-  if (subfolders.length === 0 && files.length === 0) return;
-
   for (const file of files) {
-    const newFilePath = path.join(newParentPath, file.name);
-
     tx.update(filesTable)
-      .set({ path: newFilePath })
+      .set({ key: joinKey(newParentKey, file.name) })
       .where(eq(filesTable.id, file.id))
       .run();
   }
 
   for (const folder of subfolders) {
-    const newFolderPath = path.join(newParentPath, folder.name);
+    const childKey = joinKey(newParentKey, folder.name);
 
     tx.update(foldersTable)
-      .set({ path: newFolderPath })
+      .set({ key: childKey })
       .where(eq(foldersTable.id, folder.id))
       .run();
 
-    updateDescendantPaths(tx, folder.id, newFolderPath);
+    updateDescendantKeys(tx, folder.id, childKey);
   }
 }

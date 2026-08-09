@@ -1,10 +1,10 @@
-import { accessPathSync, contentDisposition } from "@/app/api/_utils";
+import { contentDisposition, toStoragePath } from "@/app/api/_utils";
 import { db } from "@/db";
 import { files as filesTable } from "@repo/db";
 import { eq } from "drizzle-orm";
-import mime from "mime-types";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
+import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
 import authorizeRequest from "../../../_utils/authorize-request";
 
@@ -17,7 +17,7 @@ export async function GET(
     if (authError) {
       return NextResponse.json(
         { data: null, error: { message: authError.message } },
-        { status: 401 },
+        { status: authError.status },
       );
     }
 
@@ -30,12 +30,7 @@ export async function GET(
       );
     }
 
-    // find in database
-    const file = db
-      .select()
-      .from(filesTable)
-      .where(eq(filesTable.id, id))
-      .get();
+    const file = db.select().from(filesTable).where(eq(filesTable.id, id)).get();
 
     if (!file) {
       return NextResponse.json(
@@ -44,25 +39,30 @@ export async function GET(
       );
     }
 
-    // check if file exists
-    if (!accessPathSync(file.path)) {
+    const storagePath = toStoragePath(file.key);
+
+    // size comes from the file itself — a drifted `size` column would truncate
+    // or hang the response
+    let size: number;
+    try {
+      ({ size } = await stat(storagePath));
+    } catch {
       return NextResponse.json(
         { data: null, error: { message: "File not found" } },
         { status: 404 },
       );
     }
 
-    const mimeType = mime.lookup(file.name) || "application/octet-stream";
-
     // stream the file rather than buffering the whole thing into memory
-    const nodeStream = fs.createReadStream(file.path);
+    const nodeStream = fs.createReadStream(storagePath);
     const webStream = Readable.toWeb(nodeStream);
 
     return new NextResponse(webStream as ReadableStream, {
       headers: {
-        "Content-Type": mimeType,
+        "Content-Type": file.mimeType,
         "Content-Disposition": contentDisposition("attachment", file.name),
-        "Content-Length": file.size.toString(),
+        "Content-Length": size.toString(),
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {

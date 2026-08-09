@@ -12,19 +12,21 @@ File objects in responses have this shape:
 ```json
 {
   "id": "5f2d4a1e-...",
-  "name": "photo-1a2b3c4d.png",
-  "type": ".png",
+  "name": "photo.png",
+  "key": "projects/demo/photo.png",
+  "mimeType": "image/png",
   "size": 102400,
   "folderId": "9c8b7a6d-...",
-  "path": "/app/data/uploads/photo-1a2b3c4d.png",
-  "url": "api/hosting/photo-1a2b3c4d.png",
+  "url": "api/hosting/projects/demo/photo.png",
   "createdAt": "2026-07-15 12:00:00",
   "updatedAt": "2026-07-15 12:00:00"
 }
 ```
 
-`url` is relative to your instance's base URL. Resolve it against the base
-URL to get the public hosting link (the SDK does this for you).
+`key` is the object's path relative to the storage root — it identifies the
+file and determines its public URL. `url` is relative to your instance's base
+URL; resolve it against that to get the public hosting link (the SDK does this
+for you).
 
 ## List files
 
@@ -44,10 +46,18 @@ curl "https://files.example.com/api/files?limit=20&orderBy=size&orderDirection=D
 { "data": { "files": [ ... ] }, "error": null }
 ```
 
-## Get a file by ID
+## Get a file
 
 ```
 GET /api/files?id=<file-id>
+GET /api/files?key=<object-key>
+```
+
+Fetch a single file by its id or by its key:
+
+```bash
+curl "https://files.example.com/api/files?key=projects/demo/photo.png" \
+  -H "API-Key: your-api-key"
 ```
 
 ```json
@@ -62,7 +72,8 @@ Responds `404` when no file matches.
 GET /api/files?name=<file-name>
 ```
 
-Matches against the exact stored file name. Also supports the list query
+Matches the exact file name across every folder — useful because the same
+name can now exist in more than one folder. Also supports the list query
 parameters. An empty result is a success with an empty `files` array.
 
 ## Upload files
@@ -90,10 +101,20 @@ curl -X POST https://files.example.com/api/files \
 { "data": { "files": [ ... ] }, "error": null }
 ```
 
-A short unique suffix is appended to each stored file name (e.g.
-`photo-1a2b3c4d.png`) so uploads never collide. If any file in the batch
-fails, the already-written files from that request are cleaned up and the
-whole upload fails.
+Files are stored under the name you upload them with, so you control the
+public URL. Names are unique **per folder**: the same name in two different
+folders is fine, but uploading over an existing name responds `409`.
+
+The request body is streamed straight to disk, so upload size is bounded by
+your volume rather than by memory. Uploads land in a staging area and are
+moved into place only once the whole request has been received — if anything
+fails partway through, nothing appears in the target folder.
+
+| Status | Cause                                                          |
+| ------ | -------------------------------------------------------------- |
+| `409`  | A file with that name already exists in the target folder      |
+| `413`  | A file exceeded `MAX_UPLOAD_SIZE`, or too many files in one request |
+| `507`  | Not enough free space on the volume                            |
 
 ## Rename a file
 
@@ -107,8 +128,8 @@ JSON body:
 { "id": "<file-id>", "name": "new-name.png" }
 ```
 
-File names are unique across the instance — renaming to an existing name
-responds `409`. Invalid names (path separators, etc.) respond `400`.
+The name must be a single path segment — separators and `..` respond `400`.
+Renaming onto a name already used **in the same folder** responds `409`.
 
 ## Delete a file
 
@@ -122,8 +143,9 @@ JSON body:
 { "id": "<file-id>" }
 ```
 
-Removes the file from disk and the database. Responds `404` if the file
-doesn't exist.
+Removes the file from disk and the database. Responds `404` if no such file
+exists; a file already missing from disk still has its record cleaned up and
+reports success.
 
 ## Download a file
 
@@ -142,21 +164,25 @@ curl -OJ https://files.example.com/api/files/download/<file-id> \
 ## Serve a file publicly
 
 ```
-GET /api/hosting/<file-name>
+GET /api/hosting/<object-key>
 ```
 
 **No authentication required.** Streams the file inline with the correct
 `Content-Type`, which makes it suitable for embedding in web pages:
 
 ```html
-<img src="https://files.example.com/api/hosting/photo-1a2b3c4d.png" />
+<img src="https://files.example.com/api/hosting/projects/demo/photo.png" />
 ```
 
 This is the URL carried in the `url` field of file objects and shown as the
 "hosting URL" in the dashboard.
 
+Hosted responses are sent with `Content-Security-Policy: sandbox` and
+`X-Content-Type-Options: nosniff`. Assets render normally; uploaded HTML and
+SVG render without executing scripts, so hosted content can never act against
+your instance with your session.
+
 <Callout type="warn">
-  Hosting URLs are public: anyone who knows a file's name can fetch it
-  through this endpoint. Don't upload secrets you wouldn't want reachable by
-  URL.
+  Hosting URLs are public: anyone who knows a file's key can fetch it through
+  this endpoint. Don't upload secrets you wouldn't want reachable by URL.
 </Callout>

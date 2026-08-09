@@ -132,7 +132,7 @@ Folders API Access folder-related methods via `vaze.folders`. `get(options?)` Re
 
 - options (optional):
   - `id`
-  - `path` example: "projects/work"
+  - `key` example: "projects/work"
   - `limit`
   - `offset`
   - `orderBy`
@@ -140,7 +140,7 @@ Folders API Access folder-related methods via `vaze.folders`. `get(options?)` Re
 
 ```ts
 const { data, error } = await vaze.folders.get({
-  path: "/documents/work",
+  key: "documents/work",
   limit: 20,
 });
 

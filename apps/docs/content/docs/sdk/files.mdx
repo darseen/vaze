@@ -15,11 +15,11 @@ File objects returned by the SDK look like this:
 ```ts
 type File = {
   id: string;
-  name: string; // unique across the instance
-  type: string; // file extension, e.g. ".png"
+  name: string; // unique within its folder
+  key: string; // object key, e.g. "projects/demo/photo.png"
+  mimeType: string; // e.g. "image/png"
   size: number; // bytes
-  folderId: string | null;
-  path: string; // location on the server's disk
+  folderId: string;
   url: string; // absolute public hosting URL
   createdAt: string;
   updatedAt: string;
@@ -57,9 +57,14 @@ const { data, error } = await vaze.files.upload({
 // data => { files: File[] } including the public hosting URLs
 ```
 
+Files keep the name you upload them with, so you control the public URL.
+Names are unique per folder — the same name in two folders is fine, but
+uploading over an existing name returns a `409` error.
+
 <Callout>
-  Vaze appends a short unique suffix to uploaded file names (e.g.
-  `hello-1a2b3c4d.txt`) so uploads never collide.
+  Uploads stream to disk and are moved into the target folder only once the
+  whole request has been received. A file over `MAX_UPLOAD_SIZE` returns
+  `413`, and a full volume returns `507`.
 </Callout>
 
 ## Get all files
@@ -84,11 +89,19 @@ const { data, error } = await vaze.files.getById("file-id");
 
 Returns an error with status `404` if no file matches.
 
+## Get a file by key
+
+```ts
+const { data, error } = await vaze.files.getByKey("projects/demo/photo.png");
+
+// data => { file: File }
+```
+
 ## Search files by name
 
 ```ts
 const { data, error } = await vaze.files.getByName(
-  "hello-1a2b3c4d.txt",
+  "hello.txt",
   { limit: 10 }, // optional ListOptions
 );
 
@@ -117,8 +130,8 @@ const { error } = await vaze.files.rename({
 });
 ```
 
-File names are unique across the instance; renaming to a name that already
-exists returns a `409` error.
+The name must be a single path segment. Renaming to a name already taken in
+the same folder returns a `409` error.
 
 ## Delete a file
 

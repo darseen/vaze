@@ -80,7 +80,7 @@ export default function NavUser({ username }: { username: string | null }) {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/files/uploads">
+                <Link href="/dashboard/files">
                   <FilesIcon />
                   Files
                 </Link>

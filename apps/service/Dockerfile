@@ -51,6 +51,12 @@ COPY --from=builder /app/apps/service/entrypoint.sh ./apps/service/entrypoint.sh
 
 RUN chmod +x ./apps/service/entrypoint.sh
 
+# Run unprivileged. `node` (uid 1000) ships with the base image; a named volume
+# mounted at /app/data inherits this ownership when Docker first creates it.
+RUN mkdir -p /app/data && chown -R node:node /app
+
+USER node
+
 EXPOSE 3000
 ENV PORT=3000
 # Without this the standalone server binds to the container id only.

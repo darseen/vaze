@@ -47,13 +47,21 @@ Every JSON endpoint responds with the same envelope:
 
 Errors also carry a meaningful HTTP status code:
 
-| Status | Meaning                                        |
-| ------ | ---------------------------------------------- |
-| `400`  | Invalid input (missing fields, invalid names)  |
-| `401`  | Missing or invalid API key                     |
-| `404`  | File or folder not found                       |
-| `409`  | Name conflict (rename to an existing name)     |
-| `500`  | Unexpected server error                        |
+| Status | Meaning                                                     |
+| ------ | ----------------------------------------------------------- |
+| `400`  | Invalid input (missing fields, invalid names)               |
+| `401`  | Missing or invalid API key                                  |
+| `404`  | File or folder not found                                    |
+| `409`  | Name conflict (a name already taken in the same folder)     |
+| `413`  | Upload too large, or too many files in one request          |
+| `429`  | Rate limited — retry after the `Retry-After` header         |
+| `500`  | Unexpected server error                                     |
+| `507`  | Not enough free space on the volume                         |
+
+## Rate limits
+
+Requests are limited per client IP: 300/minute across `/api`, and 600/minute
+on the public hosting endpoint. Exceeding either responds `429`.
 
 ## List query parameters
 

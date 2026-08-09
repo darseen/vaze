@@ -1,6 +1,9 @@
 - add permissions to api keys
-- add orphaned data cleanup
 - encrypt files on disk
-- add storage analytics (dashboard)
 - implement worker threads
-- add file hosting
+- add presigned urls
+- add private/public file visibility
+- add range requests + etag/conditional GET
+- add multipart/resumable upload
+- add prefix listing with cursor pagination
+- add copy/move + batch delete

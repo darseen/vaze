@@ -1,16 +1,16 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-];
+const eslintConfig = defineConfig([
+  globalIgnores([".next/**", "node_modules/**", "next-env.d.ts", "data/**"]),
+  ...nextCoreWebVitals,
+  ...nextTypescript,
+  {
+    // test scaffolding pokes at loosely-typed JSON payloads
+    files: ["test/**/*.ts"],
+    rules: { "@typescript-eslint/no-explicit-any": "off" },
+  },
+]);
 
 export default eslintConfig;

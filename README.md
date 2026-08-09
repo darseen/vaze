@@ -17,12 +17,19 @@
 
 ## Features
 
-- **Full File & Folder Management**: Create, rename, move, and delete files and folders directly from the web UI.
-- **Simple Uploads**: Easily upload files and folders through a drag-and-drop interface.
-- **Export & Download**: Download individual files or entire folders as a zip archive.
+- **File & Folder Management**: Create, rename, and delete files and folders directly from the web UI.
+- **Path-addressed storage**: Files keep the name you upload them with, so you choose the public URL — `https://your-vaze/api/hosting/projects/demo/photo.png`.
+- **Streaming uploads**: Upload bodies go straight to disk, so file size is bounded by your volume rather than by memory.
+- **Download & Public Hosting**: Download files directly, or embed them from a public hosting URL that serves untrusted content sandboxed.
 - **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps.
 - **Powerful API**: Use Vaze as a backend service for any application that needs file hosting or storage, with simple RESTful endpoints.
 - **Dockerized**: Get up and running in minutes with the official Docker image.
+
+### Roadmap
+
+Not built yet: moving files between folders, folder upload and drag-and-drop,
+zip download of a folder, presigned URLs, private files, range requests, and
+API-key scopes.
 
 ---
 
@@ -137,6 +144,9 @@ Edit it and apply with `docker compose -f compose.prod.yaml up -d`.
 | `VAZE_BIND_ADDR`  | No (`0.0.0.0`) | Host address to bind to. Set `127.0.0.1` when a reverse proxy fronts Vaze.        |
 | `VAZE_VERSION`    | No (`latest`)  | Image tag to run — pin it for reproducible deploys.                              |
 | `TZ`              | No (`UTC`)     | Container timezone.                                                              |
+| `MAX_UPLOAD_SIZE` | No (`5gb`)     | Largest single file accepted by an upload, e.g. `500mb`.                          |
+| `MAX_FILES_PER_REQUEST` | No (`100`) | Cap on files in one multipart request.                                        |
+| `API_REQUEST_RETENTION_DAYS` | No (`90`) | How long API request-log rows are kept.                                  |
 
 The installer generates `AUTH_SECRET` for you. To make one by hand:
 

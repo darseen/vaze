@@ -23,6 +23,17 @@ Edit it and apply with `docker compose -f compose.prod.yaml up -d`.
 | `TZ`             | No (`UTC`)     | Timezone used inside the container.                                                                                                 |
 | `PORT`           | No (`3000`)    | The port the server listens on inside the container.                                                                                |
 
+### Limits
+
+| Variable                     | Default | Description                                                                                       |
+| ---------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `MAX_UPLOAD_SIZE`            | `5gb`   | Largest single file accepted by an upload. Accepts `b`/`kb`/`mb`/`gb`/`tb` suffixes, e.g. `500mb`. |
+| `MAX_FILES_PER_REQUEST`      | `100`   | Cap on the number of files in one multipart request.                                               |
+| `API_REQUEST_RETENTION_DAYS` | `90`    | How long API request-log rows are kept before being pruned.                                        |
+
+Uploads stream to disk, so `MAX_UPLOAD_SIZE` bounds what a single request may
+store — not how much memory the server uses.
+
 Generate a strong secret with:
 
 ```bash
@@ -40,7 +51,12 @@ openssl rand -base64 32
 Inside the container, Vaze keeps everything under `/app/data`:
 
 - `uploads/` — all uploaded files and folders, stored as plain files on disk.
+- `tmp/` — in-flight uploads, staged here and moved into `uploads/` once fully
+  received. Cleared on startup.
 - the SQLite database with file metadata, users, and API keys.
+
+The container runs as an unprivileged user, so a bind mount at `/app/data`
+must be writable by uid 1000.
 
 `compose.prod.yaml` mounts a named Docker volume there:
 

@@ -4,7 +4,9 @@ import type { ListOptions } from "./types/index.js";
 import { constructFileUrls } from "./utils/index.js";
 
 export default class Folders extends Base {
-  public async get(options?: ListOptions & { id?: string; path?: string }) {
+  public async get(
+    options?: ListOptions & { id?: string; key?: string; path?: string },
+  ) {
     const url = this.apiUrl("/api/folders", options);
 
     const { error, data } = await this.request<{

@@ -5,7 +5,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BASE_DATA_PATH } from "@/constants";
 import { db } from "@/db";
 import { files as filesTable } from "@repo/db";
 import { formatBytes, parseTimestamp } from "@/utils";
@@ -20,17 +19,6 @@ import {
   Music,
   Video,
 } from "lucide-react";
-
-function getDisplayPath(absolutePath: string, basePath: string) {
-  const normalizedPath = absolutePath.replace(/\\/g, "/");
-  const normalizedBase = basePath.replace(/\\/g, "/");
-
-  if (normalizedPath.startsWith(normalizedBase)) {
-    return normalizedPath.slice(normalizedBase.length).replace(/^\//, "");
-  }
-
-  return absolutePath;
-}
 
 function getFileIcon(filename: string) {
   const ext = filename.split(".").pop()?.toLowerCase();
@@ -86,7 +74,7 @@ export default async function RecentFiles() {
       id: filesTable.id,
       name: filesTable.name,
       size: filesTable.size,
-      path: filesTable.path,
+      key: filesTable.key,
       createdAt: filesTable.createdAt,
     })
     .from(filesTable)
@@ -117,7 +105,7 @@ export default async function RecentFiles() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{file.name}</p>
                   <p className="text-muted-foreground truncate text-xs">
-                    {getDisplayPath(file.path, BASE_DATA_PATH)}
+                    {file.key}
                   </p>
                 </div>
                 <div className="text-right">

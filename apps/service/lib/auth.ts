@@ -15,6 +15,17 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     autoSignIn: true,
   },
+  // On by default in production only; enabling it explicitly means dev behaves
+  // the same, and sign-in gets a tighter allowance than the rest.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 60,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 10 },
+      "/sign-up/email": { window: 60, max: 5 },
+    },
+  },
   user: { modelName: "users" },
   session: { modelName: "sessions" },
   account: { modelName: "accounts" },

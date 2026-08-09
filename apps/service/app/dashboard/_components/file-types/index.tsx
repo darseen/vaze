@@ -13,9 +13,9 @@ import Chart from "./chart";
 export default async function FileTypesChart() {
   const value = sql<number>`sum(${files.size})`;
   const result = db
-    .select({ name: files.type, value })
+    .select({ name: files.mimeType, value })
     .from(files)
-    .groupBy(files.type)
+    .groupBy(files.mimeType)
     .orderBy(desc(value))
     .all();
 

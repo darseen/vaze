@@ -7,7 +7,7 @@ export function constructFileUrls({
   vazeUrl: string;
   files: FileWithUrl[];
 }) {
-  // `file.url` is a relative path (`api/hosting/<name>`); resolving it against
+  // `file.url` is a relative path (`api/hosting/<key>`); resolving it against
   // a trailing-slash base keeps any base path and avoids double slashes.
   const base = vazeUrl.endsWith("/") ? vazeUrl : `${vazeUrl}/`;
   return files.map((file) => ({

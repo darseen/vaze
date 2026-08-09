@@ -1,10 +1,9 @@
 import { db } from "@/db";
 import { folders as foldersTable } from "@repo/db";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs/promises";
-import { accessPath } from "../_utils";
+import { isRootFolder, revalidateDashboard, toStoragePath } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export default async function DELETE(request: NextRequest) {
@@ -13,13 +12,12 @@ export default async function DELETE(request: NextRequest) {
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },
-        { status: 401 },
+        { status: authError.status },
       );
     }
 
     const { id }: { id: string } = await request.json();
 
-    // find in database
     const folder = db
       .select()
       .from(foldersTable)
@@ -33,34 +31,32 @@ export default async function DELETE(request: NextRequest) {
       );
     }
 
-    // check if folder exists on disk
-    const folderExists = await accessPath(folder.path);
-    if (!folderExists) {
-      // delete folder from database if it doesn't exist on disk
-      db.delete(foldersTable).where(eq(foldersTable.id, id)).run();
-      revalidatePath("/dashboard");
-
+    // Deleting the root would recursively remove the entire uploads tree and
+    // cascade every file row with it.
+    if (isRootFolder(folder)) {
       return NextResponse.json(
-        { error: { message: "Folder not found" }, data: null },
-        { status: 404 },
+        { data: null, error: { message: "The root folder cannot be deleted" } },
+        { status: 400 },
       );
     }
 
-    // delete folder from disk and database
+    // `force` makes an already-missing directory a no-op, so a row orphaned by
+    // an out-of-band delete still gets cleaned up instead of 404ing forever.
     try {
-      await fs.rm(folder.path, { recursive: true });
+      await fs.rm(toStoragePath(folder.key), { recursive: true, force: true });
       db.delete(foldersTable).where(eq(foldersTable.id, id)).run();
-    } catch {
+    } catch (error) {
+      console.error("delete folder error", error);
       return NextResponse.json(
         { error: { message: "Error deleting folder" }, data: null },
         { status: 500 },
       );
     }
 
-    revalidatePath("/dashboard");
+    revalidateDashboard();
     return NextResponse.json({ data: null, error: null });
   } catch (error) {
-    console.log("delete folder error", error);
+    console.error("delete folder error", error);
     return NextResponse.json(
       { error: { message: "Internal server error" }, data: null },
       { status: 500 },

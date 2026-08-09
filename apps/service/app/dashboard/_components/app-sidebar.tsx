@@ -45,7 +45,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       },
       {
         title: "Files",
-        href: "/dashboard/files/uploads",
+        href: "/dashboard/files",
         icon: FolderOpen,
         isActive: (pathname) => pathname.startsWith("/dashboard/files"),
       },

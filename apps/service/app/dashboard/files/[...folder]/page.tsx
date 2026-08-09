@@ -1,9 +1,9 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { fetchFolderByPath } from "@/app/api/_utils";
-import ActionBar from "./_components/action-bar";
-import FilesList from "./_components/files-list";
+import { fetchFolderByKey } from "@/app/api/_utils";
+import ActionBar from "../_components/action-bar";
+import FilesList from "../_components/files-list";
 
 export const metadata: Metadata = {
   title: "Files",
@@ -15,10 +15,17 @@ export default async function Page({
 }: {
   params: Promise<{ folder: string[] }>;
 }) {
-  // The first segment is the fixed "uploads" root; the rest is the path within it.
-  const folderPath = (await params).folder.slice(1).join("/");
+  // the URL below /dashboard/files maps 1:1 onto the folder key
+  let folderKey: string;
+  try {
+    folderKey = (await params).folder
+      .map((segment) => decodeURIComponent(segment))
+      .join("/");
+  } catch {
+    notFound();
+  }
 
-  const { data, error } = await fetchFolderByPath(folderPath);
+  const { data, error } = await fetchFolderByKey(folderKey);
 
   if (error || !data) notFound();
 

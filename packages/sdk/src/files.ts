@@ -46,6 +46,27 @@ export default class Files extends Base {
     };
   }
 
+  public async getByKey(key: string) {
+    const url = this.apiUrl("/api/files", { key });
+
+    const { data, error } = await this.request<{ file: FileWithUrl }>(
+      "GET",
+      url,
+    );
+
+    return {
+      error,
+      data: data
+        ? {
+            file: constructFileUrls({
+              vazeUrl: this.vazeUrl,
+              files: [data.file],
+            })[0],
+          }
+        : null,
+    };
+  }
+
   public async getByName(name: string, options?: ListOptions) {
     const url = this.apiUrl("/api/files", { name, ...options });
 
