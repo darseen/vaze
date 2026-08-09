@@ -35,7 +35,7 @@ type NavItem = {
 
 const navGroups: { label: string; items: NavItem[] }[] = [
   {
-    label: "Overview",
+    label: "Manage",
     items: [
       {
         title: "Dashboard",
@@ -80,7 +80,7 @@ export default function AppSidebar({ username }: { username: string | null }) {
               className="hover:bg-sidebar-accent/60"
             >
               <Link href="/dashboard">
-                <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-200/80 to-amber-500/40 ring-1 ring-amber-500/25 dark:from-amber-400/20 dark:to-amber-700/20">
+                <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-amber-200/80 to-amber-500/40 ring-1 ring-amber-500/25 dark:from-amber-400/20 dark:to-amber-700/20">
                   <Image src={logo} alt="" className="size-5 object-contain" />
                 </span>
                 <div className="grid flex-1 text-left leading-tight">
