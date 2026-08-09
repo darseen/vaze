@@ -1,6 +1,6 @@
-import type { FileWithUrl } from "@repo/types";
+import type { FileWithUrl, Visibility } from "@repo/types";
 import Base from "./base.js";
-import type { ListOptions } from "./types/index.js";
+import type { ListOptions, SignedUrl, SignOptions } from "./types/index.js";
 import { constructFileUrls } from "./utils/index.js";
 
 export default class Files extends Base {
@@ -88,12 +88,17 @@ export default class Files extends Base {
     };
   }
 
-  public async upload(data: { files: File[]; folder?: string }) {
-    const { files, folder } = data;
+  public async upload(data: {
+    files: File[];
+    folder?: string;
+    visibility?: Visibility;
+  }) {
+    const { files, folder, visibility } = data;
     const url = this.apiUrl("/api/files");
     const formData = new FormData();
 
     if (folder) formData.append("folder", folder);
+    if (visibility) formData.append("visibility", visibility);
 
     files.forEach((file) => {
       formData.append("files", file);
@@ -123,6 +128,26 @@ export default class Files extends Base {
 
   public async rename(data: { id: string; name: string }) {
     return await this.request<null>("PUT", this.apiUrl("/api/files"), data);
+  }
+
+  public async setVisibility(data: { id: string; visibility: Visibility }) {
+    return await this.request<null>("PUT", this.apiUrl("/api/files"), data);
+  }
+
+  /** Mint a time-limited URL that reads a file without an API key. */
+  public async sign(options: SignOptions) {
+    const { data, error } = await this.request<SignedUrl>(
+      "POST",
+      this.apiUrl("/api/files/sign"),
+      options,
+    );
+
+    return {
+      error,
+      data: data
+        ? { ...data, url: new URL(data.url, this.vazeUrl).toString() }
+        : null,
+    };
   }
 
   public async delete(id: string) {

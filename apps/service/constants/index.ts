@@ -1,3 +1,4 @@
+import type { Visibility } from "@repo/types";
 import path from "node:path";
 
 // Where the SQLite DB and uploaded files live. Defaults to `<cwd>/data`, but in
@@ -52,4 +53,20 @@ export const MAX_FILES_PER_REQUEST = parseCount(
 export const API_REQUEST_RETENTION_DAYS = parseCount(
   process.env.API_REQUEST_RETENTION_DAYS,
   90,
+);
+
+/** Visibility applied to an upload that does not ask for one. */
+export const DEFAULT_FILE_VISIBILITY: Visibility =
+  process.env.DEFAULT_FILE_VISIBILITY === "private" ? "private" : "public";
+
+/** Lifetime of a signed URL when the caller does not specify one. */
+export const DEFAULT_PRESIGN_TTL_SECONDS = parseCount(
+  process.env.DEFAULT_PRESIGN_TTL_SECONDS,
+  3600,
+);
+
+/** Longest lifetime a signed URL may be minted with. Matches S3's cap. */
+export const MAX_PRESIGN_TTL_SECONDS = parseCount(
+  process.env.MAX_PRESIGN_TTL_SECONDS,
+  7 * 24 * 60 * 60,
 );

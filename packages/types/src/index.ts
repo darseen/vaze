@@ -7,6 +7,7 @@ export type {
   Session,
   User,
   Verification,
+  Visibility,
 } from "@repo/db";
 
 import type { File } from "@repo/db";

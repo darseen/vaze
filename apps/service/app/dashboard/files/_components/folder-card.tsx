@@ -28,8 +28,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/utils";
-import type { ApiResponse, Folder } from "@repo/types";
-import { Edit, FolderIcon, MoreVertical, Trash2 } from "lucide-react";
+import type { ApiResponse, Folder, Visibility } from "@repo/types";
+import {
+  Edit,
+  FolderIcon,
+  Globe,
+  Lock,
+  MoreVertical,
+  Trash2,
+} from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -41,6 +48,7 @@ interface Props {
 export default function FolderCard({ folder }: Props) {
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
+  const [cascading, setCascading] = useState<Visibility | null>(null);
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
@@ -59,6 +67,31 @@ export default function FolderCard({ folder }: Props) {
       if (error) return toast.error(error.message);
 
       toast.success("Folder deleted successfully");
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+      router.refresh();
+    }
+  };
+
+  const handleSetVisibility = async (visibility: Visibility) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/folders`, {
+        method: "PUT",
+        body: JSON.stringify({ id: folder.id, visibility }),
+      });
+
+      const { error } = (await response.json()) as ApiResponse<null>;
+
+      if (error) return toast.error(error.message);
+
+      toast.success(
+        visibility === "private"
+          ? "Every file in this folder is now private"
+          : "Every file in this folder is now public",
+      );
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -128,6 +161,28 @@ export default function FolderCard({ folder }: Props) {
                     <Edit className="mr-3 h-4 w-4" />
                     Rename
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCascading("private");
+                    }}
+                    disabled={loading}
+                    className="cursor-pointer"
+                  >
+                    <Lock className="mr-3 h-4 w-4" />
+                    Make all private
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCascading("public");
+                    }}
+                    disabled={loading}
+                    className="cursor-pointer"
+                  >
+                    <Globe className="mr-3 h-4 w-4" />
+                    Make all public
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -191,6 +246,33 @@ export default function FolderCard({ folder }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Cascade Visibility Confirmation */}
+      <AlertDialog
+        open={!!cascading}
+        onOpenChange={(open) => !open && setCascading(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Make everything in {folder.name} {cascading}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {cascading === "private"
+                ? `Every file in "${folder.name}" and its subfolders will stop being publicly readable. Existing links will break unless they are signed.`
+                : `Every file in "${folder.name}" and its subfolders will become readable by anyone with the link.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => cascading && handleSetVisibility(cascading)}
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Rename Folder Dialog */}
       <Dialog

@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { files as filesTable, folders as foldersTable } from "@repo/db";
-import { eq, sql } from "drizzle-orm";
+import type { Visibility } from "@repo/types";
+import { eq, inArray, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs/promises";
 import {
@@ -9,6 +10,7 @@ import {
   isValidName,
   joinKey,
   parentKeyOf,
+  parseVisibility,
   revalidateDashboard,
   toStoragePath,
 } from "../_utils";
@@ -23,18 +25,30 @@ export default async function PUT(request: NextRequest) {
         { status: authError.status },
       );
     }
-    const { id, name }: { id: string; name: string } = await request.json();
+    const body: { id: string; name?: string; visibility?: string } =
+      await request.json();
+    const { id, name } = body;
 
-    if (!id || !name) {
+    const visibility =
+      body.visibility === undefined ? null : parseVisibility(body.visibility);
+
+    if (body.visibility !== undefined && !visibility) {
       return NextResponse.json(
-        { data: null, error: { message: "Missing id or name" } },
+        { data: null, error: { message: "Invalid visibility" } },
+        { status: 400 },
+      );
+    }
+
+    if (!id || (name === undefined && !visibility)) {
+      return NextResponse.json(
+        { data: null, error: { message: "Missing id, name or visibility" } },
         { status: 400 },
       );
     }
 
     // A folder name is a single path segment, so a rename can never move a
     // folder or escape its parent directory.
-    if (!isValidName(name)) {
+    if (name !== undefined && !isValidName(name)) {
       return NextResponse.json(
         { data: null, error: { message: "Invalid folder name" } },
         { status: 400 },
@@ -54,13 +68,21 @@ export default async function PUT(request: NextRequest) {
       );
     }
 
-    // Renaming the root would move the uploads directory out from under the
-    // instance and orphan every row beneath it.
-    if (isRootFolder(folder)) {
+    // The root is a legitimate cascade target, so this guard stays scoped to
+    // renames: moving the uploads directory would orphan every row beneath it.
+    if (name !== undefined && isRootFolder(folder)) {
       return NextResponse.json(
         { data: null, error: { message: "The root folder cannot be renamed" } },
         { status: 400 },
       );
+    }
+
+    // a cascade on its own never touches the filesystem
+    if (visibility && name === undefined) {
+      db.transaction((tx) => setDescendantVisibility(tx, folder.id, visibility));
+
+      revalidateDashboard();
+      return NextResponse.json({ data: null, error: null });
     }
 
     const oldPath = toStoragePath(folder.key);
@@ -74,7 +96,7 @@ export default async function PUT(request: NextRequest) {
       );
     }
 
-    if (folder.name === name) {
+    if (name === undefined || folder.name === name) {
       return NextResponse.json({ data: null, error: null });
     }
 
@@ -112,6 +134,9 @@ export default async function PUT(request: NextRequest) {
           .where(eq(foldersTable.id, id))
           .run();
         updateDescendantKeys(tx, id, newKey);
+        // both changes in one transaction, so a failed rename cannot leave a
+        // half-applied cascade behind
+        if (visibility) setDescendantVisibility(tx, id, visibility);
       });
     } catch (error) {
       console.error("update folder error", error);
@@ -137,6 +162,40 @@ export default async function PUT(request: NextRequest) {
 
 // the transaction handle passed to db.transaction's callback
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+// SQLite caps bound parameters per statement, so a wide tree is updated in
+// batches rather than one giant IN list.
+const ID_CHUNK_SIZE = 500;
+
+/** Apply a visibility to every file at or below a folder. */
+function setDescendantVisibility(
+  tx: Tx,
+  folderId: string,
+  visibility: Visibility,
+) {
+  const folderIds: string[] = [];
+  const queue = [folderId];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    folderIds.push(current);
+
+    const children = tx
+      .select({ id: foldersTable.id })
+      .from(foldersTable)
+      .where(eq(foldersTable.parentId, current))
+      .all();
+
+    queue.push(...children.map((child) => child.id));
+  }
+
+  for (let i = 0; i < folderIds.length; i += ID_CHUNK_SIZE) {
+    tx.update(filesTable)
+      .set({ visibility, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .where(inArray(filesTable.folderId, folderIds.slice(i, i + ID_CHUNK_SIZE)))
+      .run();
+  }
+}
 
 // Rewrite the keys of everything below a moved folder. Walking by parentId is
 // exact, unlike a LIKE prefix match which breaks on names containing `%` or `_`.

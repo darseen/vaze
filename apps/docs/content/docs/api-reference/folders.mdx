@@ -75,13 +75,13 @@ Folder names may contain dots (`release/v1.0` is fine). What is rejected with
 `..`, path separators inside a name, and NUL bytes. An existing folder
 responds `409`.
 
-## Rename a folder
+## Rename a folder or set visibility in bulk
 
 ```
 PUT /api/folders
 ```
 
-JSON body:
+JSON body — `name`, `visibility`, or both. At least one is required:
 
 ```json
 { "id": "<folder-id>", "name": "new-name" }
@@ -90,6 +90,19 @@ JSON body:
 The new name must be a single path segment. Renaming also rewrites the keys
 of every file and subfolder inside. A sibling folder with the same name
 responds `409`.
+
+`visibility` cascades: it applies `public` or `private` to every file in the
+folder **and all its subfolders**, in one transaction.
+
+```json
+{ "id": "<folder-id>", "visibility": "private" }
+```
+
+Folders do not themselves carry a visibility — this is a bulk write over the
+files beneath them, not an inherited setting, so a file uploaded afterwards
+takes the instance default rather than the folder's last cascade. Unlike rename,
+the **root folder is a valid cascade target**, which is how you lock down an
+entire instance in one call.
 
 ## Delete a folder
 
@@ -109,4 +122,5 @@ JSON body:
 </Callout>
 
 The root folder cannot be renamed or deleted — both respond `400`. Removing
-it would take the entire storage tree with it.
+it would take the entire storage tree with it. A visibility cascade against the
+root is allowed.

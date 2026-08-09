@@ -17,6 +17,7 @@ File objects in responses have this shape:
   "mimeType": "image/png",
   "size": 102400,
   "folderId": "9c8b7a6d-...",
+  "visibility": "public",
   "url": "api/hosting/projects/demo/photo.png",
   "createdAt": "2026-07-15 12:00:00",
   "updatedAt": "2026-07-15 12:00:00"
@@ -27,6 +28,10 @@ File objects in responses have this shape:
 file and determines its public URL. `url` is relative to your instance's base
 URL; resolve it against that to get the public hosting link (the SDK does this
 for you).
+
+`visibility` is `public` or `private`. `url` is always the canonical hosting
+URL regardless of visibility — for a private file it only works with a
+[signed URL](#sign-a-url) or valid credentials.
 
 ## List files
 
@@ -88,6 +93,7 @@ Send a `multipart/form-data` body:
 | -------- | ------ | ------------------------------------------------------------------ |
 | `files`  | file   | One or more files to upload (repeat the field for multiple files)  |
 | `folder` | string | Optional target folder path, e.g. `projects/demo`. Nested folders are created automatically. Defaults to the root folder. |
+| `visibility` | string | Optional, `public` or `private`. Defaults to `DEFAULT_FILE_VISIBILITY` (`public` unless configured otherwise). Applies to every file in the request. |
 
 ```bash
 curl -X POST https://files.example.com/api/files \
@@ -116,20 +122,65 @@ fails partway through, nothing appears in the target folder.
 | `413`  | A file exceeded `MAX_UPLOAD_SIZE`, or too many files in one request |
 | `507`  | Not enough free space on the volume                            |
 
-## Rename a file
+## Rename a file or change its visibility
 
 ```
 PUT /api/files
 ```
 
-JSON body:
+JSON body — `name`, `visibility`, or both. At least one is required, or the
+request responds `400`:
 
 ```json
-{ "id": "<file-id>", "name": "new-name.png" }
+{ "id": "<file-id>", "name": "new-name.png", "visibility": "private" }
 ```
 
 The name must be a single path segment — separators and `..` respond `400`.
-Renaming onto a name already used **in the same folder** responds `409`.
+Renaming onto a name already used **in the same folder** responds `409`. An
+unrecognised `visibility` responds `400`.
+
+Changing visibility alone never touches the bytes on disk. Renaming changes the
+key, which invalidates any signed URL previously minted for the old key.
+
+## Sign a URL
+
+```
+POST /api/files/sign
+```
+
+Mints a time-limited URL that reads a file without an API key — the way to hand
+a private object to a browser, an `<img>` tag, or a third party.
+
+JSON body:
+
+```json
+{ "key": "projects/demo/report.pdf", "expiresIn": 3600 }
+```
+
+| Field       | Type   | Description                                                         |
+| ----------- | ------ | ------------------------------------------------------------------- |
+| `id`        | string | The file id. Either this or `key` is required.                      |
+| `key`       | string | The object key. Either this or `id` is required.                    |
+| `expiresIn` | number | Seconds the link stays valid. Defaults to `DEFAULT_PRESIGN_TTL_SECONDS`, clamped to `MAX_PRESIGN_TTL_SECONDS`. |
+
+```json
+{
+  "data": {
+    "url": "api/hosting/projects/demo/report.pdf?exp=1786291200&sig=...",
+    "expiresAt": "2026-08-09T12:00:00.000Z"
+  },
+  "error": null
+}
+```
+
+Like `url` on a file object, the returned `url` is relative to your instance's
+base URL. Signing a public file is allowed; the link simply also works unsigned.
+
+<Callout type="warn">
+  Signatures are stateless, so an individual link cannot be revoked. Rotating
+  `AUTH_SECRET` invalidates every outstanding signed URL at once — that is the
+  only way to withdraw them early.
+</Callout>
 
 ## Delete a file
 
@@ -161,14 +212,14 @@ curl -OJ https://files.example.com/api/files/download/<file-id> \
   -H "API-Key: your-api-key"
 ```
 
-## Serve a file publicly
+## Serve a file
 
 ```
 GET /api/hosting/<object-key>
 ```
 
-**No authentication required.** Streams the file inline with the correct
-`Content-Type`, which makes it suitable for embedding in web pages:
+Streams the file inline with the correct `Content-Type`, which makes it
+suitable for embedding in web pages:
 
 ```html
 <img src="https://files.example.com/api/hosting/projects/demo/photo.png" />
@@ -177,12 +228,29 @@ GET /api/hosting/<object-key>
 This is the URL carried in the `url` field of file objects and shown as the
 "hosting URL" in the dashboard.
 
+**Public files need no authentication.** A **private** file is served only to a
+caller that presents one of:
+
+- a valid signature (`exp` + `sig`) from [`POST /api/files/sign`](#sign-a-url),
+- an `API-Key` header,
+- a dashboard session cookie.
+
+Anything else responds `404` — the same response as a key that does not exist,
+so the endpoint cannot be used to discover which private keys are real. Private
+responses also carry `Cache-Control: private, no-store` so a proxy or CDN in
+front of Vaze cannot retain them.
+
+Add `?download=1` to serve with `Content-Disposition: attachment` instead of
+inline. It grants no extra access and is not part of the signature, so it can be
+appended to a signed URL.
+
 Hosted responses are sent with `Content-Security-Policy: sandbox` and
 `X-Content-Type-Options: nosniff`. Assets render normally; uploaded HTML and
 SVG render without executing scripts, so hosted content can never act against
 your instance with your session.
 
 <Callout type="warn">
-  Hosting URLs are public: anyone who knows a file's key can fetch it through
-  this endpoint. Don't upload secrets you wouldn't want reachable by URL.
+  Public hosting URLs are exactly that — anyone who knows a file's key can fetch
+  it. Upload with `visibility: private`, or set `DEFAULT_FILE_VISIBILITY=private`
+  on the instance, for anything you don't want reachable by URL.
 </Callout>

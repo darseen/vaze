@@ -21,6 +21,7 @@
 - **Path-addressed storage**: Files keep the name you upload them with, so you choose the public URL — `https://your-vaze/api/hosting/projects/demo/photo.png`.
 - **Streaming uploads**: Upload bodies go straight to disk, so file size is bounded by your volume rather than by memory.
 - **Download & Public Hosting**: Download files directly, or embed them from a public hosting URL that serves untrusted content sandboxed.
+- **Private files & signed URLs**: Mark any file (or a whole folder) private so it stops being world-readable, then hand out time-limited signed links that work without an API key.
 - **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps.
 - **Powerful API**: Use Vaze as a backend service for any application that needs file hosting or storage, with simple RESTful endpoints.
 - **Dockerized**: Get up and running in minutes with the official Docker image.
@@ -28,8 +29,7 @@
 ### Roadmap
 
 Not built yet: moving files between folders, folder upload and drag-and-drop,
-zip download of a folder, presigned URLs, private files, range requests, and
-API-key scopes.
+zip download of a folder, range requests, and API-key scopes.
 
 ---
 
@@ -139,7 +139,7 @@ Edit it and apply with `docker compose -f compose.prod.yaml up -d`.
 | Variable          | Required       | Description                                                                    |
 | ----------------- | -------------- | ------------------------------------------------------------------------------ |
 | `BASE_URL`        | Yes            | Public base URL of your instance, e.g. `https://files.example.com`. Public file links are built from it. |
-| `AUTH_SECRET`     | Yes            | Long random string signing session tokens. Replacing it logs everyone out.       |
+| `AUTH_SECRET`     | Yes            | Long random string signing session tokens and signed URLs. Replacing it logs everyone out and invalidates every outstanding signed link. |
 | `VAZE_PORT`       | No (`3000`)    | Host port published by the container.                                            |
 | `VAZE_BIND_ADDR`  | No (`0.0.0.0`) | Host address to bind to. Set `127.0.0.1` when a reverse proxy fronts Vaze.        |
 | `VAZE_VERSION`    | No (`latest`)  | Image tag to run — pin it for reproducible deploys.                              |
@@ -147,6 +147,9 @@ Edit it and apply with `docker compose -f compose.prod.yaml up -d`.
 | `MAX_UPLOAD_SIZE` | No (`5gb`)     | Largest single file accepted by an upload, e.g. `500mb`.                          |
 | `MAX_FILES_PER_REQUEST` | No (`100`) | Cap on files in one multipart request.                                        |
 | `API_REQUEST_RETENTION_DAYS` | No (`90`) | How long API request-log rows are kept.                                  |
+| `DEFAULT_FILE_VISIBILITY` | No (`public`) | Visibility for uploads that don't specify one. Set `private` for a private-first instance. |
+| `DEFAULT_PRESIGN_TTL_SECONDS` | No (`3600`) | Lifetime of a signed URL when the caller doesn't specify one.          |
+| `MAX_PRESIGN_TTL_SECONDS` | No (`604800`) | Longest lifetime a signed URL may be minted with.                        |
 
 The installer generates `AUTH_SECRET` for you. To make one by hand:
 

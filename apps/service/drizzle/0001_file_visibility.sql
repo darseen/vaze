@@ -1,0 +1,1 @@
+ALTER TABLE `files` ADD `visibility` text DEFAULT 'public' NOT NULL;

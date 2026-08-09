@@ -29,10 +29,13 @@ import { formatBytes, formatDate } from "@/utils";
 import { copyToClipboard } from "@/utils/clipboard";
 import { ApiResponse, FileWithUrl } from "@repo/types";
 import {
+  Clock,
   Download,
   Edit,
   FileText,
+  Globe,
   Link as LinkIcon,
+  Lock,
   MoreVertical,
   Trash2,
 } from "lucide-react";
@@ -50,6 +53,7 @@ export default function FileCard({ file }: Props) {
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
+  const isPrivate = file.visibility === "private";
 
   const handleRename = async (id: string, name: string) => {
     try {
@@ -100,6 +104,65 @@ export default function FileCard({ file }: Props) {
     else toast.error("Failed to copy link");
   };
 
+  const handleToggleVisibility = async () => {
+    const visibility = isPrivate ? "public" : "private";
+
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/files`, {
+        method: "PUT",
+        body: JSON.stringify({ id: file.id, visibility }),
+      });
+
+      const { error } = (await response.json()) as ApiResponse<null>;
+
+      if (error) return toast.error(error.message);
+
+      toast.success(
+        visibility === "private"
+          ? "File is now private"
+          : "File is now public",
+      );
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+      router.refresh();
+    }
+  };
+
+  const handleCopySignedLink = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/files/sign`, {
+        method: "POST",
+        body: JSON.stringify({ id: file.id }),
+      });
+
+      const { data, error } = (await response.json()) as ApiResponse<{
+        url: string;
+        expiresAt: string;
+      }>;
+
+      if (error) return toast.error(error.message);
+
+      const signedUrl = new URL(data.url, window.location.origin).href;
+      const success = await copyToClipboard(signedUrl);
+
+      if (success) {
+        toast.success("Signed link copied", {
+          description: `Expires ${formatDate(data.expiresAt)}`,
+        });
+      } else {
+        toast.error("Failed to copy link");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getFileExtension = (filename: string) => {
     return filename.split(".").pop()?.toUpperCase() || "";
   };
@@ -124,6 +187,13 @@ export default function FileCard({ file }: Props) {
 
             {/* Hover overlay */}
             <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
+
+            {isPrivate && (
+              <div className="bg-background/80 border-border/50 text-muted-foreground absolute top-2 left-2 z-10 flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium shadow-sm backdrop-blur-sm">
+                <Lock className="h-3 w-3" />
+                Private
+              </div>
+            )}
 
             {/* Action button */}
             <div className="absolute top-2 right-2 z-10 opacity-70 transition-opacity group-hover:opacity-100">
@@ -154,6 +224,28 @@ export default function FileCard({ file }: Props) {
                   >
                     <LinkIcon className="mr-3 h-4 w-4" />
                     Copy link
+                  </DropdownMenuItem>
+                  {isPrivate && (
+                    <DropdownMenuItem
+                      onClick={handleCopySignedLink}
+                      disabled={loading}
+                      className="cursor-pointer"
+                    >
+                      <Clock className="mr-3 h-4 w-4" />
+                      Copy signed link
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={handleToggleVisibility}
+                    disabled={loading}
+                    className="cursor-pointer"
+                  >
+                    {isPrivate ? (
+                      <Globe className="mr-3 h-4 w-4" />
+                    ) : (
+                      <Lock className="mr-3 h-4 w-4" />
+                    )}
+                    {isPrivate ? "Make public" : "Make private"}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer" asChild>
                     <a

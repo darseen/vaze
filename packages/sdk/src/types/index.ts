@@ -19,3 +19,15 @@ export type ListOptions = {
   orderBy?: "createdAt" | "updatedAt" | "name" | "size";
   orderDirection?: "ASC" | "DESC";
 };
+
+export type SignOptions = {
+  id?: string;
+  key?: string;
+  /** Seconds the link stays valid. Capped server-side, default one hour. */
+  expiresIn?: number;
+};
+
+export type SignedUrl = {
+  url: string;
+  expiresAt: string;
+};

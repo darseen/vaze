@@ -34,6 +34,18 @@ Edit it and apply with `docker compose -f compose.prod.yaml up -d`.
 Uploads stream to disk, so `MAX_UPLOAD_SIZE` bounds what a single request may
 store — not how much memory the server uses.
 
+### File access
+
+| Variable                      | Default  | Description                                                                                  |
+| ----------------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| `DEFAULT_FILE_VISIBILITY`     | `public` | Visibility given to an upload that doesn't ask for one. Set to `private` to make the instance private-first. |
+| `DEFAULT_PRESIGN_TTL_SECONDS` | `3600`   | Lifetime of a signed URL when the caller doesn't specify one.                                  |
+| `MAX_PRESIGN_TTL_SECONDS`     | `604800` | Longest lifetime a signed URL may be minted with. Seven days, matching S3's cap.               |
+
+Public files are served to anyone with the link; private files require a signed
+URL, an API key, or a dashboard session. See [signing a
+URL](/docs/api-reference/files#sign-a-url).
+
 Generate a strong secret with:
 
 ```bash
@@ -43,7 +55,9 @@ openssl rand -base64 32
 <Callout type="warn">
   `AUTH_SECRET` is the one value worth backing up. The installer generates it
   once and never overwrites it, but if you rebuild the `.env` by hand with a new
-  secret, every session is invalidated and users have to log in again.
+  secret, every session is invalidated and users have to log in again — and
+  every outstanding signed URL stops working, since signing keys are derived
+  from it.
 </Callout>
 
 ## Persistent storage

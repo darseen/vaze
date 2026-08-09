@@ -1,4 +1,8 @@
-import { BASE_DATA_PATH, BASE_TMP_PATH } from "@/constants";
+import {
+  BASE_DATA_PATH,
+  BASE_TMP_PATH,
+  DEFAULT_FILE_VISIBILITY,
+} from "@/constants";
 import { db } from "@/db";
 import { files as filesTable } from "@repo/db";
 import type { File as FileDB, Folder } from "@repo/types";
@@ -20,7 +24,8 @@ import {
   OrderBy,
   OrderDirection,
   parentKeyOf,
-    parseIntParam,
+  parseIntParam,
+  parseVisibility,
   revalidateDashboard,
   toStoragePath,
 } from "../_utils";
@@ -194,6 +199,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const visibility =
+      parseVisibility(fields.visibility) ?? DEFAULT_FILE_VISIBILITY;
+
     let targetFolder: Folder;
     try {
       targetFolder = await createNestedFolders(fields.folder ?? "");
@@ -257,6 +265,7 @@ export async function POST(request: NextRequest) {
               mimeType:
                 mime.lookup(file.originalName) || "application/octet-stream",
               size: file.size,
+              visibility,
             })
             .returning()
             .get(),
@@ -307,9 +316,28 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { id, name }: { id: string; name: string } = await request.json();
+    const body: { id: string; name?: string; visibility?: string } =
+      await request.json();
+    const { id, name } = body;
 
-    if (!isValidName(name)) {
+    const visibility =
+      body.visibility === undefined ? null : parseVisibility(body.visibility);
+
+    if (body.visibility !== undefined && !visibility) {
+      return NextResponse.json(
+        { data: null, error: { message: "Invalid visibility" } },
+        { status: 400 },
+      );
+    }
+
+    if (name === undefined && !visibility) {
+      return NextResponse.json(
+        { data: null, error: { message: "Nothing to update" } },
+        { status: 400 },
+      );
+    }
+
+    if (name !== undefined && !isValidName(name)) {
       return NextResponse.json(
         { data: null, error: { message: "Invalid file name" } },
         { status: 400 },
@@ -333,7 +361,16 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    if (file.name === name) {
+    // a visibility-only change never touches the filesystem
+    if (name === undefined || file.name === name) {
+      if (visibility) {
+        db.update(filesTable)
+          .set({ visibility, updatedAt: sql`CURRENT_TIMESTAMP` })
+          .where(eq(filesTable.id, id))
+          .run();
+        revalidateDashboard();
+      }
+
       return NextResponse.json({ data: null, error: null });
     }
 
@@ -373,6 +410,7 @@ export async function PUT(request: NextRequest) {
           name,
           key: newKey,
           mimeType: mime.lookup(name) || "application/octet-stream",
+          ...(visibility ? { visibility } : {}),
           updatedAt: sql`CURRENT_TIMESTAMP`,
         })
         .where(eq(filesTable.id, id))

@@ -1,7 +1,7 @@
 import { BASE_UPLOADS_PATH } from "@/constants";
 import { db } from "@/db";
 import { files as filesTable, folders as foldersTable } from "@repo/db";
-import type { File, Folder } from "@repo/types";
+import type { File, Folder, Visibility } from "@repo/types";
 import { asc, desc, eq } from "drizzle-orm";
 import { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { revalidatePath } from "next/cache";
@@ -54,6 +54,11 @@ export function isValidName(name: unknown): name is string {
   if (/[/\\\0]/.test(name)) return false;
   if (name === "." || name === "..") return false;
   return true;
+}
+
+/** Narrow a caller-supplied value to a visibility, or null if it is neither. */
+export function parseVisibility(value: unknown): Visibility | null {
+  return value === "public" || value === "private" ? value : null;
 }
 
 /**

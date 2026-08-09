@@ -6,22 +6,23 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import { folders } from "./folders";
 import { timestamps } from "./_shared";
+import { folders } from "./folders";
 
 export const files = sqliteTable(
   "files",
   {
     id: text("id").primaryKey().notNull(),
     name: text("name").notNull(),
-    // POSIX path relative to the uploads root — both the public object key and
-    // the disk locator. Never store an absolute path.
     key: text("key").notNull(),
     mimeType: text("mime_type").notNull(),
     folderId: text("folder_id")
       .notNull()
       .references(() => folders.id, { onDelete: "cascade" }),
     size: integer("size").notNull(),
+    visibility: text("visibility", { enum: ["public", "private"] })
+      .notNull()
+      .default("public"),
     ...timestamps,
   },
   (table) => [
@@ -39,3 +40,4 @@ export const filesRelations = relations(files, ({ one }) => ({
 }));
 
 export type File = InferSelectModel<typeof files>;
+export type Visibility = File["visibility"];

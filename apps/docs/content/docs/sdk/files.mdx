@@ -20,14 +20,17 @@ type File = {
   mimeType: string; // e.g. "image/png"
   size: number; // bytes
   folderId: string;
-  url: string; // absolute public hosting URL
+  visibility: "public" | "private";
+  url: string; // absolute hosting URL
   createdAt: string;
   updatedAt: string;
 };
 ```
 
-The `url` field is a public, unauthenticated hosting URL — ready to embed in
-an `<img>` tag or share directly.
+For a **public** file, `url` is ready to embed in an `<img>` tag or share
+directly. For a **private** file the same URL is the canonical address but
+returns `404` without credentials — use [`sign`](#sign-a-url) to get a link that
+works.
 
 ## List options
 
@@ -52,9 +55,10 @@ nested folders are created automatically:
 const { data, error } = await vaze.files.upload({
   files: [new File(["hello"], "hello.txt", { type: "text/plain" })],
   folder: "projects/demo", // optional, defaults to the root folder
+  visibility: "private", // optional, defaults to the instance setting
 });
 
-// data => { files: File[] } including the public hosting URLs
+// data => { files: File[] } including the hosting URLs
 ```
 
 Files keep the name you upload them with, so you control the public URL.
@@ -132,6 +136,44 @@ const { error } = await vaze.files.rename({
 
 The name must be a single path segment. Renaming to a name already taken in
 the same folder returns a `409` error.
+
+## Change visibility
+
+```ts
+const { error } = await vaze.files.setVisibility({
+  id: "file-id",
+  visibility: "private",
+});
+```
+
+Making a file private stops `/api/hosting` from serving it to anonymous
+callers. The file's bytes and key are untouched.
+
+To flip a whole tree at once, use
+[`folders.setVisibility`](/docs/sdk/folders#change-visibility-in-bulk).
+
+## Sign a URL
+
+Mints a time-limited link that reads a file **without an API key** — how you
+hand a private object to a browser or a third party:
+
+```ts
+const { data, error } = await vaze.files.sign({
+  key: "projects/demo/report.pdf", // or: id: "file-id"
+  expiresIn: 900, // seconds, optional
+});
+
+// data => { url: string, expiresAt: string }
+```
+
+`url` is absolute and ready to use. `expiresIn` defaults to the instance's
+`DEFAULT_PRESIGN_TTL_SECONDS` and is capped at `MAX_PRESIGN_TTL_SECONDS`.
+
+<Callout type="warn">
+  Signed links cannot be revoked individually — they are stateless signatures,
+  not stored grants. Prefer short lifetimes. Rotating `AUTH_SECRET` invalidates
+  every outstanding link at once.
+</Callout>
 
 ## Delete a file
 

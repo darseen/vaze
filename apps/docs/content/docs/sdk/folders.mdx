@@ -78,6 +78,23 @@ Renaming a folder also rewrites the keys of everything inside it. A sibling
 folder with the same name causes a `409` error, and the root folder cannot be
 renamed at all (`400`).
 
+## Change visibility in bulk
+
+```ts
+const { error } = await vaze.folders.setVisibility({
+  id: "folder-id",
+  visibility: "private",
+});
+```
+
+Applies the visibility to every file in the folder **and all its subfolders**,
+in a single transaction.
+
+This is a bulk write, not an inherited setting — folders don't carry a
+visibility of their own, so a file uploaded into the folder afterwards takes the
+instance default rather than the last cascade. Unlike rename, the root folder is
+a valid target, which locks down an entire instance in one call.
+
 ## Delete a folder
 
 ```ts

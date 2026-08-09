@@ -1,4 +1,5 @@
 import { db } from "@/db";
+import { verifySignature } from "@/lib/presign";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { files as filesTable } from "@repo/db";
 import { eq } from "drizzle-orm";
@@ -7,6 +8,7 @@ import fs from "node:fs";
 import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { contentDisposition, isValidKey, toStoragePath } from "../../_utils";
+import authorizeRequest from "../../_utils/authorize-request";
 
 // Hosted content is untrusted and served from the dashboard's own origin, so it
 // must never be able to run as this origin: `sandbox` drops it into an opaque
@@ -18,6 +20,29 @@ const SECURITY_HEADERS = {
   "Cross-Origin-Resource-Policy": "cross-origin",
   "Access-Control-Allow-Origin": "*",
 };
+
+function notFound() {
+  return NextResponse.json(
+    { data: null, error: { message: "File not found" } },
+    { status: 404 },
+  );
+}
+
+/**
+ * The signature is pure CPU while `authorizeRequest` costs a DB round trip, so
+ * it is checked first — anonymous traffic on this path never hits the database.
+ */
+async function canReadPrivate(
+  request: NextRequest,
+  key: string,
+): Promise<boolean> {
+  const params = request.nextUrl.searchParams;
+
+  if (verifySignature(key, params.get("exp"), params.get("sig"))) return true;
+
+  const { error } = await authorizeRequest(request);
+  return !error;
+}
 
 export async function GET(
   request: NextRequest,
@@ -45,18 +70,10 @@ export async function GET(
     try {
       key = segments.map((segment) => decodeURIComponent(segment)).join("/");
     } catch {
-      return NextResponse.json(
-        { data: null, error: { message: "File not found" } },
-        { status: 404 },
-      );
+      return notFound();
     }
 
-    if (!isValidKey(key) || key === "") {
-      return NextResponse.json(
-        { data: null, error: { message: "File not found" } },
-        { status: 404 },
-      );
-    }
+    if (!isValidKey(key) || key === "") return notFound();
 
     const file = db
       .select()
@@ -64,11 +81,13 @@ export async function GET(
       .where(eq(filesTable.key, key))
       .get();
 
-    if (!file) {
-      return NextResponse.json(
-        { data: null, error: { message: "File not found" } },
-        { status: 404 },
-      );
+    if (!file) return notFound();
+
+    // A private file that the caller cannot read is reported as missing, not
+    // forbidden — a 403 would confirm the key exists and turn this into an
+    // enumeration oracle.
+    if (file.visibility === "private" && !(await canReadPrivate(request, key))) {
+      return notFound();
     }
 
     const storagePath = toStoragePath(file.key);
@@ -88,14 +107,27 @@ export async function GET(
     const nodeStream = fs.createReadStream(storagePath);
     const webStream = Readable.toWeb(nodeStream);
 
+    const disposition =
+      request.nextUrl.searchParams.get("download") === "1"
+        ? "attachment"
+        : "inline";
+
+    const headers: Record<string, string> = {
+      ...SECURITY_HEADERS,
+      "Content-Type": file.mimeType,
+      "Content-Disposition": contentDisposition(disposition, file.name),
+      "Content-Length": size.toString(),
+    };
+
+    // keep a proxy or CDN in front of Vaze from retaining a private object and
+    // handing it to the next caller
+    if (file.visibility === "private") {
+      headers["Cache-Control"] = "private, no-store";
+    }
+
     return new NextResponse(webStream as ReadableStream, {
       status: 200,
-      headers: {
-        ...SECURITY_HEADERS,
-        "Content-Type": file.mimeType,
-        "Content-Disposition": contentDisposition("inline", file.name),
-        "Content-Length": size.toString(),
-      },
+      headers,
     });
   } catch (error) {
     console.error("Error serving file:", error);

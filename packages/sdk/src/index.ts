@@ -22,5 +22,15 @@ export default class Vaze extends Base implements IVaze {
   }
 }
 
-export type { ApiResponse, FileWithUrl as File, Folder } from "@repo/types";
-export type { ListOptions, VazeOptions } from "./types/index.js";
+export type {
+  ApiResponse,
+  FileWithUrl as File,
+  Folder,
+  Visibility,
+} from "@repo/types";
+export type {
+  ListOptions,
+  SignedUrl,
+  SignOptions,
+  VazeOptions,
+} from "./types/index.js";
