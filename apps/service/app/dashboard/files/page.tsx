@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { fetchFolderByKey } from "@/app/api/_utils";
 import ActionBar from "./_components/action-bar";
+import DropZone from "./_components/drop-zone";
 import FilesList from "./_components/files-list";
 
 export const metadata: Metadata = {
@@ -18,9 +19,9 @@ export default async function Page() {
 
   const { files, folders } = data;
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <DropZone>
       <ActionBar />
       <FilesList files={files} folders={folders} />
-    </div>
+    </DropZone>
   );
 }

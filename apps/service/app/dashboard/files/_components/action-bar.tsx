@@ -1,5 +1,6 @@
 "use client";
 
+import { useUploadActions } from "@/app/dashboard/_components/uploads/provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,45 +19,19 @@ import { toast } from "sonner";
 import getFolderPath from "../_utils/get-folder-path";
 
 export default function ActionBar() {
-  const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [folderName, setFolderName] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const { enqueue } = useUploadActions();
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleFilesUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    try {
-      setLoading(true);
-
-      const files = event.target.files;
-      if (!files) return;
-      const formData = new FormData();
-
-      for (let i = 0; i < files.length; i++) {
-        formData.append("files", files[i]);
-      }
-
-      const folder = getFolderPath(pathname);
-      formData.append("folder", folder);
-
-      const response = await fetch("/api/files", {
-        method: "POST",
-        body: formData,
-      });
-      const { error } = (await response.json()) as ApiResponse<null>;
-      if (error) return toast.error(error.message);
-
-      toast.success("Files uploaded successfully");
-      router.refresh();
-    } catch {
-      toast.error("Something went wrong");
-    } finally {
-      setLoading(false);
-      event.target.value = "";
-    }
+  const handleFilesUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    enqueue(Array.from(event.target.files ?? []), getFolderPath(pathname));
+    // let the same file be picked again after it finishes
+    event.target.value = "";
   };
 
   const handleCreateFolder = async () => {
@@ -106,17 +81,15 @@ export default function ActionBar() {
         <div className="flex gap-2">
           <Button
             onClick={() => inputRef.current?.click()}
-            disabled={loading}
             className="flex-1 sm:flex-none"
           >
             <Upload className="mr-2 h-4 w-4" />
-            {loading ? "Uploading..." : "Upload"}
+            Upload
           </Button>
 
           <input
             type="file"
             multiple
-            disabled={loading}
             ref={inputRef}
             onChange={handleFilesUpload}
             style={{ display: "none" }}

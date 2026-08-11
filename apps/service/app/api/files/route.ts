@@ -31,6 +31,7 @@ import {
 } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 import {
+  isClientAbort,
   parseMultipartToDisk,
   TooManyFilesError,
   UploadTooLargeError,
@@ -162,6 +163,10 @@ export async function POST(request: NextRequest) {
           { error: { message: error.message }, data: null },
           { status: 413 },
         );
+      }
+      // the client canceled mid-body; the staged bytes are dropped below
+      if (request.signal.aborted || isClientAbort(error)) {
+        return new NextResponse(null, { status: 499 });
       }
       throw error;
     }

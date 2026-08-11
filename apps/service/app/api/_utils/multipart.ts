@@ -21,6 +21,16 @@ export class TooManyFilesError extends Error {
   }
 }
 
+/**
+ * A canceled upload closes the socket mid-body, which surfaces as a stream
+ * error. Nothing was committed at that point, so it is not a server fault.
+ */
+export function isClientAbort(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | null)?.code;
+  if (code === "ECONNRESET" || code === "ERR_STREAM_PREMATURE_CLOSE") return true;
+  return error instanceof Error && error.name === "AbortError";
+}
+
 export interface StagedFile {
   originalName: string;
   stagedPath: string;
