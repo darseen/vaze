@@ -105,12 +105,14 @@ describe("private reads", () => {
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   });
 
-  it("leaves public responses without a private cache directive", async () => {
+  it("leaves public responses cacheable", async () => {
     await upload("", "open.txt");
 
     const response = await serve("open.txt");
 
-    expect(response.headers.get("Cache-Control")).toBeNull();
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, max-age=0, must-revalidate",
+    );
   });
 });
 

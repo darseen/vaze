@@ -212,6 +212,14 @@ curl -OJ https://files.example.com/api/files/download/<file-id> \
   -H "API-Key: your-api-key"
 ```
 
+Supports [byte ranges and conditional requests](#range-requests-and-caching),
+so an interrupted download can be resumed rather than restarted:
+
+```bash
+curl -C - -OJ https://files.example.com/api/files/download/<file-id> \
+  -H "API-Key: your-api-key"
+```
+
 ## Serve a file
 
 ```
@@ -253,4 +261,57 @@ your instance with your session.
   Public hosting URLs are exactly that — anyone who knows a file's key can fetch
   it. Upload with `visibility: private`, or set `DEFAULT_FILE_VISIBILITY=private`
   on the instance, for anything you don't want reachable by URL.
+</Callout>
+
+## Range requests and caching
+
+Both `/api/hosting/<key>` and `/api/files/download/<id>` are range-aware and
+revalidatable. Every response carries `Accept-Ranges: bytes`.
+
+### Byte ranges
+
+A `Range` header returns `206 Partial Content` with a `Content-Range`. This is
+what lets a browser seek in an audio or video file — Safari in particular
+refuses to play a video at all from a server that can't serve ranges.
+
+```bash
+curl -r 0-1023 https://files.example.com/api/hosting/clips/demo.mp4
+```
+
+| Request                | Result                                   |
+| ---------------------- | ---------------------------------------- |
+| `Range: bytes=0-499`   | `206`, first 500 bytes                   |
+| `Range: bytes=500-`    | `206`, byte 500 to the end               |
+| `Range: bytes=-500`    | `206`, final 500 bytes                   |
+| Start past end of file | `416` with `Content-Range: bytes */<size>` |
+
+An end past the last byte is clamped rather than rejected. Multi-range requests
+(`bytes=0-9,20-29`) are answered with the complete file — a server may always
+decline to honour a range.
+
+### Conditional requests
+
+Public responses carry an `ETag` and `Last-Modified` derived from the file's
+size and modification time. Send either back to skip the transfer:
+
+```bash
+curl -H 'If-None-Match: "a-6899f2c1"' \
+  https://files.example.com/api/hosting/projects/demo/photo.png
+# → 304 Not Modified, no body
+```
+
+`If-None-Match` takes precedence over `If-Modified-Since` when both are sent.
+`If-Range` is honoured with strong comparison: if the validator is stale, the
+whole file is returned rather than a range that would corrupt the cached copy.
+
+`Cache-Control` on public responses is
+`public, max-age=<HOSTING_CACHE_MAX_AGE>, must-revalidate`, defaulting to
+`max-age=0` — always revalidate, which is cheap because a match costs a bodiless
+`304`. Raise `HOSTING_CACHE_MAX_AGE` when keys on your instance are effectively
+immutable.
+
+<Callout>
+  Private files are sent `Cache-Control: private, no-store` and carry **no**
+  validators — offering a revalidation path would contradict `no-store`. Byte
+  ranges still work, so seeking in a private video behaves normally.
 </Callout>

@@ -41,6 +41,7 @@ store — not how much memory the server uses.
 | `DEFAULT_FILE_VISIBILITY`     | `public` | Visibility given to an upload that doesn't ask for one. Set to `private` to make the instance private-first. |
 | `DEFAULT_PRESIGN_TTL_SECONDS` | `3600`   | Lifetime of a signed URL when the caller doesn't specify one.                                  |
 | `MAX_PRESIGN_TTL_SECONDS`     | `604800` | Longest lifetime a signed URL may be minted with. Seven days, matching S3's cap.               |
+| `HOSTING_CACHE_MAX_AGE`       | `0`      | `max-age` for public hosted responses. Zero revalidates every time, which is cheap because a match answers with a bodiless `304`. Raise it when keys are effectively immutable. |
 
 Public files are served to anyone with the link; private files require a signed
 URL, an API key, or a dashboard session. See [signing a

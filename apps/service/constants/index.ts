@@ -55,6 +55,16 @@ export const API_REQUEST_RETENTION_DAYS = parseCount(
   90,
 );
 
+/**
+ * `max-age` for publicly hosted responses. Zero means revalidate every time,
+ * which is cheap because a match answers with a bodiless 304. Raise it when the
+ * keys on an instance are effectively immutable.
+ */
+export const HOSTING_CACHE_MAX_AGE = parseCount(
+  process.env.HOSTING_CACHE_MAX_AGE,
+  0,
+);
+
 /** Visibility applied to an upload that does not ask for one. */
 export const DEFAULT_FILE_VISIBILITY: Visibility =
   process.env.DEFAULT_FILE_VISIBILITY === "private" ? "private" : "public";

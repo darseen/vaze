@@ -1,7 +1,6 @@
 - add permissions to api keys
 - encrypt files on disk
 - implement worker threads
-- add range requests + etag/conditional GET
 - add multipart/resumable upload
 - add prefix listing with cursor pagination
 - add copy/move + batch delete

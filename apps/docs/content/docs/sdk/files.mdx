@@ -125,6 +125,10 @@ if (data) {
 }
 ```
 
+The underlying endpoint supports byte ranges and `ETag` revalidation, so a
+plain `fetch` against it can resume an interrupted transfer. `download` itself
+always retrieves the whole file.
+
 ## Rename a file
 
 ```ts

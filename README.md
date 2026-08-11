@@ -22,6 +22,7 @@
 - **Streaming uploads**: Upload bodies go straight to disk, so file size is bounded by your volume rather than by memory.
 - **Download & Public Hosting**: Download files directly, or embed them from a public hosting URL that serves untrusted content sandboxed.
 - **Private files & signed URLs**: Mark any file (or a whole folder) private so it stops being world-readable, then hand out time-limited signed links that work without an API key.
+- **Range requests & caching**: Byte-range support means audio and video seek properly, and `ETag`/`Last-Modified` revalidation keeps repeat embeds down to a bodiless `304`.
 - **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps.
 - **Powerful API**: Use Vaze as a backend service for any application that needs file hosting or storage, with simple RESTful endpoints.
 - **Dockerized**: Get up and running in minutes with the official Docker image.
@@ -29,7 +30,7 @@
 ### Roadmap
 
 Not built yet: moving files between folders, folder upload and drag-and-drop,
-zip download of a folder, range requests, and API-key scopes.
+zip download of a folder, and API-key scopes.
 
 ---
 
@@ -150,6 +151,7 @@ Edit it and apply with `docker compose -f compose.prod.yaml up -d`.
 | `DEFAULT_FILE_VISIBILITY` | No (`public`) | Visibility for uploads that don't specify one. Set `private` for a private-first instance. |
 | `DEFAULT_PRESIGN_TTL_SECONDS` | No (`3600`) | Lifetime of a signed URL when the caller doesn't specify one.          |
 | `MAX_PRESIGN_TTL_SECONDS` | No (`604800`) | Longest lifetime a signed URL may be minted with.                        |
+| `HOSTING_CACHE_MAX_AGE` | No (`0`) | `max-age` for public hosted responses. Zero revalidates every time via `ETag`. |
 
 The installer generates `AUTH_SECRET` for you. To make one by hand:
 

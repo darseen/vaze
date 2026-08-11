@@ -1,11 +1,11 @@
 import { contentDisposition, toStoragePath } from "@/app/api/_utils";
 import { db } from "@/db";
+import { streamFileResponse } from "@/lib/http-cache";
 import { files as filesTable } from "@repo/db";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import fs from "node:fs";
+import type { Stats } from "node:fs";
 import { stat } from "node:fs/promises";
-import { Readable } from "node:stream";
 import authorizeRequest from "../../../_utils/authorize-request";
 
 export async function GET(
@@ -41,11 +41,11 @@ export async function GET(
 
     const storagePath = toStoragePath(file.key);
 
-    // size comes from the file itself — a drifted `size` column would truncate
-    // or hang the response
-    let size: number;
+    // size and mtime come from the file itself — a drifted `size` column would
+    // truncate or hang the response
+    let stats: Stats;
     try {
-      ({ size } = await stat(storagePath));
+      stats = await stat(storagePath);
     } catch {
       return NextResponse.json(
         { data: null, error: { message: "File not found" } },
@@ -53,15 +53,17 @@ export async function GET(
       );
     }
 
-    // stream the file rather than buffering the whole thing into memory
-    const nodeStream = fs.createReadStream(storagePath);
-    const webStream = Readable.toWeb(nodeStream);
-
-    return new NextResponse(webStream as ReadableStream, {
+    // streamed, range-aware and revalidatable, so an interrupted download can
+    // be resumed instead of restarted
+    return streamFileResponse({
+      request,
+      path: storagePath,
+      stats,
+      cacheable: true,
       headers: {
         "Content-Type": file.mimeType,
         "Content-Disposition": contentDisposition("attachment", file.name),
-        "Content-Length": size.toString(),
+        "Cache-Control": "private, max-age=0, must-revalidate",
         "X-Content-Type-Options": "nosniff",
       },
     });

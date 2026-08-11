@@ -1,12 +1,13 @@
+import { HOSTING_CACHE_MAX_AGE } from "@/constants";
 import { db } from "@/db";
+import { streamFileResponse } from "@/lib/http-cache";
 import { verifySignature } from "@/lib/presign";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { files as filesTable } from "@repo/db";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import fs from "node:fs";
+import type { Stats } from "node:fs";
 import { stat } from "node:fs/promises";
-import { Readable } from "node:stream";
 import { contentDisposition, isValidKey, toStoragePath } from "../../_utils";
 import authorizeRequest from "../../_utils/authorize-request";
 
@@ -92,11 +93,11 @@ export async function GET(
 
     const storagePath = toStoragePath(file.key);
 
-    // size comes from the file itself — a drifted `size` column would truncate
-    // or hang the response
-    let size: number;
+    // size and mtime come from the file itself — a drifted `size` column would
+    // truncate or hang the response
+    let stats: Stats;
     try {
-      ({ size } = await stat(storagePath));
+      stats = await stat(storagePath);
     } catch {
       return NextResponse.json(
         { data: null, error: { message: "File missing from local storage" } },
@@ -104,30 +105,28 @@ export async function GET(
       );
     }
 
-    const nodeStream = fs.createReadStream(storagePath);
-    const webStream = Readable.toWeb(nodeStream);
-
     const disposition =
       request.nextUrl.searchParams.get("download") === "1"
         ? "attachment"
         : "inline";
 
-    const headers: Record<string, string> = {
-      ...SECURITY_HEADERS,
-      "Content-Type": file.mimeType,
-      "Content-Disposition": contentDisposition(disposition, file.name),
-      "Content-Length": size.toString(),
-    };
+    const isPrivate = file.visibility === "private";
 
-    // keep a proxy or CDN in front of Vaze from retaining a private object and
-    // handing it to the next caller
-    if (file.visibility === "private") {
-      headers["Cache-Control"] = "private, no-store";
-    }
-
-    return new NextResponse(webStream as ReadableStream, {
-      status: 200,
-      headers,
+    return streamFileResponse({
+      request,
+      path: storagePath,
+      stats,
+      // a private object must not be retained by a proxy or CDN in front of
+      // Vaze and handed to the next caller
+      cacheable: !isPrivate,
+      headers: {
+        ...SECURITY_HEADERS,
+        "Content-Type": file.mimeType,
+        "Content-Disposition": contentDisposition(disposition, file.name),
+        "Cache-Control": isPrivate
+          ? "private, no-store"
+          : `public, max-age=${HOSTING_CACHE_MAX_AGE}, must-revalidate`,
+      },
     });
   } catch (error) {
     console.error("Error serving file:", error);
