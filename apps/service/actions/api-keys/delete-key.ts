@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/db";
+import { recordActivity } from "@/lib/activity";
 import { apiKeys } from "@repo/db";
 import auth from "@/utils/auth";
 import { and, eq } from "drizzle-orm";
@@ -12,14 +13,23 @@ export async function deleteApiKey(keyId: string) {
   if (!user) return { error: { message: "Unauthorized" }, data: null };
 
   try {
-    const result = db
+    // returning the name so the history row can still say which key it was
+    const deleted = db
       .delete(apiKeys)
       .where(and(eq(apiKeys.id, keyId), eq(apiKeys.userId, user.id)))
-      .run();
+      .returning({ name: apiKeys.name })
+      .all();
 
-    if (result.changes === 0) {
+    if (deleted.length === 0) {
       return { error: { message: "Key not found" }, data: null };
     }
+
+    recordActivity({
+      userId: user.id,
+      type: "api-key.deleted",
+      target: deleted[0].name,
+      detail: "Access revoked for anything using this key",
+    });
 
     revalidatePath("/dashboard/api-keys");
     return { error: null, data: {} };

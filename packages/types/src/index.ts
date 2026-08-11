@@ -1,5 +1,7 @@
 export type {
   Account,
+  Activity,
+  ActivityType,
   ApiKey,
   ApiRequest,
   File,

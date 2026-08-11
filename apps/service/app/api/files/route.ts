@@ -5,6 +5,11 @@ import {
   MAX_DELETE_BATCH,
 } from "@/constants";
 import { db } from "@/db";
+import {
+  recordFileDeletions,
+  recordUploadActivity,
+  type UploadContext,
+} from "@/lib/activity";
 import { files as filesTable } from "@repo/db";
 import type { File as FileDB, Folder } from "@repo/types";
 import { getAvailableStorage } from "@/utils/storage";
@@ -115,17 +120,31 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // filled in as the upload progresses so the history row can name the files
+  // even when the request fails part way through
+  const context: UploadContext = { userId: null, names: [] };
+
+  const response = await handleUpload(request, context);
+  await recordUploadActivity(response, context);
+
+  return response;
+}
+
+async function handleUpload(request: NextRequest, context: UploadContext) {
   const stagingDir = path.join(BASE_TMP_PATH, crypto.randomUUID());
   const committedPaths: string[] = [];
 
   try {
-    const { error: authError } = await authorizeRequest(request);
+    const { data: authData, error: authError } =
+      await authorizeRequest(request);
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },
         { status: authError.status },
       );
     }
+
+    context.userId = authData.user.id;
 
     if (!request.headers.get("content-type")?.includes("multipart/form-data")) {
       return NextResponse.json(
@@ -175,6 +194,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { fields, files: staged } = parsed;
+    const names = staged.map((file) => file.originalName);
+    context.names = names;
 
     if (staged.length === 0) {
       return NextResponse.json(
@@ -196,7 +217,6 @@ export async function POST(request: NextRequest) {
     }
 
     // duplicate names inside one request would race each other onto the same key
-    const names = staged.map((file) => file.originalName);
     if (new Set(names).size !== names.length) {
       return NextResponse.json(
         {
@@ -451,7 +471,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { error: authError } = await authorizeRequest(request);
+    const { data: authData, error: authError } =
+      await authorizeRequest(request);
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },
@@ -512,6 +533,9 @@ export async function DELETE(request: NextRequest) {
 
     const deleted: string[] = [];
     const failed: { id: string; message: string }[] = [];
+    // history is written by name; the response still answers with ids
+    const deletedNames: string[] = [];
+    const failedNames: string[] = [];
 
     // `force` makes an already-missing file a no-op, so a row orphaned by an
     // out-of-band delete still gets cleaned up instead of 404ing forever.
@@ -520,11 +544,17 @@ export async function DELETE(request: NextRequest) {
         await fs.rm(toStoragePath(file.key), { force: true });
         db.delete(filesTable).where(eq(filesTable.id, file.id)).run();
         deleted.push(file.id);
+        deletedNames.push(file.name);
       } catch (error) {
         console.error("delete file error", error);
         failed.push({ id: file.id, message: "Error deleting file" });
+        failedNames.push(file.name);
       }
     }
+
+    // ids that matched no row are left out: another tab having deleted them
+    // first is not worth a history entry
+    recordFileDeletions(authData.user.id, deletedNames, failedNames);
 
     if (deleted.length > 0) revalidateDashboard();
 

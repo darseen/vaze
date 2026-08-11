@@ -1,5 +1,6 @@
 import { relations, sql, type InferSelectModel } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { activities } from "./activities";
 import { apiKeys } from "./api-keys";
 import { apiRequests } from "./api-requests";
 
@@ -68,6 +69,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
   apiKeys: many(apiKeys),
   apiRequests: many(apiRequests),
+  activities: many(activities),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({

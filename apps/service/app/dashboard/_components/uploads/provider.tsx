@@ -1,5 +1,6 @@
 "use client";
 
+import recordCanceledUploads from "@/actions/activity/record-canceled-uploads";
 import type { ApiResponse } from "@repo/types";
 import { useRouter } from "next/navigation";
 import {
@@ -80,6 +81,12 @@ function errorMessageOf(xhr: XMLHttpRequest): string | null {
   if (message) return message;
   if (xhr.status >= 200 && xhr.status < 300) return null;
   return `Upload failed (${xhr.status || "network error"})`;
+}
+
+/** History for uploads dropped from the queue; failing it changes nothing. */
+function reportCanceled(names: string[]) {
+  if (names.length === 0) return;
+  recordCanceledUploads(names).catch(() => {});
 }
 
 export default function UploadsProvider({ children }: { children: ReactNode }) {
@@ -200,9 +207,12 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
 
       cancel: (id) => {
         const xhr = active.current.get(id);
+        // an in-flight cancel is logged server-side, off the aborted request
         if (xhr) return xhr.abort();
 
+        const dropped = queue.current.find((upload) => upload.id === id);
         queue.current = queue.current.filter((upload) => upload.id !== id);
+        if (dropped) reportCanceled([dropped.file.name]);
         patch(id, { status: "canceled" });
         pump();
       },
@@ -210,6 +220,7 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
       cancelAll: () => {
         const pending = queue.current;
         queue.current = [];
+        reportCanceled(pending.map((queued) => queued.file.name));
         setUploads((prev) =>
           prev.map((upload) =>
             pending.some((queued) => queued.id === upload.id)

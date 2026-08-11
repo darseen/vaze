@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/db";
+import { recordActivity } from "@/lib/activity";
 import { apiKeys } from "@repo/db";
 import auth from "@/utils/auth";
 import { and, eq } from "drizzle-orm";
@@ -29,6 +30,15 @@ export default async function generateApiKey(
 
     // gererate key
     const key = createApiKey(user.id, name, expiresAt);
+
+    recordActivity({
+      userId: user.id,
+      type: "api-key.created",
+      target: name,
+      detail: expiresAt
+        ? `Expires ${expiresAt.toISOString().slice(0, 10)}`
+        : "Never expires",
+    });
 
     revalidatePath("/dashboard/api-keys");
     return { error: null, data: { key } };

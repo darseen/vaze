@@ -1,4 +1,5 @@
 import {
+  ACTIVITY_RETENTION_DAYS,
   API_REQUEST_RETENTION_DAYS,
   BASE_DB_PATH,
   BASE_TMP_PATH,
@@ -73,8 +74,24 @@ function pruneApiRequests() {
   }
 }
 
+// Activity history is append-only, so it needs the same treatment.
+function pruneActivities() {
+  try {
+    db.run(
+      sql`DELETE FROM activities WHERE created_at < datetime('now', ${`-${ACTIVITY_RETENTION_DAYS} days`})`,
+    );
+  } catch (error) {
+    console.error("failed to prune activities", error);
+  }
+}
+
+function prune() {
+  pruneApiRequests();
+  pruneActivities();
+}
+
 clearUploadStaging();
-pruneApiRequests();
+prune();
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-setInterval(pruneApiRequests, DAY_MS).unref();
+setInterval(prune, DAY_MS).unref();

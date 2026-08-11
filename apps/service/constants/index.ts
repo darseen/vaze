@@ -61,6 +61,15 @@ export const API_REQUEST_RETENTION_DAYS = parseCount(
   90,
 );
 
+/** How long activity history is kept before being pruned. */
+export const ACTIVITY_RETENTION_DAYS = parseCount(
+  process.env.ACTIVITY_RETENTION_DAYS,
+  90,
+);
+
+/** Most recent activity rows the dashboard renders at once. */
+export const ACTIVITY_PAGE_LIMIT = 200;
+
 /**
  * `max-age` for publicly hosted responses. Zero means revalidate every time,
  * which is cheap because a match answers with a bodiless 304. Raise it when the

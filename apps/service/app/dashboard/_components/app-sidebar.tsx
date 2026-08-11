@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   FolderOpen,
+  History,
   KeyRound,
   LayoutDashboard,
   type LucideIcon,
@@ -54,6 +55,12 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         href: "/dashboard/api-keys",
         icon: KeyRound,
         isActive: (pathname) => pathname.startsWith("/dashboard/api-keys"),
+      },
+      {
+        title: "Activity",
+        href: "/dashboard/activity",
+        icon: History,
+        isActive: (pathname) => pathname.startsWith("/dashboard/activity"),
       },
     ],
   },
