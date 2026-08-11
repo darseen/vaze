@@ -99,7 +99,7 @@ docker run -d \
   -e AUTH_SECRET="$(openssl rand -base64 32)" \
   --restart unless-stopped \
   --name vaze \
-  darseen/vaze:latest
+  ghcr.io/darseen/vaze:latest
 ```
 
 - `-p 3000:3000` maps port 3000 on your host to the container's port 3000.

@@ -2,7 +2,7 @@ name: vaze
 
 services:
   vaze:
-    image: darseen/vaze:${VAZE_VERSION:-latest}
+    image: ghcr.io/darseen/vaze:${VAZE_VERSION:-latest}
     container_name: vaze
     restart: unless-stopped
     environment:

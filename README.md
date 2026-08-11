@@ -4,8 +4,8 @@
 
 <img src="./.github/images/vaze.png" alt="logo" width="200"/>
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/darseen/vaze?style=for-the-badge)](https://hub.docker.com/r/darseen/vaze)
-![Docker Image Version (tag)](https://img.shields.io/docker/v/darseen/vaze/latest?style=for-the-badge)
+[![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-darseen%2Fvaze-blue?style=for-the-badge&logo=docker)](https://github.com/darseen/vaze/pkgs/container/vaze)
+![Latest Version](https://img.shields.io/github/v/tag/darseen/vaze?style=for-the-badge&label=version)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 <br/>
 <br/>
@@ -95,7 +95,7 @@ docker run -d \
   -e AUTH_SECRET="$(openssl rand -base64 32)" \
   --restart unless-stopped \
   --name vaze \
-  darseen/vaze:latest
+  ghcr.io/darseen/vaze:latest
 ```
 
 - `-p 3000:3000` maps port 3000 on your host to the container's port 3000.
