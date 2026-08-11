@@ -2,12 +2,13 @@ import {
   BASE_DATA_PATH,
   BASE_TMP_PATH,
   DEFAULT_FILE_VISIBILITY,
+  MAX_DELETE_BATCH,
 } from "@/constants";
 import { db } from "@/db";
 import { files as filesTable } from "@repo/db";
 import type { File as FileDB, Folder } from "@repo/types";
 import { getAvailableStorage } from "@/utils/storage";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import mime from "mime-types";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
@@ -72,7 +73,9 @@ export async function GET(request: NextRequest) {
       const file = db
         .select()
         .from(filesTable)
-        .where(id ? eq(filesTable.id, id) : eq(filesTable.key, normalizeKey(key)))
+        .where(
+          id ? eq(filesTable.id, id) : eq(filesTable.key, normalizeKey(key)),
+        )
         .get();
 
       if (!file) {
@@ -349,7 +352,11 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const file = db.select().from(filesTable).where(eq(filesTable.id, id)).get();
+    const file = db
+      .select()
+      .from(filesTable)
+      .where(eq(filesTable.id, id))
+      .get();
 
     if (!file) {
       return NextResponse.json(
@@ -452,32 +459,91 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { id }: { id: string } = await request.json();
+    const body: { id?: string; ids?: string[] } = await request.json();
 
-    const file = db.select().from(filesTable).where(eq(filesTable.id, id)).get();
+    // `ids` deletes a batch and reports per-file outcomes; `id` keeps the
+    // single-file response shape.
+    const batch = Array.isArray(body.ids);
+    const ids = [
+      ...new Set(
+        (batch ? body.ids! : [body.id]).filter(
+          (value): value is string => typeof value === "string" && value !== "",
+        ),
+      ),
+    ];
 
-    if (!file) {
+    if (ids.length === 0) {
       return NextResponse.json(
-        { data: null, error: { message: "File not found" } },
+        {
+          data: null,
+          error: { message: batch ? "No file ids provided" : "Missing id" },
+        },
+        { status: 400 },
+      );
+    }
+
+    if (ids.length > MAX_DELETE_BATCH) {
+      return NextResponse.json(
+        {
+          data: null,
+          error: {
+            message: `Cannot delete more than ${MAX_DELETE_BATCH} files at once`,
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    const rows = db
+      .select()
+      .from(filesTable)
+      .where(inArray(filesTable.id, ids))
+      .all();
+
+    if (rows.length === 0) {
+      return NextResponse.json(
+        {
+          data: null,
+          error: { message: batch ? "No files found" : "File not found" },
+        },
         { status: 404 },
       );
     }
 
+    const deleted: string[] = [];
+    const failed: { id: string; message: string }[] = [];
+
     // `force` makes an already-missing file a no-op, so a row orphaned by an
     // out-of-band delete still gets cleaned up instead of 404ing forever.
-    try {
-      await fs.rm(toStoragePath(file.key), { force: true });
-      db.delete(filesTable).where(eq(filesTable.id, id)).run();
-    } catch (error) {
-      console.error("delete file error", error);
-      return NextResponse.json(
-        { error: { message: "Error deleting file" }, data: null },
-        { status: 500 },
-      );
+    for (const file of rows) {
+      try {
+        await fs.rm(toStoragePath(file.key), { force: true });
+        db.delete(filesTable).where(eq(filesTable.id, file.id)).run();
+        deleted.push(file.id);
+      } catch (error) {
+        console.error("delete file error", error);
+        failed.push({ id: file.id, message: "Error deleting file" });
+      }
     }
 
-    revalidateDashboard();
-    return NextResponse.json({ data: null, error: null });
+    if (deleted.length > 0) revalidateDashboard();
+
+    if (!batch) {
+      if (failed.length > 0) {
+        return NextResponse.json(
+          { error: { message: failed[0]!.message }, data: null },
+          { status: 500 },
+        );
+      }
+      return NextResponse.json({ data: null, error: null });
+    }
+
+    const found = new Set(rows.map((file) => file.id));
+    for (const id of ids) {
+      if (!found.has(id)) failed.push({ id, message: "File not found" });
+    }
+
+    return NextResponse.json({ data: { deleted, failed }, error: null });
   } catch (error) {
     console.error("delete file error", error);
     return NextResponse.json(

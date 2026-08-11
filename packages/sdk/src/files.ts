@@ -1,6 +1,11 @@
 import type { FileWithUrl, Visibility } from "@repo/types";
 import Base from "./base.js";
-import type { ListOptions, SignedUrl, SignOptions } from "./types/index.js";
+import type {
+  BulkDeleteResult,
+  ListOptions,
+  SignedUrl,
+  SignOptions,
+} from "./types/index.js";
 import { constructFileUrls } from "./utils/index.js";
 
 export default class Files extends Base {
@@ -154,5 +159,14 @@ export default class Files extends Base {
     return await this.request<null>("DELETE", this.apiUrl("/api/files"), {
       id,
     });
+  }
+
+  /** Delete several files in one request; each id reports its own outcome. */
+  public async deleteMany(ids: string[]) {
+    return await this.request<BulkDeleteResult>(
+      "DELETE",
+      this.apiUrl("/api/files"),
+      { ids },
+    );
   }
 }

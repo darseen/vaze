@@ -29,6 +29,7 @@ export type {
   Visibility,
 } from "@repo/types";
 export type {
+  BulkDeleteResult,
   ListOptions,
   SignedUrl,
   SignOptions,

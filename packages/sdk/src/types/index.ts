@@ -31,3 +31,8 @@ export type SignedUrl = {
   url: string;
   expiresAt: string;
 };
+
+export type BulkDeleteResult = {
+  deleted: string[];
+  failed: { id: string; message: string }[];
+};

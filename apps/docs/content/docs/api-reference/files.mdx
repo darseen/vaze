@@ -198,6 +198,30 @@ Removes the file from disk and the database. Responds `404` if no such file
 exists; a file already missing from disk still has its record cleaned up and
 reports success.
 
+## Delete several files
+
+Send `ids` instead of `id` to delete a batch in one request:
+
+```json
+{ "ids": ["<file-id>", "<file-id>"] }
+```
+
+Each id is handled on its own, so one bad id does not stop the rest. The
+response lists both outcomes:
+
+```json
+{
+  "data": {
+    "deleted": ["<file-id>"],
+    "failed": [{ "id": "<file-id>", "message": "File not found" }]
+  },
+  "error": null
+}
+```
+
+Responds `404` only when none of the ids exist, and `400` for an empty list or
+more than `MAX_DELETE_BATCH` (default 500) ids.
+
 ## Download a file
 
 ```

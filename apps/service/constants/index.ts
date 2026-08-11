@@ -41,13 +41,19 @@ function parseCount(value: string | undefined, fallback: number): number {
 }
 
 /** Largest single file accepted by an upload. Accepts e.g. `500mb`, `5gb`. */
-export const MAX_UPLOAD_SIZE = parseBytes(process.env.MAX_UPLOAD_SIZE, 5 * 1024 ** 3);
+export const MAX_UPLOAD_SIZE = parseBytes(
+  process.env.MAX_UPLOAD_SIZE,
+  5 * 1024 ** 3,
+);
 
 /** Cap on parts in one multipart request, so a single body can't fan out. */
 export const MAX_FILES_PER_REQUEST = parseCount(
   process.env.MAX_FILES_PER_REQUEST,
   100,
 );
+
+/** Cap on ids accepted by one batch delete request. */
+export const MAX_DELETE_BATCH = parseCount(process.env.MAX_DELETE_BATCH, 500);
 
 /** How long request-log rows are kept before being pruned. */
 export const API_REQUEST_RETENTION_DAYS = parseCount(

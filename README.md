@@ -17,7 +17,7 @@
 
 ## Features
 
-- **File & Folder Management**: Create, rename, and delete files and folders directly from the web UI.
+- **File & Folder Management**: Create, rename, and delete files and folders directly from the web UI, including multi-select for deleting many files at once.
 - **Path-addressed storage**: Files keep the name you upload them with, so you choose the public URL — `https://your-vaze/api/hosting/projects/demo/photo.png`.
 - **Streaming uploads**: Upload bodies go straight to disk, so file size is bounded by your volume rather than by memory.
 - **Download & Public Hosting**: Download files directly, or embed them from a public hosting URL that serves untrusted content sandboxed.

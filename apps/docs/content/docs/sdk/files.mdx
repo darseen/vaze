@@ -186,3 +186,15 @@ const { error } = await vaze.files.delete("file-id");
 ```
 
 Removes the file from both disk and the database.
+
+## Delete several files
+
+```ts
+const { data, error } = await vaze.files.deleteMany(["file-id", "other-id"]);
+
+console.log(data.deleted); // ids that were removed
+console.log(data.failed); // [{ id, message }] for the ones that were not
+```
+
+One request per batch, and a single bad id does not stop the others. `error` is
+only set when the whole request fails — for example when none of the ids exist.

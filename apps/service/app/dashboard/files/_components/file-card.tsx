@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -45,9 +46,12 @@ import { toast } from "sonner";
 
 interface Props {
   file: FileWithUrl;
+  selected?: boolean;
+  /** `shiftKey` lets the list extend the selection from the last click. */
+  onSelectedChange?: (checked: boolean, shiftKey: boolean) => void;
 }
 
-export default function FileCard({ file }: Props) {
+export default function FileCard({ file, selected, onSelectedChange }: Props) {
   const [editingFile, setEditingFile] = useState<FileWithUrl | null>(null);
   const [newFileName, setNewFileName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -119,9 +123,7 @@ export default function FileCard({ file }: Props) {
       if (error) return toast.error(error.message);
 
       toast.success(
-        visibility === "private"
-          ? "File is now private"
-          : "File is now public",
+        visibility === "private" ? "File is now private" : "File is now public",
       );
     } catch {
       toast.error("Something went wrong");
@@ -171,7 +173,8 @@ export default function FileCard({ file }: Props) {
     <>
       <Card
         key={file.id}
-        className="group border-border/50 bg-card/50 hover:border-border hover:bg-card relative overflow-hidden border backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5"
+        data-selected={selected ? "" : undefined}
+        className="group border-border/50 bg-card/50 hover:border-border hover:bg-card data-selected:border-primary data-selected:ring-primary/40 relative overflow-hidden border backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5 data-selected:ring-2"
       >
         <CardContent className="p-0">
           {/* File Preview Area */}
@@ -188,8 +191,25 @@ export default function FileCard({ file }: Props) {
             {/* Hover overlay */}
             <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />
 
+            {onSelectedChange && (
+              <div
+                className={`absolute top-2 left-2 z-10 transition-opacity ${
+                  selected
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
+                }`}
+              >
+                <Checkbox
+                  checked={!!selected}
+                  onClick={(e) => onSelectedChange(!selected, e.shiftKey)}
+                  aria-label={`Select ${file.name}`}
+                  className="bg-background/80 border-border/50 size-5 shadow-sm backdrop-blur-sm"
+                />
+              </div>
+            )}
+
             {isPrivate && (
-              <div className="bg-background/80 border-border/50 text-muted-foreground absolute top-2 left-2 z-10 flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium shadow-sm backdrop-blur-sm">
+              <div className="bg-background/80 border-border/50 text-muted-foreground absolute bottom-2 left-2 z-10 flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium shadow-sm backdrop-blur-sm">
                 <Lock className="h-3 w-3" />
                 Private
               </div>

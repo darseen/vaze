@@ -1,7 +1,12 @@
 import { sql } from "drizzle-orm";
 import fs from "node:fs/promises";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { authorizedStub, jsonRequest, readJson, uploadRequest } from "./helpers";
+import {
+  authorizedStub,
+  jsonRequest,
+  readJson,
+  uploadRequest,
+} from "./helpers";
 
 vi.mock("@/app/api/_utils/authorize-request", () => authorizedStub);
 
@@ -136,9 +141,9 @@ describe("rename", () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(
-      fs.readFile(toStoragePath("two/a.txt"), "utf8"),
-    ).resolves.toBe("2");
+    await expect(fs.readFile(toStoragePath("two/a.txt"), "utf8")).resolves.toBe(
+      "2",
+    );
   });
 
   it("rejects a rename onto a name taken in the same folder", async () => {
@@ -187,5 +192,71 @@ describe("delete", () => {
 
     expect(response.status).toBe(200);
     expect(db.select().from(filesTable).all()).toHaveLength(0);
+  });
+
+  it("deletes every id in a batch", async () => {
+    await POST(
+      uploadRequest("one", [
+        { name: "a.txt", content: "1" },
+        { name: "b.txt", content: "2" },
+        { name: "c.txt", content: "3" },
+      ]),
+    );
+
+    const rows = db.select().from(filesTable).all();
+    const doomed = rows.filter((row) => row.name !== "c.txt");
+
+    const response = await DELETE(
+      jsonRequest("/api/files", "DELETE", {
+        ids: doomed.map((row) => row.id),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+
+    const { data } = await readJson(response);
+    expect(data.deleted).toHaveLength(2);
+    expect(data.failed).toHaveLength(0);
+
+    const remaining = db.select().from(filesTable).all();
+    expect(remaining.map((row) => row.name)).toEqual(["c.txt"]);
+
+    for (const row of doomed) {
+      await expect(fs.access(toStoragePath(row.key))).rejects.toThrow();
+    }
+  });
+
+  it("reports unknown ids without failing the rest of the batch", async () => {
+    await POST(uploadRequest("one", [{ name: "a.txt", content: "1" }]));
+    const row = db.select().from(filesTable).all()[0]!;
+
+    const response = await DELETE(
+      jsonRequest("/api/files", "DELETE", { ids: [row.id, "does-not-exist"] }),
+    );
+
+    expect(response.status).toBe(200);
+
+    const { data } = await readJson(response);
+    expect(data.deleted).toEqual([row.id]);
+    expect(data.failed).toEqual([
+      { id: "does-not-exist", message: "File not found" },
+    ]);
+    expect(db.select().from(filesTable).all()).toHaveLength(0);
+  });
+
+  it("404s when none of the ids exist", async () => {
+    const response = await DELETE(
+      jsonRequest("/api/files", "DELETE", { ids: ["nope"] }),
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it("rejects an empty batch", async () => {
+    const response = await DELETE(
+      jsonRequest("/api/files", "DELETE", { ids: [] }),
+    );
+
+    expect(response.status).toBe(400);
   });
 });
