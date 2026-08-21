@@ -10,7 +10,7 @@ import {
 import { createRelativeLink } from "fumadocs-ui/mdx";
 import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
-import { gitConfig } from "@/lib/shared";
+import { appName, gitConfig } from "@/lib/shared";
 import { getPageImage, getPageMarkdownUrl, source } from "@/lib/source";
 
 export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
@@ -60,7 +60,14 @@ export async function generateMetadata(
   return {
     title: page.data.title,
     description: page.data.description,
+    alternates: {
+      canonical: page.url,
+    },
     openGraph: {
+      type: "article",
+      siteName: appName,
+      locale: "en_US",
+      url: page.url,
       images: getPageImage(page).url,
     },
   };

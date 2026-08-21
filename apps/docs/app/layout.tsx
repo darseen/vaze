@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { RootProvider } from "fumadocs-ui/provider/next";
-import { appName } from "@/lib/shared";
+import { appName, siteUrl } from "@/lib/shared";
 import "./global.css";
 
 const inter = Inter({
@@ -9,13 +9,21 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.SITE_URL ?? "http://localhost:3001"),
+  metadataBase: new URL(siteUrl),
   title: {
     template: `%s | ${appName}`,
     default: `${appName} Documentation`,
   },
   description:
     "Documentation for Vaze, a self-hosted local file storage and hosting service.",
+  applicationName: appName,
+  // og/twitter titles and descriptions are inherited from the fields above.
+  openGraph: {
+    type: "website",
+    siteName: appName,
+    locale: "en_US",
+    url: siteUrl,
+  },
 };
 
 export default function Layout({ children }: LayoutProps<"/">) {

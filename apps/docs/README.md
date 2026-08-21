@@ -29,3 +29,12 @@ Notable routes:
 - `/llms.txt`, `/llms-full.txt`, and per-page `.md` variants — markdown
   exports for LLM consumption.
 - `/og/docs/...` — auto-generated Open Graph images.
+- `/sitemap.xml` and `/robots.txt`, generated from the content source.
+
+## Deploying
+
+Set `NEXT_PUBLIC_SITE_URL` to the public origin of the site (for example
+`https://vaze.dev`). It is read at build time and feeds canonical URLs, Open
+Graph image URLs, `sitemap.xml`, and `robots.txt`. It defaults to
+`http://localhost:3001`, so leaving it unset on a real deployment leaves those
+URLs pointing at localhost. See `.env.example`.
