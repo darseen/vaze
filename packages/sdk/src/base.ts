@@ -102,12 +102,21 @@ export default class Base {
     }
   }
 
-  protected async requestBlob(url: string): Promise<
+  protected async requestBlob(
+    url: string,
+    method = "GET",
+    body?: Record<string, any>,
+  ): Promise<
     ApiResponse<{ blob: Blob; filename: string | null; contentType: string }>
   > {
     try {
+      const headers: Record<string, string> = { "API-Key": this.apiKey };
+      if (body !== undefined) headers["Content-Type"] = "application/json";
+
       const response = await fetch(url, {
-        headers: { "API-Key": this.apiKey },
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : null,
       });
       const contentType = response.headers.get("content-type") ?? "";
 

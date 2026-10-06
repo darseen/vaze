@@ -55,6 +55,12 @@ export const MAX_FILES_PER_REQUEST = parseCount(
 /** Cap on ids accepted by one batch delete request. */
 export const MAX_DELETE_BATCH = parseCount(process.env.MAX_DELETE_BATCH, 500);
 
+/** Cap on ids accepted by one multi-file zip download. */
+export const MAX_DOWNLOAD_BATCH = parseCount(
+  process.env.MAX_DOWNLOAD_BATCH,
+  1000,
+);
+
 /** Initial request-log retention in days, seeded into settings. */
 export const API_REQUEST_RETENTION_DAYS = parseCount(
   process.env.API_REQUEST_RETENTION_DAYS,

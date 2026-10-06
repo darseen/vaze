@@ -244,6 +244,44 @@ curl -C - -OJ https://files.example.com/api/files/download/<file-id> \
   -H "API-Key: your-api-key"
 ```
 
+## Download several files as a zip
+
+```
+POST /api/files/download
+```
+
+JSON body:
+
+```json
+{ "ids": ["<file-id>", "<other-id>"] }
+```
+
+Streams one zip containing every requested file, private ones included. Each
+entry keeps its path below the deepest folder the files share: files picked from
+one folder sit at the top of the archive, while a selection spanning
+`projects/web` and `projects/api` keeps `web/` and `api/` apart. The archive is
+named after that shared folder (`projects.zip`), or `files.zip` when the files
+only share the root.
+
+```bash
+curl -OJ https://files.example.com/api/files/download \
+  -H "API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"ids": ["<file-id>", "<other-id>"]}'
+```
+
+Every id must resolve: an unknown id, or a file whose bytes are missing from
+disk, responds `404` and no archive is sent. Duplicate ids are collapsed, and
+more than `MAX_DOWNLOAD_BATCH` (default 1000) ids responds `400`. The ids may
+also be sent as repeated `ids` form fields
+(`application/x-www-form-urlencoded`), so a plain HTML form can start the
+download.
+
+Entries are stored uncompressed, which keeps the server's CPU idle and lets the
+response carry an exact `Content-Length`. Archives over 4 GB use ZIP64. The zip
+is generated per request, so unlike a single-file download it cannot be resumed
+with a byte range.
+
 ## Serve a file
 
 ```

@@ -104,6 +104,31 @@ takes the instance default rather than the folder's last cascade. Unlike rename,
 the **root folder is a valid cascade target**, which is how you lock down an
 entire instance in one call.
 
+## Download a folder as a zip
+
+```
+GET /api/folders/download?id=<folder-id>
+GET /api/folders/download?key=<folder/key>
+GET /api/folders/download
+```
+
+Streams the folder and everything below it as one zip, private files included.
+Entries sit under a top-level directory named after the folder, so
+`projects/demo` downloads as `demo.zip` containing `demo/...`, and empty
+subfolders are kept. With no `id` or `key`, the **root folder** is archived as
+`files.zip`, a copy of every file on the instance.
+
+```bash
+curl -OJ "https://files.example.com/api/folders/download?key=projects/demo" \
+  -H "API-Key: your-api-key"
+```
+
+Responds `404` when the folder doesn't exist. A file whose bytes are missing
+from disk is left out rather than failing the whole archive. As with
+[downloading several files](/docs/api-reference/files#download-several-files-as-a-zip),
+entries are stored uncompressed with an exact `Content-Length`, archives over
+4 GB use ZIP64, and the download cannot be resumed with a byte range.
+
 ## Delete a folder
 
 ```

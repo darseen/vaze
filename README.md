@@ -17,10 +17,10 @@
 
 ## Features
 
-- **File & Folder Management**: Create, rename, and delete files and folders directly from the web UI, including multi-select for deleting many files at once.
+- **File & Folder Management**: Create, rename, and delete files and folders directly from the web UI, including multi-select for downloading or deleting many files at once.
 - **Path-addressed storage**: Files keep the name you upload them with, so you choose the public URL — `https://your-vaze/api/hosting/projects/demo/photo.png`.
 - **Streaming uploads**: Upload bodies go straight to disk, so file size is bounded by your volume rather than by memory.
-- **Download & Public Hosting**: Download files directly, or embed them from a public hosting URL that serves untrusted content sandboxed.
+- **Download & Public Hosting**: Download files directly, grab a whole folder or a multi-file selection as one streamed zip, or embed files from a public hosting URL that serves untrusted content sandboxed.
 - **Private files & signed URLs**: Mark any file (or a whole folder) private so it stops being world-readable, then hand out time-limited signed links that work without an API key.
 - **Range requests & caching**: Byte-range support means audio and video seek properly, and `ETag`/`Last-Modified` revalidation keeps repeat embeds down to a bodiless `304`.
 - **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps.
@@ -31,7 +31,7 @@
 ### Roadmap
 
 Not built yet: moving files between folders, folder upload and drag-and-drop,
-zip download of a folder, and API-key scopes.
+and API-key scopes.
 
 ---
 

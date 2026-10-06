@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { parseTimestamp } from "@/utils";
+import { downloadFiles } from "@/utils/download";
 import {
   CATEGORY_LABELS,
   FILE_CATEGORIES,
@@ -32,6 +33,7 @@ import type { ApiResponse, FileWithUrl, Folder } from "@repo/types";
 import {
   ArrowDownAZ,
   ArrowUpAZ,
+  Download,
   FileIcon,
   FolderIcon,
   Search,
@@ -313,6 +315,23 @@ export default function FilesList({ files, folders }: Props) {
               <Button variant="ghost" size="sm" onClick={clearSelection}>
                 <X className="mr-1 h-4 w-4" />
                 Clear
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  downloadFiles(
+                    selectedFiles.map((file) => file.id),
+                    () => {
+                      toast.error("Download failed");
+                      // drops anything deleted elsewhere from the selection
+                      router.refresh();
+                    },
+                  )
+                }
+              >
+                <Download className="mr-1 h-4 w-4" />
+                Download
               </Button>
               <Button
                 variant="destructive"

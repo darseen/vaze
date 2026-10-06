@@ -28,6 +28,13 @@ export default class Folders extends Base {
     };
   }
 
+  /** Download a folder and everything below it as a zip; the root by default. */
+  public async download(options?: { id?: string; key?: string }) {
+    return await this.requestBlob(
+      this.apiUrl("/api/folders/download", options),
+    );
+  }
+
   public async create(folder: string) {
     return await this.request<{ folder: Folder }>(
       "POST",

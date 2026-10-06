@@ -129,6 +129,23 @@ The underlying endpoint supports byte ranges and `ETag` revalidation, so a
 plain `fetch` against it can resume an interrupted transfer. `download` itself
 always retrieves the whole file.
 
+## Download several files as a zip
+
+```ts
+const { data, error } = await vaze.files.downloadMany(["file-id", "other-id"]);
+
+if (data) {
+  // e.g. "photos.zip", named after the folder the files share
+  await fs.writeFile(data.filename ?? "files.zip", Buffer.from(await data.blob.arrayBuffer()));
+}
+```
+
+Entries keep their paths below the deepest folder the files share. Every id must
+exist, otherwise `error` is set and no archive is returned. The zip is read into
+a `Blob`, so for selections too large to hold in memory, stream [the
+endpoint](/docs/api-reference/files#download-several-files-as-a-zip) with
+`fetch` instead.
+
 ## Rename a file
 
 ```ts

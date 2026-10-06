@@ -109,6 +109,17 @@ if (data) {
 }
 ```
 
+`downloadMany(ids)` Download several files as one zip. Entries keep their paths below the folder the files share.
+
+```ts
+const { data, error } = await vaze.files.downloadMany(["file-id-123", "file-id-456"]);
+
+if (data) {
+  console.log(data.filename); // e.g. "photos.zip"
+  const buffer = Buffer.from(await data.blob.arrayBuffer());
+}
+```
+
 `rename(data)` Rename an existing file.
 
 - data:
@@ -169,6 +180,17 @@ const { data, error } = await vaze.folders.rename({
   id: "folder-id-456",
   name: "new-name",
 });
+```
+
+`download(options?)` Download a folder and everything below it as one zip. With no `id` or `key`, the root folder is archived.
+
+```ts
+const { data, error } = await vaze.folders.download({ key: "projects/work" });
+
+if (data) {
+  console.log(data.filename); // "work.zip", with every entry under work/
+  const buffer = Buffer.from(await data.blob.arrayBuffer());
+}
 ```
 
 `delete(id)` Delete a folder by its ID.

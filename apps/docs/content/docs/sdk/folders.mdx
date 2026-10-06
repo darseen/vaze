@@ -95,6 +95,23 @@ visibility of their own, so a file uploaded into the folder afterwards takes the
 instance default rather than the last cascade. Unlike rename, the root folder is
 a valid target, which locks down an entire instance in one call.
 
+## Download a folder as a zip
+
+```ts
+const { data, error } = await vaze.folders.download({ key: "projects/demo" });
+
+if (data) {
+  // "demo.zip", with every entry under demo/
+  await fs.writeFile(data.filename ?? "folder.zip", Buffer.from(await data.blob.arrayBuffer()));
+}
+```
+
+Pass `id` or `key`; with neither, the root folder is archived as `files.zip`.
+Subfolders are kept, empty ones included. Like `files.download`, the archive is
+read into a `Blob`, so stream [the
+endpoint](/docs/api-reference/folders#download-a-folder-as-a-zip) with `fetch`
+for archives too large to hold in memory.
+
 ## Delete a folder
 
 ```ts

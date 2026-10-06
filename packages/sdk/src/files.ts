@@ -131,6 +131,13 @@ export default class Files extends Base {
     return await this.requestBlob(url);
   }
 
+  /** Download several files as one zip, with paths below their shared folder. */
+  public async downloadMany(ids: string[]) {
+    return await this.requestBlob(this.apiUrl("/api/files/download"), "POST", {
+      ids,
+    });
+  }
+
   public async rename(data: { id: string; name: string }) {
     return await this.request<null>("PUT", this.apiUrl("/api/files"), data);
   }

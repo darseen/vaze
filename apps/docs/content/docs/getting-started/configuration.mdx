@@ -32,6 +32,7 @@ Edit it and apply with `docker compose -f compose.prod.yaml up -d`.
 | `API_REQUEST_RETENTION_DAYS` | `90`    | How long API request-log rows are kept before being pruned.                                        |
 | `ACTIVITY_RETENTION_DAYS`    | `90`    | How long activity history is kept before being pruned.                                             |
 | `MAX_DELETE_BATCH`           | `500`   | Cap on the number of file ids accepted by one batch delete.                                        |
+| `MAX_DOWNLOAD_BATCH`         | `1000`  | Cap on the number of file ids accepted by one multi-file zip download.                             |
 
 Uploads stream to disk, so `MAX_UPLOAD_SIZE` bounds what a single request may
 store — not how much memory the server uses.

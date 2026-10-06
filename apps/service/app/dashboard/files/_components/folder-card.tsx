@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { formatDate } from "@/utils";
 import type { ApiResponse, Folder, Visibility } from "@repo/types";
 import {
+  Download,
   Edit,
   FolderIcon,
   Globe,
@@ -182,6 +183,18 @@ export default function FolderCard({ folder }: Props) {
                   >
                     <Globe className="mr-3 h-4 w-4" />
                     Make all public
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" asChild>
+                    <a
+                      href={`/api/folders/download?id=${folder.id}`}
+                      download
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Download className="mr-3 h-4 w-4" />
+                      Download
+                    </a>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <AlertDialog>
