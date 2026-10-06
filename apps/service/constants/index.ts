@@ -80,7 +80,7 @@ export const HOSTING_CACHE_MAX_AGE = parseCount(
   0,
 );
 
-/** Visibility applied to an upload that does not ask for one. */
+/** Initial default visibility, seeded into the settings table on first boot. */
 export const DEFAULT_FILE_VISIBILITY: Visibility =
   process.env.DEFAULT_FILE_VISIBILITY === "private" ? "private" : "public";
 

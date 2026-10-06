@@ -9,6 +9,8 @@ import {
 import { timestamps } from "./_shared";
 import { folders } from "./folders";
 
+export const VISIBILITIES = ["public", "private"] as const;
+
 export const files = sqliteTable(
   "files",
   {
@@ -20,7 +22,7 @@ export const files = sqliteTable(
       .notNull()
       .references(() => folders.id, { onDelete: "cascade" }),
     size: integer("size").notNull(),
-    visibility: text("visibility", { enum: ["public", "private"] })
+    visibility: text("visibility", { enum: VISIBILITIES })
       .notNull()
       .default("public"),
     ...timestamps,

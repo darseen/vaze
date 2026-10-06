@@ -1,15 +1,11 @@
-import {
-  BASE_DATA_PATH,
-  BASE_TMP_PATH,
-  DEFAULT_FILE_VISIBILITY,
-  MAX_DELETE_BATCH,
-} from "@/constants";
+import { BASE_DATA_PATH, BASE_TMP_PATH, MAX_DELETE_BATCH } from "@/constants";
 import { db } from "@/db";
 import {
   recordFileDeletions,
   recordUploadActivity,
   type UploadContext,
 } from "@/lib/activity";
+import { getDefaultVisibility } from "@/lib/settings";
 import { files as filesTable } from "@repo/db";
 import type { File as FileDB, Folder } from "@repo/types";
 import { getAvailableStorage } from "@/utils/storage";
@@ -228,7 +224,7 @@ async function handleUpload(request: NextRequest, context: UploadContext) {
     }
 
     const visibility =
-      parseVisibility(fields.visibility) ?? DEFAULT_FILE_VISIBILITY;
+      parseVisibility(fields.visibility) ?? getDefaultVisibility();
 
     let targetFolder: Folder;
     try {

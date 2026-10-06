@@ -30,6 +30,10 @@ function buildCrumbs(pathname: string): Crumb[] {
     return [{ label: "Dashboard", href: "/dashboard" }, { label: "Activity" }];
   }
 
+  if (segments[0] === "settings") {
+    return [{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }];
+  }
+
   if (segments[0] === "files") {
     const root = "/dashboard/files";
     // everything after "files" is the folder key

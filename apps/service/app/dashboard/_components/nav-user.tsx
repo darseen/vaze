@@ -17,7 +17,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ChevronsUpDown, FilesIcon, KeyIcon, LogOut } from "lucide-react";
+import {
+  ChevronsUpDown,
+  FilesIcon,
+  KeyIcon,
+  LogOut,
+  SettingsIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -89,6 +95,12 @@ export default function NavUser({ username }: { username: string | null }) {
                 <Link href="/dashboard/api-keys">
                   <KeyIcon />
                   API Keys
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">
+                  <SettingsIcon />
+                  Settings
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

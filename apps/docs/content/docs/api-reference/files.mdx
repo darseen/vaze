@@ -93,7 +93,7 @@ Send a `multipart/form-data` body:
 | -------- | ------ | ------------------------------------------------------------------ |
 | `files`  | file   | One or more files to upload (repeat the field for multiple files)  |
 | `folder` | string | Optional target folder path, e.g. `projects/demo`. Nested folders are created automatically. Defaults to the root folder. |
-| `visibility` | string | Optional, `public` or `private`. Defaults to `DEFAULT_FILE_VISIBILITY` (`public` unless configured otherwise). Applies to every file in the request. |
+| `visibility` | string | Optional, `public` or `private`. Defaults to the instance's default visibility, set under **Settings** in the dashboard (`public` unless changed). Applies to every file in the request. |
 
 ```bash
 curl -X POST https://files.example.com/api/files \
@@ -283,8 +283,8 @@ your instance with your session.
 
 <Callout type="warn">
   Public hosting URLs are exactly that — anyone who knows a file's key can fetch
-  it. Upload with `visibility: private`, or set `DEFAULT_FILE_VISIBILITY=private`
-  on the instance, for anything you don't want reachable by URL.
+  it. Upload with `visibility: private`, or make new files private by default
+  under **Settings** in the dashboard, for anything you don't want reachable by URL.
 </Callout>
 
 ## Range requests and caching

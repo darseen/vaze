@@ -19,6 +19,7 @@ const { POST: signFile } = await import("@/app/api/files/sign/route");
 const { PUT: updateFolder } = await import("@/app/api/folders/route");
 const { toStoragePath } = await import("@/app/api/_utils");
 const { signKey } = await import("@/lib/presign");
+const { setDefaultVisibility } = await import("@/lib/settings");
 const { db } = await import("@/db");
 const { files: filesTable, folders: foldersTable } = await import("@repo/db");
 const { eq } = await import("drizzle-orm");
@@ -75,6 +76,19 @@ describe("defaults", () => {
     await upload("secrets", "b.txt", "private");
 
     expect(rowFor("secrets/b.txt")?.visibility).toBe("private");
+  });
+
+  it("follows the default visibility setting when the upload sets none", async () => {
+    setDefaultVisibility("private");
+    try {
+      await upload("", "a.txt");
+      await upload("", "b.txt", "public");
+    } finally {
+      setDefaultVisibility("public");
+    }
+
+    expect(rowFor("a.txt")?.visibility).toBe("private");
+    expect(rowFor("b.txt")?.visibility).toBe("public");
   });
 });
 

@@ -7,6 +7,7 @@ export type {
   File,
   Folder,
   Session,
+  Settings,
   User,
   Verification,
   Visibility,

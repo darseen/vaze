@@ -148,7 +148,7 @@ Edit it and apply with `docker compose -f compose.prod.yaml up -d`.
 | `MAX_UPLOAD_SIZE` | No (`5gb`)     | Largest single file accepted by an upload, e.g. `500mb`.                          |
 | `MAX_FILES_PER_REQUEST` | No (`100`) | Cap on files in one multipart request.                                        |
 | `API_REQUEST_RETENTION_DAYS` | No (`90`) | How long API request-log rows are kept.                                  |
-| `DEFAULT_FILE_VISIBILITY` | No (`public`) | Visibility for uploads that don't specify one. Set `private` for a private-first instance. |
+| `DEFAULT_FILE_VISIBILITY` | No (`public`) | Seeds the default visibility for uploads that don't specify one, the first time the instance starts. After that, change it under **Settings** in the dashboard. |
 | `DEFAULT_PRESIGN_TTL_SECONDS` | No (`3600`) | Lifetime of a signed URL when the caller doesn't specify one.          |
 | `MAX_PRESIGN_TTL_SECONDS` | No (`604800`) | Longest lifetime a signed URL may be minted with.                        |
 | `HOSTING_CACHE_MAX_AGE` | No (`0`) | `max-age` for public hosted responses. Zero revalidates every time via `ETag`. |

@@ -21,6 +21,7 @@ import {
   KeyRound,
   LayoutDashboard,
   type LucideIcon,
+  Settings,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -61,6 +62,12 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         href: "/dashboard/activity",
         icon: History,
         isActive: (pathname) => pathname.startsWith("/dashboard/activity"),
+      },
+      {
+        title: "Settings",
+        href: "/dashboard/settings",
+        icon: Settings,
+        isActive: (pathname) => pathname.startsWith("/dashboard/settings"),
       },
     ],
   },

@@ -4,6 +4,7 @@ import {
   BASE_DB_PATH,
   BASE_TMP_PATH,
   BASE_UPLOADS_PATH,
+  DEFAULT_FILE_VISIBILITY,
 } from "@/constants";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -15,6 +16,9 @@ import path from "node:path";
 import * as schema from "@repo/db";
 
 export * as schema from "@repo/db";
+
+/** Primary key of the single row in the `settings` table. */
+export const SETTINGS_ID = 1;
 
 const dbPath = path.join(BASE_DB_PATH, "vaze.db");
 
@@ -45,6 +49,12 @@ db.insert(schema.folders)
     key: "",
     parentId: null,
   })
+  .onConflictDoNothing()
+  .run();
+
+// The env var only seeds the setting; after that the dashboard owns it.
+db.insert(schema.settings)
+  .values({ id: SETTINGS_ID, defaultVisibility: DEFAULT_FILE_VISIBILITY })
   .onConflictDoNothing()
   .run();
 
