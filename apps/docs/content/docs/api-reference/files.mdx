@@ -119,7 +119,7 @@ fails partway through, nothing appears in the target folder.
 | Status | Cause                                                          |
 | ------ | -------------------------------------------------------------- |
 | `409`  | A file with that name already exists in the target folder      |
-| `413`  | A file exceeded `MAX_UPLOAD_SIZE`, or too many files in one request |
+| `413`  | A file exceeded the maximum upload size set under **Settings**, or too many files in one request |
 | `507`  | Not enough free space on the volume                            |
 
 ## Rename a file or change its visibility
@@ -161,7 +161,7 @@ JSON body:
 | ----------- | ------ | ------------------------------------------------------------------- |
 | `id`        | string | The file id. Either this or `key` is required.                      |
 | `key`       | string | The object key. Either this or `id` is required.                    |
-| `expiresIn` | number | Seconds the link stays valid. Defaults to `DEFAULT_PRESIGN_TTL_SECONDS`, clamped to `MAX_PRESIGN_TTL_SECONDS`. |
+| `expiresIn` | number | Seconds the link stays valid. Defaults to the instance's default signed link lifetime and is clamped to its maximum, both set under **Settings**. |
 
 ```json
 {
@@ -329,10 +329,10 @@ curl -H 'If-None-Match: "a-6899f2c1"' \
 whole file is returned rather than a range that would corrupt the cached copy.
 
 `Cache-Control` on public responses is
-`public, max-age=<HOSTING_CACHE_MAX_AGE>, must-revalidate`, defaulting to
+`public, max-age=<public cache lifetime>, must-revalidate`, defaulting to
 `max-age=0` — always revalidate, which is cheap because a match costs a bodiless
-`304`. Raise `HOSTING_CACHE_MAX_AGE` when keys on your instance are effectively
-immutable.
+`304`. Raise the public cache lifetime under **Settings** when keys on your
+instance are effectively immutable.
 
 <Callout>
   Private files are sent `Cache-Control: private, no-store` and carry **no**

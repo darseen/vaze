@@ -9,6 +9,13 @@ export const settings = sqliteTable("settings", {
   defaultVisibility: text("default_visibility", { enum: VISIBILITIES })
     .notNull()
     .default("public"),
+  // limits are null until seeded from their env vars on boot
+  maxUploadSize: integer("max_upload_size"),
+  defaultPresignTtl: integer("default_presign_ttl"),
+  maxPresignTtl: integer("max_presign_ttl"),
+  hostingCacheMaxAge: integer("hosting_cache_max_age"),
+  activityRetentionDays: integer("activity_retention_days"),
+  apiRequestRetentionDays: integer("api_request_retention_days"),
   ...timestamps,
 });
 

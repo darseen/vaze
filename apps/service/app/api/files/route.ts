@@ -5,7 +5,7 @@ import {
   recordUploadActivity,
   type UploadContext,
 } from "@/lib/activity";
-import { getDefaultVisibility } from "@/lib/settings";
+import { getDefaultVisibility, getLimits } from "@/lib/settings";
 import { files as filesTable } from "@repo/db";
 import type { File as FileDB, Folder } from "@repo/types";
 import { getAvailableStorage } from "@/utils/storage";
@@ -168,7 +168,11 @@ async function handleUpload(request: NextRequest, context: UploadContext) {
 
     let parsed;
     try {
-      parsed = await parseMultipartToDisk(request, stagingDir);
+      parsed = await parseMultipartToDisk(
+        request,
+        stagingDir,
+        getLimits().maxUploadSize,
+      );
     } catch (error) {
       if (error instanceof UploadTooLargeError) {
         return NextResponse.json(

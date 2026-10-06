@@ -40,7 +40,7 @@ function parseCount(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-/** Largest single file accepted by an upload. Accepts e.g. `500mb`, `5gb`. */
+/** Initial maximum upload size, seeded into settings. Accepts e.g. `500mb`. */
 export const MAX_UPLOAD_SIZE = parseBytes(
   process.env.MAX_UPLOAD_SIZE,
   5 * 1024 ** 3,
@@ -55,13 +55,13 @@ export const MAX_FILES_PER_REQUEST = parseCount(
 /** Cap on ids accepted by one batch delete request. */
 export const MAX_DELETE_BATCH = parseCount(process.env.MAX_DELETE_BATCH, 500);
 
-/** How long request-log rows are kept before being pruned. */
+/** Initial request-log retention in days, seeded into settings. */
 export const API_REQUEST_RETENTION_DAYS = parseCount(
   process.env.API_REQUEST_RETENTION_DAYS,
   90,
 );
 
-/** How long activity history is kept before being pruned. */
+/** Initial activity-history retention in days, seeded into settings. */
 export const ACTIVITY_RETENTION_DAYS = parseCount(
   process.env.ACTIVITY_RETENTION_DAYS,
   90,
@@ -70,11 +70,7 @@ export const ACTIVITY_RETENTION_DAYS = parseCount(
 /** Most recent activity rows the dashboard renders at once. */
 export const ACTIVITY_PAGE_LIMIT = 200;
 
-/**
- * `max-age` for publicly hosted responses. Zero means revalidate every time,
- * which is cheap because a match answers with a bodiless 304. Raise it when the
- * keys on an instance are effectively immutable.
- */
+/** Initial `max-age` for public hosted responses, seeded into settings. */
 export const HOSTING_CACHE_MAX_AGE = parseCount(
   process.env.HOSTING_CACHE_MAX_AGE,
   0,
@@ -84,13 +80,13 @@ export const HOSTING_CACHE_MAX_AGE = parseCount(
 export const DEFAULT_FILE_VISIBILITY: Visibility =
   process.env.DEFAULT_FILE_VISIBILITY === "private" ? "private" : "public";
 
-/** Lifetime of a signed URL when the caller does not specify one. */
+/** Initial default signed URL lifetime, seeded into settings. */
 export const DEFAULT_PRESIGN_TTL_SECONDS = parseCount(
   process.env.DEFAULT_PRESIGN_TTL_SECONDS,
   3600,
 );
 
-/** Longest lifetime a signed URL may be minted with. Matches S3's cap. */
+/** Initial maximum signed URL lifetime, seeded into settings. Matches S3. */
 export const MAX_PRESIGN_TTL_SECONDS = parseCount(
   process.env.MAX_PRESIGN_TTL_SECONDS,
   7 * 24 * 60 * 60,

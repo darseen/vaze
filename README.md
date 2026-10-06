@@ -24,6 +24,7 @@
 - **Private files & signed URLs**: Mark any file (or a whole folder) private so it stops being world-readable, then hand out time-limited signed links that work without an API key.
 - **Range requests & caching**: Byte-range support means audio and video seek properly, and `ETag`/`Last-Modified` revalidation keeps repeat embeds down to a bodiless `304`.
 - **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps.
+- **Settings**: Change your name, email and password, sign out other devices, pick whether new files start public or private, and tune upload, signed-link, caching and retention limits without a restart.
 - **Powerful API**: Use Vaze as a backend service for any application that needs file hosting or storage, with simple RESTful endpoints.
 - **Dockerized**: Get up and running in minutes with the official Docker image.
 
@@ -148,10 +149,17 @@ Edit it and apply with `docker compose -f compose.prod.yaml up -d`.
 | `MAX_UPLOAD_SIZE` | No (`5gb`)     | Largest single file accepted by an upload, e.g. `500mb`.                          |
 | `MAX_FILES_PER_REQUEST` | No (`100`) | Cap on files in one multipart request.                                        |
 | `API_REQUEST_RETENTION_DAYS` | No (`90`) | How long API request-log rows are kept.                                  |
-| `DEFAULT_FILE_VISIBILITY` | No (`public`) | Seeds the default visibility for uploads that don't specify one, the first time the instance starts. After that, change it under **Settings** in the dashboard. |
+| `ACTIVITY_RETENTION_DAYS` | No (`90`) | How long activity history is kept.                                          |
+| `DEFAULT_FILE_VISIBILITY` | No (`public`) | Visibility for uploads that don't specify one. Set `private` for a private-first instance. |
 | `DEFAULT_PRESIGN_TTL_SECONDS` | No (`3600`) | Lifetime of a signed URL when the caller doesn't specify one.          |
 | `MAX_PRESIGN_TTL_SECONDS` | No (`604800`) | Longest lifetime a signed URL may be minted with.                        |
 | `HOSTING_CACHE_MAX_AGE` | No (`0`) | `max-age` for public hosted responses. Zero revalidates every time via `ETag`. |
+
+`MAX_UPLOAD_SIZE`, the two retention variables, `DEFAULT_FILE_VISIBILITY`, the two
+`*_PRESIGN_TTL_SECONDS` variables and `HOSTING_CACHE_MAX_AGE` only set starting
+values. They are copied into **Settings** in the dashboard the first time Vaze
+starts (or first starts after an upgrade that adds them); change them there
+afterwards, no restart needed. Editing the variable later has no effect.
 
 The installer generates `AUTH_SECRET` for you. To make one by hand:
 

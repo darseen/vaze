@@ -26,7 +26,11 @@ export const auth = betterAuth({
       "/sign-up/email": { window: 60, max: 5 },
     },
   },
-  user: { modelName: "users" },
+  user: {
+    modelName: "users",
+    // no email is ever sent, so a new address applies immediately
+    changeEmail: { enabled: true, updateEmailWithoutVerification: true },
+  },
   session: { modelName: "sessions" },
   account: { modelName: "accounts" },
   verification: { modelName: "verifications" },

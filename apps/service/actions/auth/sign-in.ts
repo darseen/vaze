@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { APIError } from "better-auth/api";
+import { headers } from "next/headers";
 
 export default async function signIn(formData: FormData) {
   const email = formData.get("email") as string | null;
@@ -16,8 +17,11 @@ export default async function signIn(formData: FormData) {
   }
 
   try {
-    // Better Auth sets the session cookie via the nextCookies plugin.
-    await auth.api.signInEmail({ body: { email, password } });
+    // nextCookies sets the cookie; headers record the device and IP for Sessions
+    await auth.api.signInEmail({
+      body: { email, password },
+      headers: await headers(),
+    });
 
     return { data: {}, error: null, status: 200 };
   } catch (error) {

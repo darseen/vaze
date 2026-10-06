@@ -1,6 +1,5 @@
 import { normalizeKey } from "@/app/api/_utils";
 import authorizeRequest from "@/app/api/_utils/authorize-request";
-import { DEFAULT_PRESIGN_TTL_SECONDS } from "@/constants";
 import { db } from "@/db";
 import { buildSignedUrl } from "@/lib/presign";
 import { files as filesTable } from "@repo/db";
@@ -46,7 +45,7 @@ export async function POST(request: NextRequest) {
     const ttl =
       typeof expiresIn === "number" && Number.isFinite(expiresIn)
         ? expiresIn
-        : DEFAULT_PRESIGN_TTL_SECONDS;
+        : undefined;
 
     // signing a public file is allowed — the link simply also works unsigned
     const { url, expiresAt } = buildSignedUrl(file.key, ttl);

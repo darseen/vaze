@@ -1,5 +1,5 @@
 import { keyToUrl } from "@/app/api/_utils";
-import { DEFAULT_PRESIGN_TTL_SECONDS, MAX_PRESIGN_TTL_SECONDS } from "@/constants";
+import { getLimits } from "@/lib/settings";
 import crypto from "node:crypto";
 
 const VERSION = "v1";
@@ -68,11 +68,12 @@ export function verifySignature(
 /** Mint a relative, time-limited hosting URL for a key. */
 export function buildSignedUrl(
   key: string,
-  ttlSeconds = DEFAULT_PRESIGN_TTL_SECONDS,
+  ttlSeconds?: number,
 ): { url: string; expiresAt: string } {
+  const { defaultPresignTtl, maxPresignTtl } = getLimits();
   const ttl = Math.min(
-    Math.max(Math.floor(ttlSeconds), 1),
-    MAX_PRESIGN_TTL_SECONDS,
+    Math.max(Math.floor(ttlSeconds ?? defaultPresignTtl), 1),
+    maxPresignTtl,
   );
   const expiresAt = Math.floor(Date.now() / 1000) + ttl;
 

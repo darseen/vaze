@@ -30,3 +30,28 @@ export function formatBytes(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
+
+/** Shorten an expanded IPv6 address, e.g. the /64 prefixes Better Auth stores. */
+export function formatIpAddress(ip: string): string {
+  if (!ip.includes(":") || ip.includes("::")) return ip;
+
+  const groups = ip.split(":").map((group) => group.replace(/^0+(?=.)/, ""));
+
+  // the longest run of two or more zero groups collapses to "::"
+  let start = -1;
+  let length = 0;
+  for (let i = 0; i < groups.length; i++) {
+    let end = i;
+    while (groups[end] === "0") end++;
+    if (end - i > Math.max(length, 1)) {
+      start = i;
+      length = end - i;
+    }
+  }
+
+  if (start === -1) return groups.join(":");
+
+  const head = groups.slice(0, start).join(":");
+  const tail = groups.slice(start + length).join(":");
+  return `${head}::${tail}`;
+}

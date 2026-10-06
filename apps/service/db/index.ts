@@ -5,11 +5,15 @@ import {
   BASE_TMP_PATH,
   BASE_UPLOADS_PATH,
   DEFAULT_FILE_VISIBILITY,
+  DEFAULT_PRESIGN_TTL_SECONDS,
+  HOSTING_CACHE_MAX_AGE,
+  MAX_PRESIGN_TTL_SECONDS,
+  MAX_UPLOAD_SIZE,
 } from "@/constants";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -52,11 +56,49 @@ db.insert(schema.folders)
   .onConflictDoNothing()
   .run();
 
-// The env var only seeds the setting; after that the dashboard owns it.
+// Env vars only seed the settings; after that the dashboard owns them.
+const settingsSeed = {
+  maxUploadSize: MAX_UPLOAD_SIZE,
+  defaultPresignTtl: DEFAULT_PRESIGN_TTL_SECONDS,
+  maxPresignTtl: MAX_PRESIGN_TTL_SECONDS,
+  hostingCacheMaxAge: HOSTING_CACHE_MAX_AGE,
+  activityRetentionDays: ACTIVITY_RETENTION_DAYS,
+  apiRequestRetentionDays: API_REQUEST_RETENTION_DAYS,
+};
+
 db.insert(schema.settings)
-  .values({ id: SETTINGS_ID, defaultVisibility: DEFAULT_FILE_VISIBILITY })
+  .values({
+    id: SETTINGS_ID,
+    defaultVisibility: DEFAULT_FILE_VISIBILITY,
+    ...settingsSeed,
+  })
   .onConflictDoNothing()
   .run();
+
+// columns added after the row was created start out null
+db.update(schema.settings)
+  .set(
+    Object.fromEntries(
+      (Object.keys(settingsSeed) as (keyof typeof settingsSeed)[]).map(
+        (column) => [
+          column,
+          sql`coalesce(${schema.settings[column]}, ${settingsSeed[column]})`,
+        ],
+      ),
+    ),
+  )
+  .where(eq(schema.settings.id, SETTINGS_ID))
+  .run();
+
+function getSetting<K extends keyof typeof settingsSeed>(column: K): number {
+  const row = db
+    .select({ value: schema.settings[column] })
+    .from(schema.settings)
+    .where(eq(schema.settings.id, SETTINGS_ID))
+    .get();
+
+  return row?.value ?? settingsSeed[column];
+}
 
 // Uploads staged by a request that died mid-flight are never reclaimed by the
 // request itself, so sweep whatever is left behind on boot.
@@ -77,7 +119,7 @@ function clearUploadStaging() {
 function pruneApiRequests() {
   try {
     db.run(
-      sql`DELETE FROM api_requests WHERE created_at < datetime('now', ${`-${API_REQUEST_RETENTION_DAYS} days`})`,
+      sql`DELETE FROM api_requests WHERE created_at < datetime('now', ${`-${getSetting("apiRequestRetentionDays")} days`})`,
     );
   } catch (error) {
     console.error("failed to prune api_requests", error);
@@ -88,20 +130,20 @@ function pruneApiRequests() {
 function pruneActivities() {
   try {
     db.run(
-      sql`DELETE FROM activities WHERE created_at < datetime('now', ${`-${ACTIVITY_RETENTION_DAYS} days`})`,
+      sql`DELETE FROM activities WHERE created_at < datetime('now', ${`-${getSetting("activityRetentionDays")} days`})`,
     );
   } catch (error) {
     console.error("failed to prune activities", error);
   }
 }
 
-function prune() {
+export function pruneHistory() {
   pruneApiRequests();
   pruneActivities();
 }
 
 clearUploadStaging();
-prune();
+pruneHistory();
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-setInterval(prune, DAY_MS).unref();
+setInterval(pruneHistory, DAY_MS).unref();

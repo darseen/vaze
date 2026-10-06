@@ -1,4 +1,4 @@
-import { MAX_FILES_PER_REQUEST, MAX_UPLOAD_SIZE } from "@/constants";
+import { MAX_FILES_PER_REQUEST } from "@/constants";
 import Busboy from "busboy";
 import crypto from "node:crypto";
 import { createWriteStream } from "node:fs";
@@ -8,8 +8,8 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 export class UploadTooLargeError extends Error {
-  constructor() {
-    super(`File exceeds the maximum upload size of ${MAX_UPLOAD_SIZE} bytes`);
+  constructor(maxFileSize: number) {
+    super(`File exceeds the maximum upload size of ${maxFileSize} bytes`);
     this.name = "UploadTooLargeError";
   }
 }
@@ -53,6 +53,7 @@ export interface ParsedUpload {
 export function parseMultipartToDisk(
   request: Request,
   stagingDir: string,
+  maxFileSize: number,
 ): Promise<ParsedUpload> {
   return new Promise((resolve, reject) => {
     const contentType = request.headers.get("content-type") ?? "";
@@ -78,7 +79,7 @@ export function parseMultipartToDisk(
     const busboy = Busboy({
       headers: { "content-type": contentType },
       limits: {
-        fileSize: MAX_UPLOAD_SIZE,
+        fileSize: maxFileSize,
         files: MAX_FILES_PER_REQUEST,
       },
     });
@@ -103,7 +104,7 @@ export function parseMultipartToDisk(
 
       const write = pipeline(stream, createWriteStream(stagedPath)).then(
         async () => {
-          if (truncated) throw new UploadTooLargeError();
+          if (truncated) throw new UploadTooLargeError(maxFileSize);
           const { size } = await fs.stat(stagedPath);
           files.push({ originalName: info.filename, stagedPath, size });
         },

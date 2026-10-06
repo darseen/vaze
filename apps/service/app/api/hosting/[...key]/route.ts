@@ -1,7 +1,7 @@
-import { HOSTING_CACHE_MAX_AGE } from "@/constants";
 import { db } from "@/db";
 import { streamFileResponse } from "@/lib/http-cache";
 import { verifySignature } from "@/lib/presign";
+import { getLimits } from "@/lib/settings";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { files as filesTable } from "@repo/db";
 import { eq } from "drizzle-orm";
@@ -125,7 +125,7 @@ export async function GET(
         "Content-Disposition": contentDisposition(disposition, file.name),
         "Cache-Control": isPrivate
           ? "private, no-store"
-          : `public, max-age=${HOSTING_CACHE_MAX_AGE}, must-revalidate`,
+          : `public, max-age=${getLimits().hostingCacheMaxAge}, must-revalidate`,
       },
     });
   } catch (error) {

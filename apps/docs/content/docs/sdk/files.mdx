@@ -67,7 +67,7 @@ uploading over an existing name returns a `409` error.
 
 <Callout>
   Uploads stream to disk and are moved into the target folder only once the
-  whole request has been received. A file over `MAX_UPLOAD_SIZE` returns
+  whole request has been received. A file over the maximum upload size returns
   `413`, and a full volume returns `507`.
 </Callout>
 
@@ -171,7 +171,8 @@ const { data, error } = await vaze.files.sign({
 ```
 
 `url` is absolute and ready to use. `expiresIn` defaults to the instance's
-`DEFAULT_PRESIGN_TTL_SECONDS` and is capped at `MAX_PRESIGN_TTL_SECONDS`.
+default signed link lifetime and is capped at its maximum, both set under
+**Settings** in the dashboard.
 
 <Callout type="warn">
   Signed links cannot be revoked individually — they are stateless signatures,

@@ -29,6 +29,13 @@
       "when": 1791328632730,
       "tag": "0003_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791329749622,
+      "tag": "0004_settings_limits",
+      "breakpoints": true
     }
   ]
 }

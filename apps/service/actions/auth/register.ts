@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { APIError } from "better-auth/api";
+import { headers } from "next/headers";
 
 export default async function register(formData: FormData) {
   const email = formData.get("email") as string | null;
@@ -32,6 +33,7 @@ export default async function register(formData: FormData) {
     // cookie (via the nextCookies plugin) on success.
     await auth.api.signUpEmail({
       body: { email, password, name: username },
+      headers: await headers(),
     });
 
     return { data: {}, error: null, status: 201 };

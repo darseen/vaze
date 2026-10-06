@@ -1,6 +1,19 @@
 "use client";
 
+import applyDefaultVisibility from "@/actions/settings/apply-default-visibility";
 import updateDefaultVisibility from "@/actions/settings/update-default-visibility";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -35,13 +48,23 @@ const options: {
   },
 ];
 
+const pluralFiles = (count: number) =>
+  `${count} ${count === 1 ? "file" : "files"}`;
+
 interface Props {
   visibility: Visibility;
+  counts: Record<Visibility, number>;
 }
 
-export default function DefaultVisibility({ visibility: initial }: Props) {
+export default function DefaultVisibility({
+  visibility: initial,
+  counts,
+}: Props) {
   const [visibility, setVisibility] = useState(initial);
   const [loading, setLoading] = useState(false);
+
+  const other: Visibility = visibility === "private" ? "public" : "private";
+  const mismatched = counts[other];
 
   const handleChange = async (value: string) => {
     const previous = visibility;
@@ -69,6 +92,21 @@ export default function DefaultVisibility({ visibility: initial }: Props) {
     }
   };
 
+  const handleApply = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await applyDefaultVisibility(visibility);
+
+      if (error) return toast.error(error.message);
+
+      toast.success(`${pluralFiles(data.updated)} made ${visibility}`);
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -78,7 +116,6 @@ export default function DefaultVisibility({ visibility: initial }: Props) {
         </CardTitle>
         <CardDescription>
           Choose whether new files and folders start out public or private.
-          Existing files keep their current visibility.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -117,6 +154,43 @@ export default function DefaultVisibility({ visibility: initial }: Props) {
           folder is as private as the files inside it, so new folders follow
           this setting too.
         </p>
+        <div className="flex flex-col gap-3 rounded-lg border border-dashed p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-muted-foreground text-sm">
+            {mismatched === 0
+              ? `Every existing file is already ${visibility}.`
+              : `${pluralFiles(mismatched)} you already uploaded ${mismatched === 1 ? "is" : "are"} still ${other}.`}
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={mismatched === 0 || loading}
+                className="shrink-0"
+              >
+                Apply to existing files
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Make {pluralFiles(mismatched)} {visibility}?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {visibility === "private"
+                    ? `${mismatched === 1 ? "It" : "They"} will stop being publicly readable. Existing links will break unless they are signed.`
+                    : `${mismatched === 1 ? "It" : "They"} will become readable by anyone with the link.`}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleApply}>
+                  Continue
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </CardContent>
     </Card>
   );
