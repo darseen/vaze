@@ -33,7 +33,6 @@ import {
   Clock,
   Download,
   Edit,
-  FileText,
   Globe,
   Link as LinkIcon,
   Lock,
@@ -43,6 +42,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import FilePreview from "./file-preview";
 
 interface Props {
   file: FileWithUrl;
@@ -165,10 +165,6 @@ export default function FileCard({ file, selected, onSelectedChange }: Props) {
     }
   };
 
-  const getFileExtension = (filename: string) => {
-    return filename.split(".").pop()?.toUpperCase() || "";
-  };
-
   return (
     <>
       <Card
@@ -179,14 +175,7 @@ export default function FileCard({ file, selected, onSelectedChange }: Props) {
         <CardContent className="p-0">
           {/* File Preview Area */}
           <div className="from-muted/30 to-muted/60 relative flex h-32 items-center justify-center bg-linear-to-br">
-            <div className="relative">
-              <FileText className="text-muted-foreground/60 group-hover:text-muted-foreground/80 h-12 w-12 transition-colors" />
-              {getFileExtension(file.name) && (
-                <div className="bg-primary/90 text-primary-foreground absolute -right-2 -bottom-2 rounded-md px-1.5 py-0.5 text-xs font-medium shadow-sm">
-                  {getFileExtension(file.name)}
-                </div>
-              )}
-            </div>
+            <FilePreview file={file} />
 
             {/* Hover overlay */}
             <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5" />

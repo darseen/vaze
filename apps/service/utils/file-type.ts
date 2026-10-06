@@ -86,3 +86,22 @@ export const CATEGORY_LABELS: Record<FileCategory, string> = {
   code: "Code",
   other: "Other",
 };
+
+export type PreviewKind = "image" | "video" | "audio" | "pdf" | "text";
+
+/** How the dashboard previews a file, or null when it can't. */
+export function getPreviewKind(
+  name: string,
+  mimeType: string,
+): PreviewKind | null {
+  // the extension wins: mime types misfile code (`.ts` is MPEG-TS video)
+  const category = getFileCategory(name);
+  if (category === "code") return "text";
+  if (category === "images") return "image";
+
+  if (mimeType === "application/pdf") return "pdf";
+  if (mimeType.startsWith("text/")) return "text";
+  if (mimeType.startsWith("video/")) return "video";
+  if (mimeType.startsWith("audio/")) return "audio";
+  return null;
+}
