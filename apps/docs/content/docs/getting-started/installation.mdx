@@ -17,16 +17,17 @@ container:
 curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh | sh
 ```
 
-The only thing it asks for is the URL you'll open Vaze on, defaulting to this
-machine's LAN address. Pass it in to skip the prompt entirely:
+It asks which folder to install into, and the URL you'll open Vaze on
+(defaulting to this machine's LAN address). Pass the URL in to skip that prompt:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh \
   | BASE_URL=https://files.example.com sh
 ```
 
-It installs into `./vaze` in the current directory and prints your URL once the
-container reports healthy. Nothing else to configure.
+Press Enter at the folder prompt to install into `./vaze`, or type a folder such
+as `apps` to install into `./apps/vaze` (missing folders are created). It prints
+your URL once the container reports healthy. Nothing else to configure.
 
 <Callout type="info">
   Prefer to read a script before piping it to a shell? Download it first, or
@@ -35,14 +36,14 @@ container reports healthy. Nothing else to configure.
 
 ### Options
 
-| Flag / variable  | Default              | Description                                            |
-| ---------------- | -------------------- | ------------------------------------------------------ |
-| `--dir=PATH`     | `./vaze`             | Where `compose.prod.yaml` and `.env` are written        |
-| `--no-start`     | —                    | Write the config but don't start the container          |
-| `BASE_URL`       | detected LAN address | The URL you open Vaze on                                |
-| `VAZE_PORT`      | `3000`               | Host port to publish                                    |
-| `VAZE_BIND_ADDR` | `0.0.0.0`            | Host address to bind to                                 |
-| `VAZE_VERSION`   | `latest`             | Image tag to run                                        |
+| Flag / variable  | Default              | Description                                                              |
+| ---------------- | -------------------- | ------------------------------------------------------------------------ |
+| `--dir=PATH`     | asked, `./vaze`      | Exact folder for `compose.prod.yaml` and `.env`; skips the folder prompt |
+| `--no-start`     | —                    | Write the config but don't start the container                           |
+| `BASE_URL`       | detected LAN address | The URL you open Vaze on                                                 |
+| `VAZE_PORT`      | `3000`               | Host port to publish                                                     |
+| `VAZE_BIND_ADDR` | `0.0.0.0`            | Host address to bind to                                                  |
+| `VAZE_VERSION`   | `latest`             | Image tag to run                                                         |
 
 Environment variables go before `sh`, flags after it:
 
@@ -52,17 +53,20 @@ curl -fsSL .../install.sh | VAZE_PORT=8080 sh -s -- --dir=/opt/vaze
 
 ## Upgrading
 
-Re-run the installer from your install directory:
+Re-run the installer from any folder:
 
 ```bash
-cd vaze
 curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh | sh
 ```
 
-It detects the existing install and upgrades in place: refreshes
-`compose.prod.yaml` (keeping a `.bak` of the old one), pulls the newer image, and
-recreates the container. It never overwrites a value already in your `.env`, and
-never touches the volume holding your uploads and database.
+It finds the existing install through its container, so it won't ask for a
+folder again or set up a second copy elsewhere. If you've removed the container
+with `down`, run it from the install folder or the one containing it instead.
+
+It upgrades in place: refreshes `compose.prod.yaml` (keeping a `.bak` of the old
+one), pulls the newer image, and recreates the container. It never overwrites a
+value already in your `.env`, and never touches the volume holding your uploads
+and database.
 
 To pin a version instead of tracking `latest`, set `VAZE_VERSION` in your `.env`
 and re-run `docker compose -f compose.prod.yaml up -d`.

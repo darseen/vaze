@@ -48,24 +48,26 @@ generates your `AUTH_SECRET` into a `.env`, and starts the container:
 curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh | sh
 ```
 
-The only thing it asks for is the URL you'll open Vaze on, and it defaults to this
-machine's LAN address. Pass it in to skip the prompt entirely:
+It asks which folder to install into (Enter for `./vaze`, or e.g. `apps` for
+`./apps/vaze`, creating any missing folders) and the URL you'll open Vaze on,
+which defaults to this machine's LAN address. Pass the URL in to skip that prompt:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh \
   | BASE_URL=https://files.example.com sh
 ```
 
-**Re-run it from the same directory to upgrade**: it refreshes the compose file,
-pulls the newer image, and recreates the container — while never overwriting a
+**Re-run it from any folder to upgrade**: it finds the existing install through
+its container (so it never sets up a second copy), refreshes the compose file,
+pulls the newer image, and recreates the container, while never overwriting a
 value already in your `.env` and never touching the volume your uploads and
 database live in. Skip to [Initial setup](#initial-setup-admin-registration) once
 it finishes.
 
-Options: `--dir=PATH` to choose the install directory (default `./vaze`), and
-`--no-start` to write the config without starting. `BASE_URL`, `VAZE_PORT`,
-`VAZE_VERSION`, `VAZE_BIND_ADDR` and `TZ` can all be set in the environment or
-edited in `.env` afterwards.
+Options: `--dir=PATH` to set the exact install directory and skip the folder
+prompt, and `--no-start` to write the config without starting. `BASE_URL`,
+`VAZE_PORT`, `VAZE_VERSION`, `VAZE_BIND_ADDR` and `TZ` can all be set in the
+environment or edited in `.env` afterwards.
 
 Prefer to read a script before piping it to a shell? Download it first, or follow
 the manual steps below.

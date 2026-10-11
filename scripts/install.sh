@@ -1,7 +1,7 @@
 #!/bin/sh
 # vaze installer — fetches compose.prod.yaml, generates secrets into .env, starts the container.
 #   curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh | sh
-# Re-run it in an existing install to upgrade: your data, secrets and edits are preserved.
+# Re-run it from any folder to upgrade: it finds the existing install and keeps your data, secrets and edits.
 set -eu
 
 REPO=${VAZE_REPO:-darseen/vaze}
@@ -21,6 +21,7 @@ for arg in "$@"; do
     -h | --help)
       echo "usage: install.sh [--dir=PATH] [--no-start]"
       echo "env: BASE_URL, VAZE_DIR, VAZE_PORT, VAZE_VERSION, VAZE_REF, VAZE_REPO"
+      echo "without --dir it asks which folder to create vaze/ in, defaulting to the current one"
       echo "the host port defaults to the first free one from 3000; set VAZE_PORT to pin it"
       exit 0
       ;;
@@ -66,6 +67,30 @@ ask() {
   fi
   [ -n "$_answer" ] || _answer=$_default
   printf '%s' "$_answer"
+}
+
+is_install() { [ -f "$1/.env" ] && [ -f "$1/compose.prod.yaml" ]; }
+
+abs_dir() { (cd "$1" 2>/dev/null && pwd -P); }
+
+# The compose project is always "vaze", so its container records the folder it was installed in.
+installed_dir() {
+  docker ps -a --filter label=com.docker.compose.project=vaze \
+    --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | head -n1
+}
+
+# Blank is the current folder, "apps" is ./apps/vaze, and absolute or ~ paths work too.
+vaze_dir_in() {
+  _d=$1
+  case "$_d" in
+    \~) _d=$HOME ;;
+    \~/*) _d=$HOME/${_d#\~/} ;;
+  esac
+  case "$_d" in /*) ;; *) _d=$PWD/$_d ;; esac
+  while :; do
+    case "$_d" in */) _d=${_d%/} ;; *) break ;; esac
+  done
+  printf '%s/vaze' "$_d"
 }
 
 env_get() {
@@ -168,14 +193,31 @@ need docker || die "docker is not installed — see https://docs.docker.com/engi
 docker compose version >/dev/null 2>&1 || die "the docker compose plugin is required (docker compose version)"
 docker info >/dev/null 2>&1 || die "cannot reach the docker daemon — is it running, and is your user in the docker group?"
 
-if [ -z "${VAZE_DIR:-}" ]; then
-  if [ -f .env ] && [ -f compose.prod.yaml ]; then VAZE_DIR=$PWD; else VAZE_DIR=$PWD/vaze; fi
+found=$(installed_dir)
+if [ -n "$found" ] && ! is_install "$found"; then
+  warn "the vaze container was installed in $found, which no longer has its .env; this install takes it over"
+  found=""
 fi
-mkdir -p "$VAZE_DIR"
+
+if [ -n "${VAZE_DIR:-}" ]; then
+  if [ -n "$found" ] && [ "$(abs_dir "$VAZE_DIR")" != "$(abs_dir "$found")" ]; then
+    die "vaze is already installed in $found; re-run without --dir to upgrade it, or run 'docker compose -f compose.prod.yaml down' there before installing elsewhere"
+  fi
+elif [ -n "$found" ]; then
+  VAZE_DIR=$found
+elif is_install "$PWD"; then
+  VAZE_DIR=$PWD
+elif is_install "$PWD/vaze"; then
+  VAZE_DIR=$PWD/vaze
+else
+  VAZE_DIR=$(vaze_dir_in "$(ask "folder to install vaze in (a vaze folder is created inside it)" "$PWD")")
+fi
+mkdir -p "$VAZE_DIR" || die "could not create $VAZE_DIR"
 cd "$VAZE_DIR"
+VAZE_DIR=$PWD
 
 if [ -f .env ]; then
-  info "existing install found in $VAZE_DIR — keeping .env and your data, updating compose.prod.yaml"
+  info "existing install found in $VAZE_DIR, keeping .env and your data and updating compose.prod.yaml"
 else
   info "installing into $VAZE_DIR"
 fi
@@ -315,4 +357,4 @@ fi
 echo
 info "open $url and register — the first account becomes the admin"
 info "listening on port $port  ·  files in $VAZE_DIR  ·  secrets in $VAZE_DIR/.env"
-info "re-run this installer from $VAZE_DIR to upgrade — your uploads and .env are kept"
+info "re-run this installer from any folder to upgrade; it finds this install and keeps your uploads and .env"
