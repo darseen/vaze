@@ -1,5 +1,6 @@
 import { useInView } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
+import { formatDuration } from "@/utils";
 import {
   getFileCategory,
   getPreviewKind,
@@ -19,7 +20,14 @@ import {
   Play,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 type Status = "loading" | "loaded" | "failed";
 
@@ -28,7 +36,7 @@ interface PreviewProps {
   src: string;
 }
 
-const CATEGORY_ICONS: Record<FileCategory, LucideIcon> = {
+export const CATEGORY_ICONS: Record<FileCategory, LucideIcon> = {
   images: FileImage,
   documents: FileText,
   video: FileVideo,
@@ -41,22 +49,19 @@ const CATEGORY_ICONS: Record<FileCategory, LucideIcon> = {
 // more than the few lines a card has room for
 const TEXT_PREVIEW_BYTES = 2048;
 
+// filmstrip thumbnails, too small for badges and labels
+const CompactContext = createContext(false);
+
 const getFileExtension = (filename: string) => {
   return filename.split(".").pop()?.toUpperCase() || "";
 };
 
-function formatDuration(totalSeconds: number) {
-  const seconds = Math.floor(totalSeconds % 60);
-  const minutes = Math.floor(totalSeconds / 60) % 60;
-  const hours = Math.floor(totalSeconds / 3600);
-  const mm = hours > 0 ? String(minutes).padStart(2, "0") : String(minutes);
-  const ss = String(seconds).padStart(2, "0");
-  return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
-}
-
 function TypeIcon({ name }: { name: string }) {
+  const compact = useContext(CompactContext);
   const Icon = CATEGORY_ICONS[getFileCategory(name)];
   const extension = getFileExtension(name);
+
+  if (compact) return <Icon className="text-muted-foreground size-6" />;
 
   return (
     <div className="relative">
@@ -72,7 +77,7 @@ function TypeIcon({ name }: { name: string }) {
 
 function Badge({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-background/80 border-border/50 text-muted-foreground absolute right-2 bottom-2 z-10 flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium shadow-sm backdrop-blur-sm">
+    <div className="bg-background/80 border-border/50 text-muted-foreground pointer-events-none absolute right-2 bottom-2 z-10 flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium shadow-sm backdrop-blur-sm">
       {children}
     </div>
   );
@@ -110,9 +115,11 @@ function PreviewFrame({
   badge?: ReactNode;
   children: ReactNode;
 }) {
+  const compact = useContext(CompactContext);
+
   if (status === "failed") return <TypeIcon name={file.name} />;
 
-  const label = badge ?? getFileExtension(file.name);
+  const label = !compact && (badge ?? getFileExtension(file.name));
 
   return (
     <>
@@ -132,6 +139,7 @@ function PreviewFrame({
 }
 
 function ImagePreview({ file, src }: PreviewProps) {
+  const compact = useContext(CompactContext);
   const [status, setStatus] = useState<Status>("loading");
   // logos and icons are small as-is, and cropping would cut into them
   const contain = /\.(svg|ico)$/i.test(file.name);
@@ -148,7 +156,11 @@ function ImagePreview({ file, src }: PreviewProps) {
         onError={() => setStatus("failed")}
         className={cn(
           "size-full",
-          contain ? "object-contain p-4" : "object-cover",
+          contain
+            ? compact
+              ? "object-contain p-1.5"
+              : "object-contain p-4"
+            : "object-cover",
         )}
       />
     </PreviewFrame>
@@ -191,6 +203,7 @@ function VideoPreview({ file, src }: PreviewProps) {
 }
 
 function PdfPreview({ file, src }: PreviewProps) {
+  const compact = useContext(CompactContext);
   const [status, setStatus] = useState<Status>("loading");
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -216,7 +229,7 @@ function PdfPreview({ file, src }: PreviewProps) {
 
   return (
     <PreviewFrame file={file} status={status}>
-      <Sheet className="bg-white">
+      <Sheet className={cn("bg-white", compact && "inset-x-1.5 top-1.5")}>
         <canvas ref={canvasRef} className="size-full" />
       </Sheet>
     </PreviewFrame>
@@ -343,22 +356,32 @@ const PREVIEWS: Record<PreviewKind, (props: PreviewProps) => ReactNode> = {
   text: TextPreview,
 };
 
-export default function FilePreview({ file }: { file: FileWithUrl }) {
+export default function FilePreview({
+  file,
+  compact = false,
+}: {
+  file: FileWithUrl;
+  compact?: boolean;
+}) {
   const [ref, inView] = useInView<HTMLDivElement>();
-  const kind = file.size > 0 ? getPreviewKind(file.name, file.mimeType) : null;
+  let kind = file.size > 0 ? getPreviewKind(file.name, file.mimeType) : null;
+  // audio needs its play button and text needs room to be read
+  if (compact && (kind === "audio" || kind === "text")) kind = null;
   const Preview = kind && inView ? PREVIEWS[kind] : null;
 
   return (
-    <div
-      ref={ref}
-      className="absolute inset-0 flex items-center justify-center"
-    >
-      {Preview ? (
-        // `file.url` has no leading slash; keyed so a rename starts fresh
-        <Preview key={file.url} file={file} src={`/${file.url}`} />
-      ) : (
-        <TypeIcon name={file.name} />
-      )}
-    </div>
+    <CompactContext value={compact}>
+      <div
+        ref={ref}
+        className="absolute inset-0 flex items-center justify-center"
+      >
+        {Preview ? (
+          // `file.url` has no leading slash; keyed so a rename starts fresh
+          <Preview key={file.url} file={file} src={`/${file.url}`} />
+        ) : (
+          <TypeIcon name={file.name} />
+        )}
+      </div>
+    </CompactContext>
   );
 }

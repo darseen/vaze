@@ -8,25 +8,33 @@ function scrollParent(node: Element) {
   return null;
 }
 
-/** Flips to true the first time the element nears view, then stays true. */
-export function useInView<T extends Element>(rootMargin = "200px") {
+/**
+ * Whether the element is near view. With `once` (the default) it flips to true
+ * the first time and then stays true.
+ */
+export function useInView<T extends Element>(
+  rootMargin = "200px",
+  { once = true } = {},
+) {
   const [node, setNode] = useState<T | null>(null);
   const [inView, setInView] = useState(false);
+  const settled = once && inView;
 
   useEffect(() => {
-    if (!node || inView) return;
+    if (!node || settled) return;
 
     // the margin only reaches past the edge of the element that scrolls
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) setInView(true);
+        const visible = entries[entries.length - 1].isIntersecting;
+        if (visible || !once) setInView(visible);
       },
       { root: scrollParent(node), rootMargin },
     );
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [node, inView, rootMargin]);
+  }, [node, settled, once, rootMargin]);
 
   return [setNode, inView] as const;
 }

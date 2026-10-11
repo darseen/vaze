@@ -20,6 +20,19 @@ function sharedWorker() {
   return worker;
 }
 
+/** Open a PDF on the shared worker; `task.destroy()` releases it. */
+export function openPdf(url: string) {
+  return getDocument({
+    url,
+    worker: sharedWorker(),
+    // fetch only the byte ranges the rendered pages need
+    disableAutoFetch: true,
+    disableStream: true,
+    rangeChunkSize: 1024 * 1024,
+    verbosity,
+  });
+}
+
 /** Draw the top of a PDF's first page across the full width of `canvas`. */
 export async function renderPdfThumbnail(
   url: string,
@@ -28,15 +41,7 @@ export async function renderPdfThumbnail(
 ) {
   signal.throwIfAborted();
 
-  const task = getDocument({
-    url,
-    worker: sharedWorker(),
-    // fetch only the byte ranges the first page needs
-    disableAutoFetch: true,
-    disableStream: true,
-    rangeChunkSize: 1024 * 1024,
-    verbosity,
-  });
+  const task = openPdf(url);
 
   const destroy = () => task.destroy().catch(() => {});
   signal.addEventListener("abort", destroy);

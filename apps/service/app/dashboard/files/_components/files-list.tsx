@@ -44,6 +44,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import FileCard from "./file-card";
+import FileViewer from "./file-viewer";
 import FolderCard from "./folder-card";
 
 interface Props {
@@ -70,6 +71,7 @@ export default function FilesList({ files, folders }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [viewingId, setViewingId] = useState<string | null>(null);
   // index of the last checkbox clicked, anchoring shift-click ranges
   const lastToggledIndex = useRef<number | null>(null);
 
@@ -126,6 +128,9 @@ export default function FilesList({ files, folders }: Props) {
     () => visibleFiles.filter((file) => selected.has(file.id)),
     [visibleFiles, selected],
   );
+
+  // tracked by id so a refresh that reorders the list keeps the same file open
+  const viewingIndex = visibleFiles.findIndex((file) => file.id === viewingId);
 
   const allVisibleSelected =
     visibleFiles.length > 0 && selectedFiles.length === visibleFiles.length;
@@ -410,10 +415,18 @@ export default function FilesList({ files, folders }: Props) {
               onSelectedChange={(checked, shiftKey) =>
                 toggleSelected(file, checked, shiftKey)
               }
+              onOpen={() => setViewingId(file.id)}
             />
           ))}
         </div>
       )}
+
+      <FileViewer
+        files={visibleFiles}
+        index={viewingIndex}
+        onIndexChange={(index) => setViewingId(visibleFiles[index].id)}
+        onClose={() => setViewingId(null)}
+      />
 
       <AlertDialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>
         <AlertDialogContent>

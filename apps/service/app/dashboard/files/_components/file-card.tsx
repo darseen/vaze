@@ -49,9 +49,15 @@ interface Props {
   selected?: boolean;
   /** `shiftKey` lets the list extend the selection from the last click. */
   onSelectedChange?: (checked: boolean, shiftKey: boolean) => void;
+  onOpen?: () => void;
 }
 
-export default function FileCard({ file, selected, onSelectedChange }: Props) {
+export default function FileCard({
+  file,
+  selected,
+  onSelectedChange,
+  onOpen,
+}: Props) {
   const [editingFile, setEditingFile] = useState<FileWithUrl | null>(null);
   const [newFileName, setNewFileName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -198,7 +204,7 @@ export default function FileCard({ file, selected, onSelectedChange }: Props) {
             )}
 
             {isPrivate && (
-              <div className="bg-background/80 border-border/50 text-muted-foreground absolute bottom-2 left-2 z-10 flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium shadow-sm backdrop-blur-sm">
+              <div className="bg-background/80 border-border/50 text-muted-foreground pointer-events-none absolute bottom-2 left-2 z-10 flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium shadow-sm backdrop-blur-sm">
                 <Lock className="h-3 w-3" />
                 Private
               </div>
@@ -323,6 +329,17 @@ export default function FileCard({ file, selected, onSelectedChange }: Props) {
             </div>
           </div>
         </CardContent>
+
+        {/* under the z-10 controls, so they keep their own clicks */}
+        {onOpen && (
+          <button
+            type="button"
+            onClick={onOpen}
+            aria-label={`Open ${file.name}`}
+            data-file-id={file.id}
+            className="focus-visible:ring-ring absolute inset-0 cursor-pointer rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-inset"
+          />
+        )}
       </Card>
 
       {/* Rename File Dialog */}
