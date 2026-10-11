@@ -14,6 +14,7 @@ import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { eq, sql } from "drizzle-orm";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -24,10 +25,14 @@ export * as schema from "@repo/db";
 /** Primary key of the single row in the `settings` table. */
 export const SETTINGS_ID = 1;
 
-const dbPath = path.join(BASE_DB_PATH, "vaze.db");
+// parallel build workers would otherwise race to migrate one fresh file
+const dbPath =
+  process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD
+    ? ":memory:"
+    : path.join(BASE_DB_PATH, "vaze.db");
 
 // Ensure the directories for the database file, uploads and upload staging exist.
-for (const dir of [path.dirname(dbPath), BASE_UPLOADS_PATH, BASE_TMP_PATH]) {
+for (const dir of [BASE_DB_PATH, BASE_UPLOADS_PATH, BASE_TMP_PATH]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
