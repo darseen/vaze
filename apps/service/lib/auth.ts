@@ -1,9 +1,35 @@
 import { db, schema } from "@/db";
-import { users } from "@repo/db";
+import { users, type Role } from "@repo/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import { admin } from "better-auth/plugins";
+import { createAccessControl } from "better-auth/plugins/access";
+import { defaultStatements } from "better-auth/plugins/admin/access";
+
+// Better Auth's /admin endpoints are for admins only, and nobody impersonates.
+const ac = createAccessControl(defaultStatements);
+const noAdminAccess = ac.newRole({ user: [], session: [] });
+const roles = {
+  admin: ac.newRole({
+    user: [
+      "create",
+      "list",
+      "set-role",
+      "ban",
+      "delete",
+      "set-password",
+      "set-email",
+      "get",
+      "update",
+    ],
+    session: ["list", "revoke", "delete"],
+  }),
+  editor: noAdminAccess,
+  viewer: noAdminAccess,
+  custom: noAdminAccess,
+} satisfies Record<Role, unknown>;
 
 export const auth = betterAuth({
   baseURL: process.env.BASE_URL,
@@ -11,7 +37,7 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
   emailAndPassword: {
     enabled: true,
-    // No email delivery is configured; the single admin signs in immediately.
+    // no email delivery is configured, so accounts sign in immediately
     requireEmailVerification: false,
     autoSignIn: true,
   },
@@ -28,6 +54,9 @@ export const auth = betterAuth({
   },
   user: {
     modelName: "users",
+    additionalFields: {
+      scopes: { type: "string", required: false, input: false },
+    },
     // no email is ever sent, so a new address applies immediately
     changeEmail: { enabled: true, updateEmailWithoutVerification: true },
   },
@@ -37,18 +66,18 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        // Single-admin model: enforce that at most one account can ever exist,
-        // regardless of entry point (the register action *or* a direct POST to
-        // Better Auth's /api/auth/sign-up/email endpoint).
-        before: async (user) => {
+        // Covers the register action and a direct POST to /sign-up/email alike.
+        before: async (user, ctx) => {
           const existing = db
             .select({ id: users.id })
             .from(users)
             .limit(1)
             .get();
-          if (existing) {
+          // the first account to register owns the instance
+          if (!existing) return { data: { ...user, role: "admin" } };
+          if (ctx?.path !== "/admin/create-user") {
             throw new APIError("FORBIDDEN", {
-              message: "An admin account already exists.",
+              message: "Registration is closed. Ask an admin to add you.",
             });
           }
           return { data: user };
@@ -56,5 +85,14 @@ export const auth = betterAuth({
       },
     },
   },
-  plugins: [nextCookies()],
+  plugins: [
+    admin({
+      ac,
+      roles,
+      defaultRole: "viewer",
+      bannedUserMessage: "This account has been disabled.",
+    }),
+    // must stay last so it sees cookies set by the plugins before it
+    nextCookies(),
+  ],
 });

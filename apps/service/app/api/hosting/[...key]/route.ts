@@ -41,7 +41,7 @@ async function canReadPrivate(
 
   if (verifySignature(key, params.get("exp"), params.get("sig"))) return true;
 
-  const { error } = await authorizeRequest(request);
+  const { error } = await authorizeRequest(request, { scope: "files:read" });
   return !error;
 }
 

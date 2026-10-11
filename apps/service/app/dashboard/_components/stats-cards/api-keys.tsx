@@ -1,20 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/db";
 import { apiKeys } from "@repo/db";
-import { count } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { Key } from "lucide-react";
 
-export default async function ApiKeys() {
+export default async function ApiKeys({ userId }: { userId: string }) {
   const [{ value: totalApiKeys }] = db
     .select({ value: count() })
     .from(apiKeys)
+    .where(eq(apiKeys.userId, userId))
     .all();
 
   const stats = {
     title: "API Keys",
     value: totalApiKeys,
     icon: Key,
-    description: "Active keys",
+    description: "Your keys",
   };
 
   return (

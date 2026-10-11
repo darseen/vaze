@@ -4,6 +4,18 @@ import { activities } from "./activities";
 import { apiKeys } from "./api-keys";
 import { apiRequests } from "./api-requests";
 
+export const SCOPES = [
+  "files:read",
+  "files:write",
+  "files:delete",
+  "api-keys:manage",
+  "settings:manage",
+  "users:manage",
+] as const;
+
+// every role but `custom` implies a fixed set of scopes
+export const ROLES = ["admin", "editor", "viewer", "custom"] as const;
+
 export const users = sqliteTable("users", {
   id: text("id").primaryKey().notNull(),
   name: text("name").notNull(),
@@ -12,6 +24,13 @@ export const users = sqliteTable("users", {
     .notNull()
     .default(false),
   image: text("image"),
+  role: text("role", { enum: ROLES }).notNull().default("viewer"),
+  // comma-separated, only read for the custom role
+  scopes: text("scopes"),
+  // the admin plugin's "ban" is what the dashboard calls disabling an account
+  banned: integer("banned", { mode: "boolean" }).notNull().default(false),
+  banReason: text("ban_reason"),
+  banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
@@ -31,6 +50,7 @@ export const sessions = sqliteTable("sessions", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  impersonatedBy: text("impersonated_by"),
 });
 
 export const accounts = sqliteTable("accounts", {
@@ -90,6 +110,8 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 // there are no relations to declare.
 
 export type User = InferSelectModel<typeof users>;
+export type Role = User["role"];
+export type Scope = (typeof SCOPES)[number];
 export type Session = InferSelectModel<typeof sessions>;
 export type Account = InferSelectModel<typeof accounts>;
 export type Verification = InferSelectModel<typeof verifications>;

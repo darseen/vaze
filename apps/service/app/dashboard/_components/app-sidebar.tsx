@@ -22,17 +22,21 @@ import {
   LayoutDashboard,
   type LucideIcon,
   Settings,
+  Users,
 } from "lucide-react";
+import type { Scope } from "@repo/types";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import NavUser from "./nav-user";
+import { useCan } from "./permissions";
 
 type NavItem = {
   title: string;
   href: string;
   icon: LucideIcon;
   isActive: (pathname: string) => boolean;
+  scope?: Scope;
 };
 
 const navGroups: { label: string; items: NavItem[] }[] = [
@@ -50,18 +54,27 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         href: "/dashboard/files",
         icon: FolderOpen,
         isActive: (pathname) => pathname.startsWith("/dashboard/files"),
+        scope: "files:read",
       },
       {
         title: "API Keys",
         href: "/dashboard/api-keys",
         icon: KeyRound,
         isActive: (pathname) => pathname.startsWith("/dashboard/api-keys"),
+        scope: "api-keys:manage",
       },
       {
         title: "Activity",
         href: "/dashboard/activity",
         icon: History,
         isActive: (pathname) => pathname.startsWith("/dashboard/activity"),
+      },
+      {
+        title: "Users",
+        href: "/dashboard/users",
+        icon: Users,
+        isActive: (pathname) => pathname.startsWith("/dashboard/users"),
+        scope: "users:manage",
       },
       {
         title: "Settings",
@@ -80,8 +93,15 @@ const activeStyles = [
   "group-data-[collapsible=icon]:before:hidden",
 ].join(" ");
 
-export default function AppSidebar({ username }: { username: string | null }) {
+export default function AppSidebar({
+  username,
+  role,
+}: {
+  username: string | null;
+  role: string | null;
+}) {
   const pathname = usePathname();
+  const can = useCan();
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -121,21 +141,23 @@ export default function AppSidebar({ username }: { username: string | null }) {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      isActive={item.isActive(pathname)}
-                      className={activeStyles}
-                    >
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {group.items
+                  .filter((item) => !item.scope || can(item.scope))
+                  .map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.title}
+                        isActive={item.isActive(pathname)}
+                        className={activeStyles}
+                      >
+                        <Link href={item.href}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -143,7 +165,7 @@ export default function AppSidebar({ username }: { username: string | null }) {
       </SidebarContent>
 
       <SidebarFooter>
-        <NavUser username={username} />
+        <NavUser username={username} role={role} />
       </SidebarFooter>
 
       <SidebarRail />

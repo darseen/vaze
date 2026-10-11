@@ -3,15 +3,15 @@
 import { parseVisibility } from "@/app/api/_utils";
 import { db } from "@/db";
 import { files } from "@repo/db";
-import auth from "@/utils/auth";
+import { authorize } from "@/utils/auth";
 import { ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 /** Give every existing file the visibility the admin confirmed. */
 export default async function applyDefaultVisibility(value: string) {
-  const user = await auth();
+  const { error } = await authorize("settings:manage");
 
-  if (!user) return { error: { message: "Unauthorized" }, data: null };
+  if (error) return { error, data: null };
 
   const visibility = parseVisibility(value);
 

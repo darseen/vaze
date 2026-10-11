@@ -2,7 +2,7 @@
 
 import { pruneHistory } from "@/db";
 import { setLimits, type Limits } from "@/lib/settings";
-import auth from "@/utils/auth";
+import { authorize } from "@/utils/auth";
 import { revalidatePath } from "next/cache";
 
 // smallest accepted value for each limit
@@ -25,9 +25,9 @@ const LABELS: Record<keyof Limits, string> = {
 };
 
 export default async function updateLimits(input: Limits) {
-  const user = await auth();
+  const { error } = await authorize("settings:manage");
 
-  if (!user) return { error: { message: "Unauthorized" }, data: null };
+  if (error) return { error, data: null };
 
   const limits = {} as Limits;
 

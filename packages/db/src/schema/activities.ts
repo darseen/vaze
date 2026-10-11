@@ -13,6 +13,12 @@ export const ACTIVITY_TYPES = [
   "api-key.created",
   "api-key.renamed",
   "api-key.deleted",
+  "user.created",
+  "user.access-changed",
+  "user.password-reset",
+  "user.disabled",
+  "user.enabled",
+  "user.deleted",
 ] as const;
 
 export const activities = sqliteTable(

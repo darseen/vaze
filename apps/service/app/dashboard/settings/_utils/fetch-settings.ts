@@ -1,5 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/lib/auth";
+import { hasScope } from "@/lib/permissions";
 import { getDefaultVisibility, getLimits } from "@/lib/settings";
 import { files, sessions } from "@repo/db";
 import type { Visibility } from "@repo/types";
@@ -58,6 +59,7 @@ export default async function fetchSettings() {
     return {
       data: {
         profile: { name: session.user.name, email: session.user.email },
+        canManageInstance: hasScope(session.user, "settings:manage"),
         sessions: activeSessions,
         defaultVisibility: getDefaultVisibility(),
         visibilityCounts,

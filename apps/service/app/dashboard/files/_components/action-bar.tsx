@@ -1,5 +1,6 @@
 "use client";
 
+import { useCan } from "@/app/dashboard/_components/permissions";
 import { useUploadActions } from "@/app/dashboard/_components/uploads/provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ export default function ActionBar() {
   const { enqueue } = useUploadActions();
   const router = useRouter();
   const pathname = usePathname();
+  const can = useCan();
 
   const handleFilesUpload = (event: ChangeEvent<HTMLInputElement>) => {
     enqueue(Array.from(event.target.files ?? []), getFolderPath(pathname));
@@ -74,6 +76,8 @@ export default function ActionBar() {
       setCreatingFolder(false);
     }
   };
+
+  if (!can("files:write")) return null;
 
   return (
     <>

@@ -42,7 +42,9 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    const { error: authError } = await authorizeRequest(request);
+    const { error: authError } = await authorizeRequest(request, {
+      scope: "files:read",
+    });
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },
@@ -132,8 +134,10 @@ async function handleUpload(request: NextRequest, context: UploadContext) {
   const committedPaths: string[] = [];
 
   try {
-    const { data: authData, error: authError } =
-      await authorizeRequest(request);
+    const { data: authData, error: authError } = await authorizeRequest(
+      request,
+      { scope: "files:write" },
+    );
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },
@@ -337,7 +341,9 @@ async function handleUpload(request: NextRequest, context: UploadContext) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { error: authError } = await authorizeRequest(request);
+    const { error: authError } = await authorizeRequest(request, {
+      scope: "files:write",
+    });
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },
@@ -472,8 +478,10 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { data: authData, error: authError } =
-      await authorizeRequest(request);
+    const { data: authData, error: authError } = await authorizeRequest(
+      request,
+      { scope: "files:delete" },
+    );
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },

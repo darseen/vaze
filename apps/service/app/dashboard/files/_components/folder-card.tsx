@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useCan } from "@/app/dashboard/_components/permissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -54,6 +55,7 @@ export default function FolderCard({ folder }: Props) {
 
   const router = useRouter();
   const pathname = usePathname();
+  const can = useCan();
 
   const handleDelete = async (id: string) => {
     try {
@@ -151,39 +153,43 @@ export default function FolderCard({ folder }: Props) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingFolder(folder);
-                      setNewFolderName(folder.name);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <Edit className="mr-3 h-4 w-4" />
-                    Rename
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCascading("private");
-                    }}
-                    disabled={loading}
-                    className="cursor-pointer"
-                  >
-                    <Lock className="mr-3 h-4 w-4" />
-                    Make all private
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCascading("public");
-                    }}
-                    disabled={loading}
-                    className="cursor-pointer"
-                  >
-                    <Globe className="mr-3 h-4 w-4" />
-                    Make all public
-                  </DropdownMenuItem>
+                  {can("files:write") && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingFolder(folder);
+                          setNewFolderName(folder.name);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Edit className="mr-3 h-4 w-4" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCascading("private");
+                        }}
+                        disabled={loading}
+                        className="cursor-pointer"
+                      >
+                        <Lock className="mr-3 h-4 w-4" />
+                        Make all private
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCascading("public");
+                        }}
+                        disabled={loading}
+                        className="cursor-pointer"
+                      >
+                        <Globe className="mr-3 h-4 w-4" />
+                        Make all public
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuItem className="cursor-pointer" asChild>
                     <a
                       href={`/api/folders/download?id=${folder.id}`}
@@ -196,44 +202,50 @@ export default function FolderCard({ folder }: Props) {
                       Download
                     </a>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem
-                        onSelect={(e) => e.preventDefault()}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                      >
-                        <Trash2 className="mr-3 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Delete {folder.name}?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {`This action cannot be undone. This will permanently
-                            delete "${folder.name}" and all its contents from your storage.`}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
-                          Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(folder.id);
-                          }}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {can("files:delete") && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem
+                            onSelect={(e) => e.preventDefault()}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                          >
+                            <Trash2 className="mr-3 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Delete {folder.name}?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {`This action cannot be undone. This will permanently
+                                delete "${folder.name}" and all its contents from your storage.`}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(folder.id);
+                              }}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

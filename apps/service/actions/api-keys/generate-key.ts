@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { recordActivity } from "@/lib/activity";
 import { apiKeys } from "@repo/db";
-import auth from "@/utils/auth";
+import { authorize } from "@/utils/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createApiKey } from "./_utils";
@@ -12,9 +12,9 @@ export default async function generateApiKey(
   name: string,
   expiresAt: Date | null,
 ) {
-  const user = await auth();
+  const { user, error } = await authorize("api-keys:manage");
 
-  if (!user) return { error: { message: "Unauthorized" }, data: null };
+  if (error) return { error, data: null };
 
   try {
     // check if name is unique

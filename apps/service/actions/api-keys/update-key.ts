@@ -3,14 +3,14 @@
 import { db } from "@/db";
 import { recordActivity } from "@/lib/activity";
 import { apiKeys } from "@repo/db";
-import auth from "@/utils/auth";
+import { authorize } from "@/utils/auth";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function updateApiKey(keyId: string, name: string) {
-  const user = await auth();
+  const { user, error } = await authorize("api-keys:manage");
 
-  if (!user) return { error: { message: "Unauthorized" }, data: null };
+  if (error) return { error, data: null };
 
   try {
     // read the old name first so the history row can show what it was

@@ -3,14 +3,14 @@
 import { db } from "@/db";
 import { recordActivity } from "@/lib/activity";
 import { apiKeys } from "@repo/db";
-import auth from "@/utils/auth";
+import { authorize } from "@/utils/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function deleteApiKey(keyId: string) {
-  const user = await auth();
+  const { user, error } = await authorize("api-keys:manage");
 
-  if (!user) return { error: { message: "Unauthorized" }, data: null };
+  if (error) return { error, data: null };
 
   try {
     // returning the name so the history row can still say which key it was

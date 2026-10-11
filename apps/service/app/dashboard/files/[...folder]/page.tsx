@@ -1,7 +1,8 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { fetchFolderByKey } from "@/app/api/_utils";
+import { authorize } from "@/utils/auth";
 import ActionBar from "../_components/action-bar";
 import DropZone from "../_components/drop-zone";
 import FilesList from "../_components/files-list";
@@ -16,6 +17,9 @@ export default async function Page({
 }: {
   params: Promise<{ folder: string[] }>;
 }) {
+  const { error: authError } = await authorize("files:read");
+  if (authError) redirect("/dashboard");
+
   // the URL below /dashboard/files maps 1:1 onto the folder key
   let folderKey: string;
   try {

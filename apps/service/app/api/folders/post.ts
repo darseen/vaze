@@ -14,7 +14,9 @@ import authorizeRequest from "../_utils/authorize-request";
 
 export default async function POST(request: NextRequest) {
   try {
-    const { error: authError } = await authorizeRequest(request);
+    const { error: authError } = await authorizeRequest(request, {
+      scope: "files:write",
+    });
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },

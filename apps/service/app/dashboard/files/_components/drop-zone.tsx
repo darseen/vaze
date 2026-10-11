@@ -1,5 +1,6 @@
 "use client";
 
+import { useCan } from "@/app/dashboard/_components/permissions";
 import { useUploadActions } from "@/app/dashboard/_components/uploads/provider";
 import { Upload } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -45,8 +46,11 @@ export default function DropZone({ children }: { children: ReactNode }) {
   const { enqueue } = useUploadActions();
   const pathname = usePathname();
   const folder = getFolderPath(pathname);
+  const canUpload = useCan()("files:write");
 
   useEffect(() => {
+    if (!canUpload) return;
+
     const onDragOver = (event: DragEvent) => {
       if (!carriesFiles(event)) return;
       // without this the browser opens the file instead of dropping it
@@ -92,7 +96,7 @@ export default function DropZone({ children }: { children: ReactNode }) {
       window.removeEventListener("drop", onDrop);
       window.removeEventListener("dragend", onDragEnd);
     };
-  }, [enqueue, folder]);
+  }, [enqueue, folder, canUpload]);
 
   return (
     <div className="relative mx-auto min-h-full w-full max-w-7xl">

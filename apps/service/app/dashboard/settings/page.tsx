@@ -50,7 +50,9 @@ export default async function Page() {
           <h1 className="text-foreground text-3xl font-bold">Settings</h1>
         </div>
         <p className="text-muted-foreground text-balance">
-          Manage your account and how your Vaze instance handles files.
+          {data.canManageInstance
+            ? "Manage your account and how your Vaze instance handles files."
+            : "Manage your account and the devices signed in to it."}
         </p>
       </div>
 
@@ -64,22 +66,26 @@ export default async function Page() {
           <SessionsList sessions={data.sessions} />
         </Section>
 
-        <Section
-          title="Files"
-          description="Defaults for files and folders you create."
-        >
-          <DefaultVisibility
-            visibility={data.defaultVisibility}
-            counts={data.visibilityCounts}
-          />
-        </Section>
+        {data.canManageInstance && (
+          <>
+            <Section
+              title="Files"
+              description="Defaults for files and folders you create."
+            >
+              <DefaultVisibility
+                visibility={data.defaultVisibility}
+                counts={data.visibilityCounts}
+              />
+            </Section>
 
-        <Section
-          title="Limits"
-          description="Upload size, signed links, caching and how long history is kept."
-        >
-          <LimitsForm limits={data.limits} />
-        </Section>
+            <Section
+              title="Limits"
+              description="Upload size, signed links, caching and how long history is kept."
+            >
+              <LimitsForm limits={data.limits} />
+            </Section>
+          </>
+        )}
       </div>
     </div>
   );

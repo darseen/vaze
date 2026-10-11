@@ -2,13 +2,13 @@
 
 import { parseVisibility } from "@/app/api/_utils";
 import { setDefaultVisibility } from "@/lib/settings";
-import auth from "@/utils/auth";
+import { authorize } from "@/utils/auth";
 import { revalidatePath } from "next/cache";
 
 export default async function updateDefaultVisibility(value: string) {
-  const user = await auth();
+  const { error } = await authorize("settings:manage");
 
-  if (!user) return { error: { message: "Unauthorized" }, data: null };
+  if (error) return { error, data: null };
 
   const visibility = parseVisibility(value);
 

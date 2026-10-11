@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useCan } from "@/app/dashboard/_components/permissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -63,6 +64,7 @@ export default function FileCard({
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
+  const can = useCan();
   const isPrivate = file.visibility === "private";
 
   const handleRename = async (id: string, name: string) => {
@@ -223,16 +225,18 @@ export default function FileCard({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setEditingFile(file);
-                      setNewFileName(file.name);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <Edit className="mr-3 h-4 w-4" />
-                    Rename
-                  </DropdownMenuItem>
+                  {can("files:write") && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setEditingFile(file);
+                        setNewFileName(file.name);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Edit className="mr-3 h-4 w-4" />
+                      Rename
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onClick={handleCopyLink}
                     className="cursor-pointer"
@@ -250,18 +254,20 @@ export default function FileCard({
                       Copy signed link
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem
-                    onClick={handleToggleVisibility}
-                    disabled={loading}
-                    className="cursor-pointer"
-                  >
-                    {isPrivate ? (
-                      <Globe className="mr-3 h-4 w-4" />
-                    ) : (
-                      <Lock className="mr-3 h-4 w-4" />
-                    )}
-                    {isPrivate ? "Make public" : "Make private"}
-                  </DropdownMenuItem>
+                  {can("files:write") && (
+                    <DropdownMenuItem
+                      onClick={handleToggleVisibility}
+                      disabled={loading}
+                      className="cursor-pointer"
+                    >
+                      {isPrivate ? (
+                        <Globe className="mr-3 h-4 w-4" />
+                      ) : (
+                        <Lock className="mr-3 h-4 w-4" />
+                      )}
+                      {isPrivate ? "Make public" : "Make private"}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem className="cursor-pointer" asChild>
                     <a
                       href={`/api/files/download/${file.id}`}
@@ -273,36 +279,42 @@ export default function FileCard({
                       Download
                     </a>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem
-                        onSelect={(e) => e.preventDefault()}
-                        className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                      >
-                        <Trash2 className="mr-3 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete {file.name}?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {`This action cannot be undone. This will permanently
-                            delete "${file.name}" from your storage.`}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(file.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {can("files:delete") && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem
+                            onSelect={(e) => e.preventDefault()}
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                          >
+                            <Trash2 className="mr-3 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Delete {file.name}?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {`This action cannot be undone. This will permanently
+                                delete "${file.name}" from your storage.`}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(file.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

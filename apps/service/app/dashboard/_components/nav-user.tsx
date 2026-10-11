@@ -24,15 +24,25 @@ import {
   LogOut,
   SettingsIcon,
 } from "lucide-react";
+import { isRole, ROLE_INFO } from "@/lib/permissions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useCan } from "./permissions";
 
-export default function NavUser({ username }: { username: string | null }) {
+export default function NavUser({
+  username,
+  role,
+}: {
+  username: string | null;
+  role: string | null;
+}) {
   const { isMobile } = useSidebar();
   const router = useRouter();
+  const can = useCan();
 
   const name = username ?? "Account";
   const initial = username?.[0]?.toUpperCase() ?? "?";
+  const roleLabel = isRole(role) ? ROLE_INFO[role].label : "Member";
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -56,7 +66,7 @@ export default function NavUser({ username }: { username: string | null }) {
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{name}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  Administrator
+                  {roleLabel}
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4 opacity-60" />
@@ -78,25 +88,29 @@ export default function NavUser({ username }: { username: string | null }) {
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{name}</span>
                   <span className="text-muted-foreground truncate text-xs">
-                    Administrator
+                    {roleLabel}
                   </span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/files">
-                  <FilesIcon />
-                  Files
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/api-keys">
-                  <KeyIcon />
-                  API Keys
-                </Link>
-              </DropdownMenuItem>
+              {can("files:read") && (
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/files">
+                    <FilesIcon />
+                    Files
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {can("api-keys:manage") && (
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/api-keys">
+                    <KeyIcon />
+                    API Keys
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings">
                   <SettingsIcon />

@@ -29,8 +29,14 @@ import {
   FolderX,
   History,
   KeyRound,
+  LockKeyhole,
   PencilLine,
   Trash2,
+  UserCheck,
+  UserCog,
+  UserMinus,
+  UserPlus,
+  UserX,
   XCircle,
   type LucideIcon,
 } from "lucide-react";
@@ -96,6 +102,36 @@ const TYPE_META: Record<
     icon: Trash2,
     tone: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   },
+  "user.created": {
+    label: "User added",
+    icon: UserPlus,
+    tone: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  },
+  "user.access-changed": {
+    label: "User access changed",
+    icon: UserCog,
+    tone: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  },
+  "user.password-reset": {
+    label: "User password reset",
+    icon: LockKeyhole,
+    tone: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  },
+  "user.disabled": {
+    label: "User disabled",
+    icon: UserX,
+    tone: "bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300",
+  },
+  "user.enabled": {
+    label: "User enabled",
+    icon: UserCheck,
+    tone: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  },
+  "user.deleted": {
+    label: "User deleted",
+    icon: UserMinus,
+    tone: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  },
 };
 
 const FILTERS = [
@@ -103,6 +139,7 @@ const FILTERS = [
   { value: "uploads", label: "Uploads" },
   { value: "deletions", label: "Deletions" },
   { value: "api-keys", label: "API keys" },
+  { value: "users", label: "Users" },
 ] as const;
 
 type Filter = (typeof FILTERS)[number]["value"];
@@ -112,6 +149,7 @@ function matchesFilter(type: ActivityType, filter: Filter) {
   if (filter === "deletions")
     return type.startsWith("file.") || type.startsWith("folder.");
   if (filter === "api-keys") return type.startsWith("api-key.");
+  if (filter === "users") return type.startsWith("user.");
   return true;
 }
 
@@ -198,6 +236,17 @@ export default function ActivityList({
     [activities, filter],
   );
 
+  // only admins ever have user entries, so everyone else never sees the tab
+  const filters = useMemo(
+    () =>
+      FILTERS.filter(
+        (option) =>
+          option.value !== "users" ||
+          activities.some((activity) => matchesFilter(activity.type, "users")),
+      ),
+    [activities],
+  );
+
   // one heading per calendar day, in the order the rows already arrive
   const groups = useMemo(() => {
     const out: { label: string; items: ActivityRow[] }[] = [];
@@ -214,7 +263,8 @@ export default function ActivityList({
   }, [visible]);
 
   const allVisibleSelected =
-    visible.length > 0 && visible.every((activity) => selected.has(activity.id));
+    visible.length > 0 &&
+    visible.every((activity) => selected.has(activity.id));
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -289,7 +339,7 @@ export default function ActivityList({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs value={filter} onValueChange={changeFilter}>
           <TabsList>
-            {FILTERS.map((option) => (
+            {filters.map((option) => (
               <TabsTrigger key={option.value} value={option.value}>
                 {option.label}
               </TabsTrigger>

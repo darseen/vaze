@@ -10,8 +10,10 @@ import authorizeRequest from "../_utils/authorize-request";
 
 export default async function DELETE(request: NextRequest) {
   try {
-    const { data: authData, error: authError } =
-      await authorizeRequest(request);
+    const { data: authData, error: authError } = await authorizeRequest(
+      request,
+      { scope: "files:delete" },
+    );
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },

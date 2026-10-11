@@ -6,6 +6,8 @@ export type {
   ApiRequest,
   File,
   Folder,
+  Role,
+  Scope,
   Session,
   Settings,
   User,

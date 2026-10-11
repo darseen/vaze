@@ -19,6 +19,7 @@ export async function GET(
   try {
     // a folder of images asks for one per card, faster than the API's allowance
     const { error: authError } = await authorizeRequest(request, {
+      scope: "files:read",
       bucket: "thumbnails",
       limit: 1200,
     });

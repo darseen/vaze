@@ -1,4 +1,6 @@
+import { authorize } from "@/utils/auth";
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import GenerateKey from "./_components/generate-key";
 import Header from "./_components/header";
@@ -13,6 +15,9 @@ export const metadata: Metadata = {
 export default async function Page() {
   await connection();
   // everything below will be excluded from prerendering
+
+  const { error: authError } = await authorize("api-keys:manage");
+  if (authError) redirect("/dashboard");
 
   const { data, error } = await fetchKeys();
 

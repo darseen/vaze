@@ -1,7 +1,9 @@
 import { db } from "@/db";
 import { apiRequests, users } from "@repo/db";
 import { auth } from "@/lib/auth";
+import { hasScope, isDisabled } from "@/lib/permissions";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import type { Scope } from "@repo/types";
 import { validateApiKey } from "@/utils/api-keys";
 import { eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
@@ -21,10 +23,21 @@ const unauthorized: AuthorizeResult = {
   data: null,
 };
 
+function forbidden(scope: Scope): AuthorizeResult {
+  return {
+    error: { message: `Missing required scope "${scope}"`, status: 403 },
+    data: null,
+  };
+}
+
 export default async function authorizeRequest(
   request: NextRequest,
-  // a separate bucket keeps a burst of previews from locking out the API
-  { bucket = "api", limit: max = 300 } = {},
+  {
+    scope,
+    // a separate bucket keeps a burst of previews from locking out the API
+    bucket = "api",
+    limit: max = 300,
+  }: { scope: Scope; bucket?: string; limit?: number },
 ): Promise<AuthorizeResult> {
   const limit = rateLimit(bucket, clientIp(request), {
     limit: max,
@@ -49,7 +62,7 @@ export default async function authorizeRequest(
 
     const user = db.select().from(users).where(eq(users.id, key.userId)).get();
 
-    if (!user) return unauthorized;
+    if (!user || isDisabled(user)) return unauthorized;
 
     // request logging is best-effort — a busy DB must not fail a valid request
     try {
@@ -60,6 +73,10 @@ export default async function authorizeRequest(
       console.error("failed to log api request", error);
     }
 
+    // keys only work while their owner may hold them
+    if (!hasScope(user, "api-keys:manage")) return forbidden("api-keys:manage");
+    if (!hasScope(user, scope)) return forbidden(scope);
+
     return {
       error: null,
       data: { user: { id: user.id, username: user.name } },
@@ -68,6 +85,8 @@ export default async function authorizeRequest(
 
   const session = await auth.api.getSession({ headers: request.headers });
   if (session) {
+    if (!hasScope(session.user, scope)) return forbidden(scope);
+
     return {
       error: null,
       data: { user: { id: session.user.id, username: session.user.name } },

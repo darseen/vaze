@@ -12,6 +12,24 @@ icon: Flag
    becomes the admin.**
 3. Log in with your new credentials.
 
+## Add more users
+
+Once the admin account exists, public registration closes. To give someone
+else access, open **Users** in the dashboard, choose **Add user**, and set
+their name, email, a password and a role:
+
+| Role       | Can                                                                 |
+| ---------- | ------------------------------------------------------------------- |
+| **Admin**  | Everything, including users and instance settings                   |
+| **Editor** | Upload, edit and delete files, and create API keys                  |
+| **Viewer** | Browse and download files                                           |
+| **Custom** | Only the [scopes](/docs/api-reference#scopes) you tick              |
+
+Files are shared across the instance; roles decide who can see and change
+them. From the same page you can change someone's role, reset their password,
+disable them (signs them out and pauses their API keys) or delete them. Every
+change is recorded in your **Activity** history.
+
 ## The dashboard
 
 After logging in you land on the dashboard, which gives you an overview of
@@ -34,8 +52,8 @@ To use Vaze from other applications you need an API key:
 3. Copy the key — you'll pass it in the `API-Key` header on every request.
 
 <Callout type="warn">
-  Treat API keys like passwords. Anyone holding a key has full access to the
-  files on your instance.
+  Treat API keys like passwords. Anyone holding a key can do whatever the
+  key's owner is allowed to do.
 </Callout>
 
 ## Use Vaze from your apps

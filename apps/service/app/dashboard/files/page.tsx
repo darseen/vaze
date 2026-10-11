@@ -1,7 +1,8 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { fetchFolderByKey } from "@/app/api/_utils";
+import { authorize } from "@/utils/auth";
 import ActionBar from "./_components/action-bar";
 import DropZone from "./_components/drop-zone";
 import FilesList from "./_components/files-list";
@@ -12,6 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
+  const { error: authError } = await authorize("files:read");
+  if (authError) redirect("/dashboard");
+
   // the root folder's key is the empty string
   const { data, error } = await fetchFolderByKey("");
 

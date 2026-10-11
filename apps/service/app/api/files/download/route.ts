@@ -10,7 +10,9 @@ import authorizeRequest from "../../_utils/authorize-request";
 
 export async function POST(request: NextRequest) {
   try {
-    const { error: authError } = await authorizeRequest(request);
+    const { error: authError } = await authorizeRequest(request, {
+      scope: "files:read",
+    });
     if (authError) {
       return NextResponse.json(
         { data: null, error: { message: authError.message } },

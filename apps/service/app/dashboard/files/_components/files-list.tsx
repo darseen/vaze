@@ -40,6 +40,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useCan } from "@/app/dashboard/_components/permissions";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -76,6 +77,7 @@ export default function FilesList({ files, folders }: Props) {
   const lastToggledIndex = useRef<number | null>(null);
 
   const router = useRouter();
+  const can = useCan();
   const query = search.trim().toLowerCase();
 
   const visibleFolders = useMemo(() => {
@@ -338,15 +340,17 @@ export default function FilesList({ files, folders }: Props) {
                 <Download className="mr-1 h-4 w-4" />
                 Download
               </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={deleting}
-                onClick={() => setConfirmingDelete(true)}
-              >
-                <Trash2 className="mr-1 h-4 w-4" />
-                {deleting ? "Deleting..." : "Delete"}
-              </Button>
+              {can("files:delete") && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleting}
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" />
+                  {deleting ? "Deleting..." : "Delete"}
+                </Button>
+              )}
             </div>
           )}
         </div>
