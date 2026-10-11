@@ -13,6 +13,8 @@ export const BASE_UPLOADS_PATH = path.join(BASE_DATA_PATH, "uploads");
 // Uploads are staged here and moved into place only once fully received. Same
 // filesystem as uploads, so the move is an atomic rename.
 export const BASE_TMP_PATH = path.join(BASE_DATA_PATH, "tmp");
+// Dashboard previews of images, one per file id, rendered on first view.
+export const BASE_THUMBNAILS_PATH = path.join(BASE_DATA_PATH, "thumbnails");
 
 const BYTE_UNITS: Record<string, number> = {
   b: 1,

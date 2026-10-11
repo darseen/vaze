@@ -23,9 +23,11 @@ const unauthorized: AuthorizeResult = {
 
 export default async function authorizeRequest(
   request: NextRequest,
+  // a separate bucket keeps a burst of previews from locking out the API
+  { bucket = "api", limit: max = 300 } = {},
 ): Promise<AuthorizeResult> {
-  const limit = rateLimit("api", clientIp(request), {
-    limit: 300,
+  const limit = rateLimit(bucket, clientIp(request), {
+    limit: max,
     windowMs: 60_000,
   });
 

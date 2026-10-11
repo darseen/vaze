@@ -133,14 +133,14 @@ function PreviewFrame({
 
 function ImagePreview({ file, src }: PreviewProps) {
   const [status, setStatus] = useState<Status>("loading");
-  // cropping would cut into logos and blow up tiny icons
+  // logos and icons are small as-is, and cropping would cut into them
   const contain = /\.(svg|ico)$/i.test(file.name);
 
   return (
     <PreviewFrame file={file} status={status}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        src={contain ? src : `/api/files/thumbnail/${file.id}`}
         alt=""
         decoding="async"
         draggable={false}

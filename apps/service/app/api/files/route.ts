@@ -6,6 +6,7 @@ import {
   type UploadContext,
 } from "@/lib/activity";
 import { getDefaultVisibility, getLimits } from "@/lib/settings";
+import { removeThumbnails } from "@/lib/thumbnails";
 import { files as filesTable } from "@repo/db";
 import type { File as FileDB, Folder } from "@repo/types";
 import { getAvailableStorage } from "@/utils/storage";
@@ -551,6 +552,8 @@ export async function DELETE(request: NextRequest) {
         failedNames.push(file.name);
       }
     }
+
+    await removeThumbnails(deleted);
 
     // ids that matched no row are left out: another tab having deleted them
     // first is not worth a history entry
