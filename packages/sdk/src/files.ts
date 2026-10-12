@@ -2,7 +2,9 @@ import type { FileWithUrl, Visibility } from "@repo/types";
 import Base from "./base.js";
 import type {
   BulkDeleteResult,
+  BulkMoveResult,
   ListOptions,
+  MoveDestination,
   SignedUrl,
   SignOptions,
 } from "./types/index.js";
@@ -144,6 +146,47 @@ export default class Files extends Base {
 
   public async setVisibility(data: { id: string; visibility: Visibility }) {
     return await this.request<null>("PUT", this.apiUrl("/api/files"), data);
+  }
+
+  /** Move a file into another folder; its key and URL change with it. */
+  public async move(data: { id: string } & MoveDestination) {
+    const { data: responseData, error } = await this.request<{
+      file: FileWithUrl;
+    }>("POST", this.apiUrl("/api/files/move"), data);
+
+    return {
+      error,
+      data: responseData
+        ? {
+            file: constructFileUrls({
+              vazeUrl: this.vazeUrl,
+              files: [responseData.file],
+            })[0],
+          }
+        : null,
+    };
+  }
+
+  /** Move several files into one folder; each id reports its own outcome. */
+  public async moveMany(ids: string[], destination: MoveDestination) {
+    const { data, error } = await this.request<BulkMoveResult>(
+      "POST",
+      this.apiUrl("/api/files/move"),
+      { ids, ...destination },
+    );
+
+    return {
+      error,
+      data: data
+        ? {
+            files: constructFileUrls({
+              vazeUrl: this.vazeUrl,
+              files: data.files,
+            }),
+            failed: data.failed,
+          }
+        : null,
+    };
   }
 
   /** Mint a time-limited URL that reads a file without an API key. */

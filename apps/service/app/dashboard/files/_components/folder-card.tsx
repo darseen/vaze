@@ -34,6 +34,7 @@ import {
   Download,
   Edit,
   FolderIcon,
+  FolderInput,
   Globe,
   Lock,
   MoreVertical,
@@ -42,6 +43,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import MoveDialog from "./move-dialog";
 
 interface Props {
   folder: Folder;
@@ -50,6 +52,7 @@ interface Props {
 export default function FolderCard({ folder }: Props) {
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
+  const [moveOpen, setMoveOpen] = useState(false);
   const [cascading, setCascading] = useState<Visibility | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -169,6 +172,16 @@ export default function FolderCard({ folder }: Props) {
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
+                          setMoveOpen(true);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <FolderInput className="mr-3 h-4 w-4" />
+                        Move
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setCascading("private");
                         }}
                         disabled={loading}
@@ -271,6 +284,12 @@ export default function FolderCard({ folder }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      <MoveDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        target={{ folder }}
+      />
 
       {/* Cascade Visibility Confirmation */}
       <AlertDialog

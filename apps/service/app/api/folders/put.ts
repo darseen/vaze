@@ -15,6 +15,7 @@ import {
   toStoragePath,
 } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
+import { updateDescendantKeys, type Tx } from "../_utils/move";
 
 export default async function PUT(request: NextRequest) {
   try {
@@ -162,9 +163,6 @@ export default async function PUT(request: NextRequest) {
   }
 }
 
-// the transaction handle passed to db.transaction's callback
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
 // SQLite caps bound parameters per statement, so a wide tree is updated in
 // batches rather than one giant IN list.
 const ID_CHUNK_SIZE = 500;
@@ -196,39 +194,5 @@ function setDescendantVisibility(
       .set({ visibility, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(inArray(filesTable.folderId, folderIds.slice(i, i + ID_CHUNK_SIZE)))
       .run();
-  }
-}
-
-// Rewrite the keys of everything below a moved folder. Walking by parentId is
-// exact, unlike a LIKE prefix match which breaks on names containing `%` or `_`.
-function updateDescendantKeys(tx: Tx, parentId: string, newParentKey: string) {
-  const subfolders = tx
-    .select({ id: foldersTable.id, name: foldersTable.name })
-    .from(foldersTable)
-    .where(eq(foldersTable.parentId, parentId))
-    .all();
-
-  const files = tx
-    .select({ id: filesTable.id, name: filesTable.name })
-    .from(filesTable)
-    .where(eq(filesTable.folderId, parentId))
-    .all();
-
-  for (const file of files) {
-    tx.update(filesTable)
-      .set({ key: joinKey(newParentKey, file.name) })
-      .where(eq(filesTable.id, file.id))
-      .run();
-  }
-
-  for (const folder of subfolders) {
-    const childKey = joinKey(newParentKey, folder.name);
-
-    tx.update(foldersTable)
-      .set({ key: childKey })
-      .where(eq(foldersTable.id, folder.id))
-      .run();
-
-    updateDescendantKeys(tx, folder.id, childKey);
   }
 }

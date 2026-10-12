@@ -34,6 +34,7 @@ import {
   Clock,
   Download,
   Edit,
+  FolderInput,
   Globe,
   Link as LinkIcon,
   Lock,
@@ -44,6 +45,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import FilePreview from "./file-preview";
+import MoveDialog from "./move-dialog";
 
 interface Props {
   file: FileWithUrl;
@@ -61,6 +63,7 @@ export default function FileCard({
 }: Props) {
   const [editingFile, setEditingFile] = useState<FileWithUrl | null>(null);
   const [newFileName, setNewFileName] = useState("");
+  const [moveOpen, setMoveOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
@@ -226,16 +229,25 @@ export default function FileCard({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   {can("files:write") && (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setEditingFile(file);
-                        setNewFileName(file.name);
-                      }}
-                      className="cursor-pointer"
-                    >
-                      <Edit className="mr-3 h-4 w-4" />
-                      Rename
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditingFile(file);
+                          setNewFileName(file.name);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Edit className="mr-3 h-4 w-4" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setMoveOpen(true)}
+                        className="cursor-pointer"
+                      >
+                        <FolderInput className="mr-3 h-4 w-4" />
+                        Move
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuItem
                     onClick={handleCopyLink}
@@ -353,6 +365,12 @@ export default function FileCard({
           />
         )}
       </Card>
+
+      <MoveDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        target={{ files: [file] }}
+      />
 
       {/* Rename File Dialog */}
       <Dialog open={!!editingFile} onOpenChange={() => setEditingFile(null)}>

@@ -10,7 +10,7 @@ export const SCOPE_INFO: Record<Scope, { label: string; description: string }> =
     "files:write": {
       label: "Upload and edit files",
       description:
-        "Upload files, create folders, rename, and change visibility.",
+        "Upload files, create folders, rename, move, and change visibility.",
     },
     "files:delete": {
       label: "Delete files",

@@ -78,6 +78,22 @@ Renaming a folder also rewrites the keys of everything inside it. A sibling
 folder with the same name causes a `409` error, and the root folder cannot be
 renamed at all (`400`).
 
+## Move a folder
+
+```ts
+const { data, error } = await vaze.folders.move({
+  id: "folder-id",
+  folder: "archive/2025", // or: folderId: "folder-id"
+});
+
+// data => { folder: Folder } at its new key
+```
+
+Everything inside moves with it, and the keys of all its files and subfolders
+are rewritten. `folder` is created if missing and `""` is the root. A clash in
+the destination returns `409`; moving the root, or moving a folder into itself
+or one of its own subfolders, returns `400`.
+
 ## Change visibility in bulk
 
 ```ts

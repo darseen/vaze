@@ -1,6 +1,6 @@
 import type { FileWithUrl, Folder, Visibility } from "@repo/types";
 import Base from "./base.js";
-import type { ListOptions } from "./types/index.js";
+import type { ListOptions, MoveDestination } from "./types/index.js";
 import { constructFileUrls } from "./utils/index.js";
 
 export default class Folders extends Base {
@@ -45,6 +45,15 @@ export default class Folders extends Base {
 
   public async rename(data: { id: string; name: string }) {
     return await this.request<null>("PUT", this.apiUrl("/api/folders"), data);
+  }
+
+  /** Move a folder, and everything inside it, into another folder. */
+  public async move(data: { id: string } & MoveDestination) {
+    return await this.request<{ folder: Folder }>(
+      "POST",
+      this.apiUrl("/api/folders/move"),
+      data,
+    );
   }
 
   /** Apply a visibility to every file at or below this folder. */

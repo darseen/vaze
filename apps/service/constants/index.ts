@@ -57,6 +57,9 @@ export const MAX_FILES_PER_REQUEST = parseCount(
 /** Cap on ids accepted by one batch delete request. */
 export const MAX_DELETE_BATCH = parseCount(process.env.MAX_DELETE_BATCH, 500);
 
+/** Cap on ids accepted by one batch move request. */
+export const MAX_MOVE_BATCH = parseCount(process.env.MAX_MOVE_BATCH, 500);
+
 /** Cap on ids accepted by one multi-file zip download. */
 export const MAX_DOWNLOAD_BATCH = parseCount(
   process.env.MAX_DOWNLOAD_BATCH,

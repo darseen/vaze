@@ -76,7 +76,7 @@ by one:
 | Scope             | Admin | Editor | Viewer | Grants                                                       |
 | ----------------- | ----- | ------ | ------ | ------------------------------------------------------------ |
 | `files:read`      | ✓     | ✓      | ✓      | List, search, download and sign files; browse and zip folders |
-| `files:write`     | ✓     | ✓      |        | Upload, rename and change visibility; create and rename folders |
+| `files:write`     | ✓     | ✓      |        | Upload, rename, move and change visibility; create, rename and move folders |
 | `files:delete`    | ✓     | ✓      |        | Delete files and folders                                      |
 | `api-keys:manage` | ✓     | ✓      |        | Create API keys, and call the API with them                   |
 | `settings:manage` | ✓     |        |        | Instance settings (dashboard only)                            |
@@ -126,12 +126,12 @@ and container health checks:
 <Cards>
   <Card
     title="Files"
-    description="Upload, list, search, download, rename, delete, and publicly serve files."
+    description="Upload, list, search, download, rename, move, delete, and publicly serve files."
     href="/docs/api-reference/files"
   />
   <Card
     title="Folders"
-    description="Browse, create, rename, and delete folders."
+    description="Browse, create, rename, move, and delete folders."
     href="/docs/api-reference/folders"
   />
 </Cards>

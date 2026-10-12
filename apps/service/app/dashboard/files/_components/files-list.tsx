@@ -36,6 +36,7 @@ import {
   Download,
   FileIcon,
   FolderIcon,
+  FolderInput,
   Search,
   Trash2,
   X,
@@ -47,6 +48,7 @@ import { toast } from "sonner";
 import FileCard from "./file-card";
 import FileViewer from "./file-viewer";
 import FolderCard from "./folder-card";
+import MoveDialog from "./move-dialog";
 
 interface Props {
   files: FileWithUrl[];
@@ -72,6 +74,7 @@ export default function FilesList({ files, folders }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [movingSelected, setMovingSelected] = useState(false);
   const [viewingId, setViewingId] = useState<string | null>(null);
   // index of the last checkbox clicked, anchoring shift-click ranges
   const lastToggledIndex = useRef<number | null>(null);
@@ -340,6 +343,16 @@ export default function FilesList({ files, folders }: Props) {
                 <Download className="mr-1 h-4 w-4" />
                 Download
               </Button>
+              {can("files:write") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMovingSelected(true)}
+                >
+                  <FolderInput className="mr-1 h-4 w-4" />
+                  Move
+                </Button>
+              )}
               {can("files:delete") && (
                 <Button
                   variant="destructive"
@@ -430,6 +443,13 @@ export default function FilesList({ files, folders }: Props) {
         index={viewingIndex}
         onIndexChange={(index) => setViewingId(visibleFiles[index].id)}
         onClose={() => setViewingId(null)}
+      />
+
+      <MoveDialog
+        open={movingSelected}
+        onOpenChange={setMovingSelected}
+        target={{ files: selectedFiles }}
+        onMoved={clearSelection}
       />
 
       <AlertDialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>

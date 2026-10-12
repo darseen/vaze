@@ -1,3 +1,4 @@
+import type { FileWithUrl } from "@repo/types";
 import type Files from "../files.js";
 import type Folders from "../folders.js";
 
@@ -30,6 +31,18 @@ export type SignOptions = {
 export type SignedUrl = {
   url: string;
   expiresAt: string;
+};
+
+export type MoveDestination = {
+  /** The destination folder's id. Either this or `folder` is required. */
+  folderId?: string;
+  /** The destination folder's key, created if missing; `""` is the root. */
+  folder?: string;
+};
+
+export type BulkMoveResult = {
+  files: FileWithUrl[];
+  failed: { id: string; message: string }[];
 };
 
 export type BulkDeleteResult = {

@@ -158,6 +158,35 @@ const { error } = await vaze.files.rename({
 The name must be a single path segment. Renaming to a name already taken in
 the same folder returns a `409` error.
 
+## Move a file
+
+```ts
+const { data, error } = await vaze.files.move({
+  id: "file-id",
+  folder: "projects/archive", // or: folderId: "folder-id"
+});
+
+// data => { file: File } at its new key, with an absolute url
+```
+
+`folder` is a key that is created if missing, and `""` is the root. A name
+already taken in the destination returns a `409` error. The file keeps its id
+and visibility, but its URL changes, so links to the old location stop working.
+
+## Move several files
+
+```ts
+const { data, error } = await vaze.files.moveMany(["file-id", "other-id"], {
+  folder: "projects/archive",
+});
+
+console.log(data.files); // the files that were moved, at their new keys
+console.log(data.failed); // [{ id, message }] for the ones that were not
+```
+
+Like `deleteMany`, a single clash or bad id does not stop the others, and
+`error` is only set when the whole request fails.
+
 ## Change visibility
 
 ```ts

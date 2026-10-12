@@ -30,7 +30,9 @@ export type {
 } from "@repo/types";
 export type {
   BulkDeleteResult,
+  BulkMoveResult,
   ListOptions,
+  MoveDestination,
   SignedUrl,
   SignOptions,
   VazeOptions,

@@ -104,6 +104,37 @@ takes the instance default rather than the folder's last cascade. Unlike rename,
 the **root folder is a valid cascade target**, which is how you lock down an
 entire instance in one call.
 
+## Move a folder
+
+```
+POST /api/folders/move
+```
+
+JSON body, with the destination given as either `folderId` or `folder`:
+
+```json
+{ "id": "<folder-id>", "folder": "archive/2025" }
+```
+
+`folderId` names an existing folder; `folder` is a key that is created if
+missing, and `""` is the root. The folder keeps its name and takes everything
+inside it along, so the key of every file and subfolder below it is rewritten in
+one transaction. Public links and signed URLs pointing at the old keys stop
+working.
+
+```json
+{ "data": { "folder": { "key": "archive/2025/demo", ... } }, "error": null }
+```
+
+| Status | Meaning                                                                         |
+| ------ | ------------------------------------------------------------------------------- |
+| `400`  | Missing `id` or destination, an invalid key, the root folder, or a destination inside the folder itself |
+| `404`  | No such folder, or no folder with that `folderId`                               |
+| `409`  | A file or folder with the same name already exists in the destination           |
+
+Moving a folder into the folder it is already in succeeds without changing
+anything.
+
 ## Download a folder as a zip
 
 ```

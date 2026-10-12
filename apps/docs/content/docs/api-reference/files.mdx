@@ -142,6 +142,66 @@ unrecognised `visibility` responds `400`.
 Changing visibility alone never touches the bytes on disk. Renaming changes the
 key, which invalidates any signed URL previously minted for the old key.
 
+## Move files
+
+```
+POST /api/files/move
+```
+
+JSON body, with the destination given as either `folderId` or `folder`:
+
+```json
+{ "id": "<file-id>", "folder": "projects/archive" }
+```
+
+| Field      | Type     | Description                                                                       |
+| ---------- | -------- | --------------------------------------------------------------------------------- |
+| `id`       | string   | The file to move. Send this or `ids`.                                             |
+| `ids`      | string[] | Several files to move into the same folder. See below.                            |
+| `folderId` | string   | The destination folder's id. Responds `404` if it doesn't exist.                  |
+| `folder`   | string   | The destination folder's key, created (with any missing parents) like an upload's `folder` field. `""` is the root. |
+
+A moved file keeps its id, name and visibility; its `key` and `url` change to
+the new location, which breaks any public link or signed URL pointing at the old
+one. The response carries the file as it is now:
+
+```json
+{ "data": { "file": { "key": "projects/archive/photo.png", ... } }, "error": null }
+```
+
+| Status | Meaning                                                                    |
+| ------ | -------------------------------------------------------------------------- |
+| `400`  | Missing `id` or destination, or an invalid `folder` key                    |
+| `404`  | No such file, or no folder with that `folderId`                            |
+| `409`  | A file or folder with the same name already exists in the destination      |
+
+Moving a file into the folder it is already in succeeds without changing
+anything.
+
+## Move several files
+
+Send `ids` instead of `id` to move a batch into one folder:
+
+```json
+{ "ids": ["<file-id>", "<file-id>"], "folderId": "<folder-id>" }
+```
+
+Each file is moved on its own, so a name clash or a bad id does not stop the
+rest. The response lists the files that were moved and the ids that were not:
+
+```json
+{
+  "data": {
+    "files": [{ "id": "<file-id>", "key": "projects/archive/a.png", ... }],
+    "failed": [{ "id": "<file-id>", "message": "\"b.png\" already exists in the destination folder" }]
+  },
+  "error": null
+}
+```
+
+Responds `404` only when none of the ids exist, and `400` for an empty list or
+more than `MAX_MOVE_BATCH` (default 500) ids.
+
 ## Sign a URL
 
 ```
