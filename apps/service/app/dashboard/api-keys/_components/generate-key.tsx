@@ -1,6 +1,7 @@
 "use client";
 
 import generateApiKey from "@/actions/api-keys/generate-key";
+import { useCan } from "@/app/dashboard/_components/permissions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -25,15 +27,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { KEY_SCOPES, SCOPE_INFO } from "@/lib/permissions";
 import { copyToClipboard } from "@/utils/clipboard";
+import type { Scope } from "@repo/types";
 import { Check, Copy, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function GenerateKey() {
+  const can = useCan();
+  const heldScopes = KEY_SCOPES.filter(can);
   const [keyName, setKeyName] = useState("");
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [expirationType, setExpirationType] = useState<string>("never");
+  const [scopes, setScopes] = useState<Scope[]>(heldScopes);
   const [loading, setLoading] = useState(false);
   const [showKeyDialog, setShowKeyDialog] = useState(false);
   const [generatedKey, setGeneratedKey] = useState({
@@ -69,6 +76,13 @@ export default function GenerateKey() {
     setExpiresAt(calculateExpirationDate(type));
   };
 
+  const toggleScope = (scope: Scope, checked: boolean) => {
+    const picked = new Set(scopes);
+    if (checked) picked.add(scope);
+    else picked.delete(scope);
+    setScopes(KEY_SCOPES.filter((item) => picked.has(item)));
+  };
+
   const handleCopyKey = async () => {
     const success = await copyToClipboard(generatedKey.key);
     if (!success) {
@@ -87,9 +101,14 @@ export default function GenerateKey() {
         return;
       }
 
+      if (scopes.length === 0) {
+        toast.error("Pick at least one scope");
+        return;
+      }
+
       setLoading(true);
 
-      const { data, error } = await generateApiKey(keyName, expiresAt);
+      const { data, error } = await generateApiKey(keyName, expiresAt, scopes);
 
       if (error) return toast.error(error.message);
 
@@ -108,6 +127,7 @@ export default function GenerateKey() {
       setKeyName("");
       setExpirationType("never");
       setExpiresAt(null);
+      setScopes(heldScopes);
     }
   };
 
@@ -126,7 +146,7 @@ export default function GenerateKey() {
           </CardTitle>
           <CardDescription>
             Create a new API key for your applications. Give it a descriptive
-            name and set an expiration date for security.
+            name, only the scopes it needs, and an expiration date for security.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -170,6 +190,51 @@ export default function GenerateKey() {
                 Key will expire on: {expiresAt.toLocaleString()}
               </div>
             )}
+
+            <div className="space-y-2">
+              <div>
+                <Label>Scopes</Label>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  What this key can do. It never goes beyond your own access.
+                </p>
+              </div>
+              <ul className="divide-y rounded-lg border">
+                {KEY_SCOPES.map((scope) => {
+                  const held = can(scope);
+
+                  return (
+                    <li key={scope}>
+                      <Label
+                        htmlFor={`key-scope-${scope}`}
+                        className="flex items-start gap-3 p-3 font-normal has-disabled:cursor-default"
+                      >
+                        <Checkbox
+                          id={`key-scope-${scope}`}
+                          checked={held && scopes.includes(scope)}
+                          disabled={!held}
+                          onCheckedChange={(state) =>
+                            toggleScope(scope, state === true)
+                          }
+                          className="mt-0.5"
+                        />
+                        <div className="grid gap-1">
+                          <span className="flex flex-wrap items-center gap-2 font-medium">
+                            {SCOPE_INFO[scope].label}
+                            <code className="text-muted-foreground bg-muted rounded px-1 py-0.5 font-mono text-xs">
+                              {scope}
+                            </code>
+                          </span>
+                          <span className="text-muted-foreground text-sm leading-snug">
+                            {SCOPE_INFO[scope].description}
+                            {!held && " Your account doesn't have it."}
+                          </span>
+                        </div>
+                      </Label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
 
             <Button
               onClick={handleGenerateApiKey}

@@ -13,6 +13,8 @@ export const apiKeys = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     keyHash: text("key_hash").notNull().unique(),
+    // comma-separated; capped by the owner's own scopes on every request
+    scopes: text("scopes").notNull().default(""),
     lastUsed: text("last_used"),
     expiresAt: text("expires_at"),
     ...timestamps,

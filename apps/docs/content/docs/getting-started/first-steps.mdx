@@ -48,12 +48,13 @@ From the **Files** page you can:
 To use Vaze from other applications you need an API key:
 
 1. Go to the **API Keys** page in the dashboard.
-2. Create a new key and give it a recognizable name.
+2. Create a new key, give it a recognizable name, and tick only the
+   [scopes](/docs/api-reference#api-key-scopes) it needs.
 3. Copy the key — you'll pass it in the `API-Key` header on every request.
 
 <Callout type="warn">
-  Treat API keys like passwords. Anyone holding a key can do whatever the
-  key's owner is allowed to do.
+  Treat API keys like passwords. Anyone holding a key can do whatever its
+  scopes allow, for as long as the key's owner is allowed to do it too.
 </Callout>
 
 ## Use Vaze from your apps

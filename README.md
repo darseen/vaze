@@ -24,15 +24,11 @@
 - **Download & Public Hosting**: Download files directly, grab a whole folder or a multi-file selection as one streamed zip, or embed files from a public hosting URL that serves untrusted content sandboxed.
 - **Private files & signed URLs**: Mark any file (or a whole folder) private so it stops being world-readable, then hand out time-limited signed links that work without an API key.
 - **Range requests & caching**: Byte-range support means audio and video seek properly, and `ETag`/`Last-Modified` revalidation keeps repeat embeds down to a bodiless `304`.
-- **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps.
+- **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps, each limited to the scopes it needs (read, write, delete).
 - **Users, roles and scopes**: The admin can add more accounts and give each one a role (Admin, Editor, Viewer) or a custom set of scopes, then change, disable or remove them later. Access is enforced on every API call and every API key.
 - **Settings**: Change your name, email and password, sign out other devices, pick whether new files start public or private, and tune upload, signed-link, caching and retention limits without a restart.
 - **Powerful API**: Use Vaze as a backend service for any application that needs file hosting or storage, with simple RESTful endpoints.
 - **Dockerized**: Get up and running in minutes with the official Docker image.
-
-### Roadmap
-
-Not built yet: API-key scopes.
 
 ---
 

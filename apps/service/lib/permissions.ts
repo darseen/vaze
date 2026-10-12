@@ -81,6 +81,23 @@ export function parseScopes(value: string | null | undefined): Scope[] {
   return normalizeScopes(value ? value.split(",") : []);
 }
 
+// the API only checks these; the rest guard dashboard pages
+export const KEY_SCOPES: Scope[] = [
+  "files:read",
+  "files:write",
+  "files:delete",
+];
+
+/** Keep only scopes an API key can carry, in a stable order. */
+export function normalizeKeyScopes(values: unknown): Scope[] {
+  if (!Array.isArray(values)) return [];
+  return KEY_SCOPES.filter((scope) => values.includes(scope));
+}
+
+export function parseKeyScopes(value: string | null | undefined): Scope[] {
+  return normalizeKeyScopes(value ? value.split(",") : []);
+}
+
 export interface Grantee {
   role?: string | null;
   scopes?: string | null;

@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { apiRequests, users } from "@repo/db";
 import { auth } from "@/lib/auth";
-import { hasScope, isDisabled } from "@/lib/permissions";
+import { hasScope, isDisabled, parseKeyScopes } from "@/lib/permissions";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import type { Scope } from "@repo/types";
 import { validateApiKey } from "@/utils/api-keys";
@@ -26,11 +26,11 @@ const unauthorized: AuthorizeResult = {
   data: null,
 };
 
-function forbidden(scope: Scope): AuthorizeResult {
-  return {
-    error: { message: `Missing required scope "${scope}"`, status: 403 },
-    data: null,
-  };
+function forbidden(scope: Scope, holder?: string): AuthorizeResult {
+  const message = holder
+    ? `${holder} is missing required scope "${scope}"`
+    : `Missing required scope "${scope}"`;
+  return { error: { message, status: 403 }, data: null };
 }
 
 export default async function authorizeRequest(
@@ -83,6 +83,9 @@ export default async function authorizeRequest(
     // keys only work while their owner may hold them
     if (!hasScope(user, "api-keys:manage")) return forbidden("api-keys:manage");
     if (!hasScope(user, scope)) return forbidden(scope);
+    if (!parseKeyScopes(key.scopes).includes(scope)) {
+      return forbidden(scope, "API key");
+    }
 
     return {
       error: null,

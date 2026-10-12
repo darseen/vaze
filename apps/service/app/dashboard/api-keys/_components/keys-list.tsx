@@ -1,6 +1,7 @@
 "use client";
 
 import { deleteApiKey } from "@/actions/api-keys/delete-key";
+import { useCan } from "@/app/dashboard/_components/permissions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { parseKeyScopes, SCOPE_INFO } from "@/lib/permissions";
 import { formatDate } from "@/utils";
 import type { ApiKey } from "@repo/types";
 import {
@@ -33,6 +35,8 @@ interface Props {
 }
 
 export default function KeysList({ keys }: Props) {
+  const can = useCan();
+
   const deleteKey = async (keyId: string) => {
     try {
       const { error } = await deleteApiKey(keyId);
@@ -154,6 +158,29 @@ export default function KeysList({ keys }: Props) {
                         <h3 className="mb-2 text-base font-semibold sm:text-lg">
                           {key.name}
                         </h3>
+                        <div className="flex flex-wrap gap-1.5">
+                          {parseKeyScopes(key.scopes).map((scope) => {
+                            const held = can(scope);
+
+                            return (
+                              <code
+                                key={scope}
+                                title={
+                                  held
+                                    ? SCOPE_INFO[scope].label
+                                    : "Your account no longer has this scope, so the key can't use it"
+                                }
+                                className={`bg-muted rounded px-1.5 py-0.5 font-mono text-xs ${
+                                  held
+                                    ? "text-muted-foreground"
+                                    : "text-muted-foreground/60 line-through"
+                                }`}
+                              >
+                                {scope}
+                              </code>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
 

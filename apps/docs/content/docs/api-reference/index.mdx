@@ -27,12 +27,17 @@ Requests without a valid key receive a `401` response:
 { "data": null, "error": { "message": "Unauthorized" } }
 ```
 
-A key acts as the user who created it, with that user's current role. If the
-role doesn't grant what an endpoint needs, the request receives a `403` that
-names the missing [scope](#scopes):
+A key acts as the user who created it, limited to the
+[scopes picked for the key](#api-key-scopes). A request needs the endpoint's
+scope on both the key and its owner's current role; otherwise it receives a
+`403` that names the missing [scope](#scopes):
 
 ```json
+// the owner's role lacks it
 { "data": null, "error": { "message": "Missing required scope \"files:write\"" } }
+
+// the key lacks it
+{ "data": null, "error": { "message": "API key is missing required scope \"files:write\"" } }
 ```
 
 <Callout>
@@ -59,7 +64,7 @@ Errors also carry a meaningful HTTP status code:
 | ------ | ----------------------------------------------------------- |
 | `400`  | Invalid input (missing fields, invalid names)               |
 | `401`  | Missing or invalid API key, or its owner is disabled        |
-| `403`  | The key's owner lacks the scope the endpoint needs          |
+| `403`  | The key, or its owner, lacks the scope the endpoint needs   |
 | `404`  | File or folder not found                                    |
 | `409`  | Name conflict (a name already taken in the same folder)     |
 | `413`  | Upload too large, or too many files in one request          |
@@ -85,6 +90,20 @@ by one:
 `api-keys:manage` is checked on every request made with a key, so taking it
 away (or disabling the user) stops all of that user's keys at once. Role
 changes apply to the very next request.
+
+### API key scopes
+
+Endpoints only ever ask for `files:read`, `files:write` or `files:delete`, so
+those are the scopes a key can carry. You tick them when you create the key,
+and only the ones your own role holds are on offer. Grant a key just what its
+app needs: an upload script needs `files:write`, a gallery only `files:read`.
+
+A key's scopes are a ceiling on its owner's role, not a grant of their own. If
+the role later loses a scope, the key can't use it either, and it works again
+once the role gets it back. To change what a key can do, create a new one and
+delete the old one.
+
+Keys created before key scopes existed carry all three file scopes.
 
 | Endpoint                                                | Scope          |
 | ------------------------------------------------------- | -------------- |

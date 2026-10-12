@@ -14,6 +14,7 @@ export default async function fetchKeys() {
       .select({
         id: apiKeys.id,
         name: apiKeys.name,
+        scopes: apiKeys.scopes,
         createdAt: apiKeys.createdAt,
         lastUsed: apiKeys.lastUsed,
         expiresAt: apiKeys.expiresAt,

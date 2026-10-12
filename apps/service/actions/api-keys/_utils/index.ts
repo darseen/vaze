@@ -1,5 +1,6 @@
 import { db } from "@/db";
 import { apiKeys } from "@repo/db";
+import type { Scope } from "@repo/types";
 import { hashKey } from "@/utils/api-keys";
 import crypto from "node:crypto";
 
@@ -7,6 +8,7 @@ export function createApiKey(
   userId: string,
   name: string,
   expiresAt: Date | null,
+  scopes: Scope[],
 ): { id: string; name: string; key: string; createdAt: string } {
   // generate random string for the key.
   const key = `vz_${crypto.randomBytes(32).toString("hex")}`;
@@ -25,6 +27,7 @@ export function createApiKey(
       name,
       userId: userId,
       keyHash: keyHash,
+      scopes: scopes.join(","),
       createdAt: createdAt,
       expiresAt: expiresAt?.toISOString() ?? null,
     })
