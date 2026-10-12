@@ -141,7 +141,13 @@ async function handleUpload(request: NextRequest, context: UploadContext) {
     if (authError) {
       return NextResponse.json(
         { error: { message: authError.message }, data: null },
-        { status: authError.status },
+        {
+          status: authError.status,
+          // the dashboard's upload queue waits this long before resuming
+          headers: authError.retryAfter
+            ? { "Retry-After": String(authError.retryAfter) }
+            : undefined,
+        },
       );
     }
 

@@ -18,6 +18,7 @@
 ## Features
 
 - **File & Folder Management**: Create, rename, move, and delete files and folders directly from the web UI, including multi-select for downloading, moving or deleting many files at once.
+- **Folder uploads**: Pick or drag in a whole folder and Vaze recreates it, subfolders and all, uploading each file with its own progress and cancel.
 - **Path-addressed storage**: Files keep the name you upload them with, so you choose the public URL — `https://your-vaze/api/hosting/projects/demo/photo.png`.
 - **Streaming uploads**: Upload bodies go straight to disk, so file size is bounded by your volume rather than by memory.
 - **Download & Public Hosting**: Download files directly, grab a whole folder or a multi-file selection as one streamed zip, or embed files from a public hosting URL that serves untrusted content sandboxed.
@@ -31,7 +32,7 @@
 
 ### Roadmap
 
-Not built yet: folder upload and drag-and-drop, and API-key scopes.
+Not built yet: API-key scopes.
 
 ---
 

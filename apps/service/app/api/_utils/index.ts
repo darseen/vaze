@@ -211,16 +211,24 @@ export async function createNestedFolders(folderKey: string): Promise<Folder> {
 
     await fs.mkdir(toStoragePath(currentKey), { recursive: true });
 
-    const created = db
-      .insert(foldersTable)
+    // a parallel upload into the same new folder may have inserted it meanwhile
+    db.insert(foldersTable)
       .values({
         id: crypto.randomUUID(),
         name: segment,
         key: currentKey,
         parentId: parent.id,
       })
-      .returning()
+      .onConflictDoNothing()
+      .run();
+
+    const created = db
+      .select()
+      .from(foldersTable)
+      .where(eq(foldersTable.key, currentKey))
       .get();
+
+    if (!created) throw new Error(`Failed to create folder "${currentKey}"`);
 
     parent = created;
   }

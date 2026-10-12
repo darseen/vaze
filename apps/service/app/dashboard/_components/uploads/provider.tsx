@@ -14,15 +14,13 @@ import {
 } from "react";
 
 export type UploadStatus =
-  | "queued"
-  | "uploading"
-  | "success"
-  | "error"
-  | "canceled";
+  "queued" | "uploading" | "success" | "error" | "canceled";
 
 export interface Upload {
   id: string;
   name: string;
+  /** Subfolder path inside the target folder, "" when it lands right in it. */
+  dir: string;
   size: number;
   /** Percentage of the request body sent so far. */
   progress: number;
@@ -30,9 +28,15 @@ export interface Upload {
   error?: string;
 }
 
+/** A file plus the subfolder it sits in when it came from a folder upload. */
+export interface UploadItem {
+  file: File;
+  dir: string;
+}
+
 export interface UploadActions {
   /** Queue one request per file so each gets its own progress and cancel. */
-  enqueue: (files: File[], folder: string) => void;
+  enqueue: (items: UploadItem[], folder: string) => void;
   cancel: (id: string) => void;
   cancelAll: () => void;
   clearFinished: () => void;
@@ -46,6 +50,7 @@ interface QueuedUpload {
 
 const MAX_CONCURRENT_UPLOADS = 3;
 const SUCCESS_ROW_TTL = 5000;
+const RATE_LIMIT_FALLBACK_MS = 5000;
 
 // a counter, not `crypto.randomUUID()`, which needs a secure context — an
 // instance served over plain HTTP on a LAN does not have one
@@ -56,7 +61,8 @@ const UploadActionsContext = createContext<UploadActions | null>(null);
 
 export function useUploads() {
   const uploads = useContext(UploadsStateContext);
-  if (!uploads) throw new Error("useUploads must be used inside UploadsProvider");
+  if (!uploads)
+    throw new Error("useUploads must be used inside UploadsProvider");
   return uploads;
 }
 
@@ -65,6 +71,14 @@ export function useUploadActions() {
   if (!actions)
     throw new Error("useUploadActions must be used inside UploadsProvider");
   return actions;
+}
+
+/** A folder picker gives each file its path in `webkitRelativePath`. */
+export function pickedItems(files: Iterable<File>): UploadItem[] {
+  return Array.from(files, (file) => ({
+    file,
+    dir: file.webkitRelativePath.split("/").slice(0, -1).join("/"),
+  }));
 }
 
 /** Pull the API error message out of an XHR, falling back to its status. */
@@ -96,6 +110,8 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
   const active = useRef(new Map<string, XMLHttpRequest>());
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
   const succeeded = useRef(0);
+  // set while rate limited; a timer clears it and restarts the queue
+  const paused = useRef(false);
 
   const router = useRouter();
   const routerRef = useRef(router);
@@ -123,7 +139,27 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
       timers.current.add(timer);
     };
 
-    const start = ({ id, file, folder }: QueuedUpload) => {
+    // the limit counts every request from this client, so the whole queue waits
+    const backOff = (job: QueuedUpload, xhr: XMLHttpRequest) => {
+      const seconds = Number(xhr.getResponseHeader("Retry-After"));
+      const delay = seconds > 0 ? seconds * 1000 : RATE_LIMIT_FALLBACK_MS;
+
+      queue.current.unshift(job);
+      patch(job.id, { status: "queued", progress: 0 });
+
+      if (paused.current) return;
+      paused.current = true;
+
+      const timer = setTimeout(() => {
+        timers.current.delete(timer);
+        paused.current = false;
+        pump();
+      }, delay);
+      timers.current.add(timer);
+    };
+
+    const start = (job: QueuedUpload) => {
+      const { id, file, folder } = job;
       const body = new FormData();
       body.append("files", file);
       body.append("folder", folder);
@@ -141,6 +177,8 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
       // no toasts anywhere in here: the panel is the upload notification, and a
       // toast would land on top of it
       xhr.onload = () => {
+        if (xhr.status === 429) return backOff(job, xhr);
+
         const message = errorMessageOf(xhr);
         if (message) return patch(id, { status: "error", error: message });
 
@@ -165,6 +203,7 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
 
     function pump() {
       while (
+        !paused.current &&
         active.current.size < MAX_CONCURRENT_UPLOADS &&
         queue.current.length > 0
       ) {
@@ -181,20 +220,22 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
     }
 
     return {
-      enqueue: (files, folder) => {
-        if (files.length === 0) return;
+      enqueue: (items, folder) => {
+        if (items.length === 0) return;
 
-        const queued = files.map((file) => ({
+        const queued = items.map(({ file, dir }) => ({
           id: `upload-${++lastUploadId}`,
           file,
-          folder,
+          dir,
+          folder: [folder, dir].filter(Boolean).join("/"),
         }));
 
         setUploads((prev) => [
           ...prev,
-          ...queued.map(({ id, file }) => ({
+          ...queued.map(({ id, file, dir }) => ({
             id,
             name: file.name,
+            dir,
             size: file.size,
             progress: 0,
             status: "queued" as const,
@@ -221,9 +262,10 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
         const pending = queue.current;
         queue.current = [];
         reportCanceled(pending.map((queued) => queued.file.name));
+        const pendingIds = new Set(pending.map((queued) => queued.id));
         setUploads((prev) =>
           prev.map((upload) =>
-            pending.some((queued) => queued.id === upload.id)
+            pendingIds.has(upload.id)
               ? { ...upload, status: "canceled" as const }
               : upload,
           ),

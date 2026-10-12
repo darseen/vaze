@@ -1,7 +1,10 @@
 "use client";
 
 import { useCan } from "@/app/dashboard/_components/permissions";
-import { useUploadActions } from "@/app/dashboard/_components/uploads/provider";
+import {
+  pickedItems,
+  useUploadActions,
+} from "@/app/dashboard/_components/uploads/provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,9 +14,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import type { ApiResponse } from "@repo/types";
-import { Plus, Upload } from "lucide-react";
+import { ChevronDown, FileUp, FolderUp, Plus, Upload } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { type ChangeEvent, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -23,7 +32,8 @@ export default function ActionBar() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [folderName, setFolderName] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const filesInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const { enqueue } = useUploadActions();
   const router = useRouter();
@@ -31,7 +41,7 @@ export default function ActionBar() {
   const can = useCan();
 
   const handleFilesUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    enqueue(Array.from(event.target.files ?? []), getFolderPath(pathname));
+    enqueue(pickedItems(event.target.files ?? []), getFolderPath(pathname));
     // let the same file be picked again after it finishes
     event.target.value = "";
   };
@@ -83,18 +93,46 @@ export default function ActionBar() {
     <>
       <div className="mb-6 flex w-full flex-col-reverse gap-4 sm:flex-row sm:justify-center">
         <div className="flex gap-2">
-          <Button
-            onClick={() => inputRef.current?.click()}
-            className="flex-1 sm:flex-none"
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="flex-1 sm:flex-none">
+                <Upload className="mr-2 h-4 w-4" />
+                Upload
+                <ChevronDown className="ml-1 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-40">
+              <DropdownMenuItem
+                onClick={() => filesInputRef.current?.click()}
+                className="cursor-pointer"
+              >
+                <FileUp className="mr-3 h-4 w-4" />
+                Files
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => folderInputRef.current?.click()}
+                className="cursor-pointer"
+              >
+                <FolderUp className="mr-3 h-4 w-4" />
+                Folder
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <input
             type="file"
             multiple
-            ref={inputRef}
+            ref={filesInputRef}
+            onChange={handleFilesUpload}
+            style={{ display: "none" }}
+          />
+          <input
+            type="file"
+            ref={(node) => {
+              folderInputRef.current = node;
+              // React has no prop for it, so set it on the element
+              if (node) node.webkitdirectory = true;
+            }}
             onChange={handleFilesUpload}
             style={{ display: "none" }}
           />

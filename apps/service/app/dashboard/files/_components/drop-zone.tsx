@@ -3,47 +3,46 @@
 import { useCan } from "@/app/dashboard/_components/permissions";
 import { useUploadActions } from "@/app/dashboard/_components/uploads/provider";
 import { Upload } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import getFolderPath from "../_utils/get-folder-path";
+import readDrop from "../_utils/read-drop";
 
 /** A drag only counts as an upload when it actually carries files. */
 function carriesFiles(event: DragEvent) {
   return Array.from(event.dataTransfer?.types ?? []).includes("Files");
 }
 
-/**
- * Pull the dropped files out, skipping directories — `dataTransfer.files`
- * reports a dropped folder as an empty file, which would upload as garbage.
- */
-function droppedFiles(dataTransfer: DataTransfer) {
-  const items = Array.from(dataTransfer.items ?? []).filter(
-    (item) => item.kind === "file",
-  );
+/** Uploads only create folders that hold a file, so empty ones go separately. */
+async function createEmptyFolders(paths: string[]) {
+  let created = 0;
+  let failed = 0;
 
-  if (items.length === 0 || typeof items[0].webkitGetAsEntry !== "function") {
-    return { files: Array.from(dataTransfer.files), skipped: 0 };
+  for (const folder of paths) {
+    try {
+      const response = await fetch("/api/folders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder }),
+      });
+
+      // 409 means it is already there, which is what the drop asked for
+      if (response.ok) created += 1;
+      else if (response.status !== 409) failed += 1;
+    } catch {
+      failed += 1;
+    }
   }
 
-  const files: File[] = [];
-  let skipped = 0;
-
-  for (const item of items) {
-    const entry = item.webkitGetAsEntry();
-    const file = item.getAsFile();
-
-    if (entry?.isDirectory || !file) skipped += 1;
-    else files.push(file);
-  }
-
-  return { files, skipped };
+  return { created, failed };
 }
 
 export default function DropZone({ children }: { children: ReactNode }) {
   const [isDragging, setIsDragging] = useState(false);
 
   const { enqueue } = useUploadActions();
+  const router = useRouter();
   const pathname = usePathname();
   const folder = getFolderPath(pathname);
   const canUpload = useCan()("files:write");
@@ -70,17 +69,33 @@ export default function DropZone({ children }: { children: ReactNode }) {
       setIsDragging(false);
 
       if (!event.dataTransfer) return;
-      const { files, skipped } = droppedFiles(event.dataTransfer);
 
-      if (skipped > 0) {
-        toast.error(
-          skipped === 1
-            ? "Folders can't be uploaded"
-            : `${skipped} folders were skipped`,
-        );
-      }
+      readDrop(event.dataTransfer)
+        .then(async ({ items, emptyFolders, unreadable }) => {
+          if (unreadable > 0) {
+            toast.error(
+              unreadable === 1
+                ? "1 item couldn't be read"
+                : `${unreadable} items couldn't be read`,
+            );
+          }
 
-      enqueue(files, folder);
+          enqueue(items, folder);
+
+          const { created, failed } = await createEmptyFolders(
+            emptyFolders.map((path) => (folder ? `${folder}/${path}` : path)),
+          );
+
+          if (failed > 0) {
+            toast.error(
+              failed === 1
+                ? "Couldn't create an empty folder"
+                : `Couldn't create ${failed} empty folders`,
+            );
+          }
+          if (created > 0) router.refresh();
+        })
+        .catch(() => toast.error("Couldn't read the dropped items"));
     };
 
     const onDragEnd = () => setIsDragging(false);
@@ -96,7 +111,7 @@ export default function DropZone({ children }: { children: ReactNode }) {
       window.removeEventListener("drop", onDrop);
       window.removeEventListener("dragend", onDragEnd);
     };
-  }, [enqueue, folder, canUpload]);
+  }, [enqueue, folder, canUpload, router]);
 
   return (
     <div className="relative mx-auto min-h-full w-full max-w-7xl">
@@ -107,7 +122,7 @@ export default function DropZone({ children }: { children: ReactNode }) {
           <div className="sticky top-1/2 flex -translate-y-1/2 flex-col items-center gap-2 text-center">
             <Upload className="text-primary size-8" />
             <p className="text-foreground text-sm font-semibold">
-              Drop files to upload
+              Drop files or folders to upload
             </p>
             <p className="text-muted-foreground text-xs">
               {folder ? `Into "${folder}"` : "Into your root folder"}

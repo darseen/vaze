@@ -16,7 +16,10 @@ interface AuthorizedUser {
 
 type AuthorizeResult =
   | { error: null; data: { user: AuthorizedUser } }
-  | { error: { message: string; status: number }; data: null };
+  | {
+      error: { message: string; status: number; retryAfter?: number };
+      data: null;
+    };
 
 const unauthorized: AuthorizeResult = {
   error: { message: "Unauthorized", status: 401 },
@@ -46,7 +49,11 @@ export default async function authorizeRequest(
 
   if (!limit.ok) {
     return {
-      error: { message: "Too many requests", status: 429 },
+      error: {
+        message: "Too many requests",
+        status: 429,
+        retryAfter: limit.retryAfter,
+      },
       data: null,
     };
   }

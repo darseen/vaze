@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatBytes } from "@/utils";
 import { CheckCircle2, CircleSlash, Loader2, X, XCircle } from "lucide-react";
+import { memo } from "react";
 import { useUploadActions, useUploads, type Upload } from "./provider";
 
 const STATUS_LABELS: Record<Upload["status"], string> = {
@@ -29,7 +30,8 @@ function StatusIcon({ status }: { status: Upload["status"] }) {
   }
 }
 
-function UploadRow({ upload }: { upload: Upload }) {
+// memoized so a progress tick re-renders one row, not a whole folder's worth
+const UploadRow = memo(function UploadRow({ upload }: { upload: Upload }) {
   const { cancel } = useUploadActions();
   const isRunning = upload.status === "queued" || upload.status === "uploading";
   // the request body is sent well before the server has committed the file
@@ -42,8 +44,16 @@ function UploadRow({ upload }: { upload: Upload }) {
     <li className="space-y-1.5 px-3 py-2.5">
       <div className="flex items-center gap-2">
         <StatusIcon status={upload.status} />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">
-          {upload.name}
+        <span
+          className="flex min-w-0 flex-1 text-sm font-medium"
+          title={upload.dir ? `${upload.dir}/${upload.name}` : upload.name}
+        >
+          {upload.dir && (
+            <span className="text-muted-foreground min-w-0 truncate">
+              {upload.dir}/
+            </span>
+          )}
+          <span className="max-w-full shrink-0 truncate">{upload.name}</span>
         </span>
         {isRunning && (
           <Button
@@ -74,7 +84,7 @@ function UploadRow({ upload }: { upload: Upload }) {
       )}
     </li>
   );
-}
+});
 
 export default function UploadsPanel() {
   const uploads = useUploads();
