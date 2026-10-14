@@ -1,7 +1,5 @@
 "use client";
 
-import deleteUser from "@/actions/users/delete-user";
-import setDisabled from "@/actions/users/set-disabled";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +24,8 @@ import {
 import { ALL_SCOPES, ROLE_INFO, SCOPE_INFO } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/utils";
-import type { Role } from "@repo/types";
+import { callApi } from "@/utils/api";
+import type { Role, UserSummary } from "@repo/types";
 import {
   LockKeyhole,
   MoreVertical,
@@ -35,9 +34,9 @@ import {
   UserCog,
   UserX,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { UserRow } from "../_utils/fetch-users";
 import { EditAccessDialog, ResetPasswordDialog } from "./user-dialogs";
 
 const ROLE_TONES: Record<Role, string> = {
@@ -53,27 +52,33 @@ const ROLE_TONES: Record<Role, string> = {
 
 type Pending = {
   kind: "access" | "password" | "disable" | "delete";
-  user: UserRow;
+  user: UserSummary;
 } | null;
 
 interface Props {
-  users: UserRow[];
+  users: UserSummary[];
   currentUserId: string;
 }
 
 export default function UsersList({ users, currentUserId }: Props) {
+  const router = useRouter();
   const [pending, setPending] = useState<Pending>(null);
   const [loading, setLoading] = useState(false);
 
   const close = () => setPending(null);
 
-  const handleSetDisabled = async (user: UserRow, disabled: boolean) => {
+  const handleSetDisabled = async (user: UserSummary, disabled: boolean) => {
     try {
       setLoading(true);
-      const { error } = await setDisabled(user.id, disabled);
+      const { error } = await callApi<{ user: UserSummary }>(
+        "/api/users",
+        "PUT",
+        { id: user.id, disabled },
+      );
 
       if (error) return toast.error(error.message);
 
+      router.refresh();
       toast.success(
         disabled
           ? `${user.name} is disabled`
@@ -87,13 +92,16 @@ export default function UsersList({ users, currentUserId }: Props) {
     }
   };
 
-  const handleDelete = async (user: UserRow) => {
+  const handleDelete = async (user: UserSummary) => {
     try {
       setLoading(true);
-      const { error } = await deleteUser(user.id);
+      const { error } = await callApi<null>("/api/users", "DELETE", {
+        id: user.id,
+      });
 
       if (error) return toast.error(error.message);
 
+      router.refresh();
       toast.success(`${user.name} was deleted`);
       close();
     } catch {

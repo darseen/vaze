@@ -1,4 +1,5 @@
 import authorizeRequest from "@/app/api/_utils/authorize-request";
+import { fail } from "@/app/api/_utils/responses";
 import { db } from "@/db";
 import { recordActivity } from "@/lib/activity";
 import { normalizeKeyScopes, SCOPE_INFO } from "@/lib/permissions";
@@ -6,10 +7,6 @@ import { apiKeys } from "@repo/db";
 import { createApiKey, listApiKeys } from "@/utils/api-keys";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-
-function fail(message: string, status: number) {
-  return NextResponse.json({ data: null, error: { message } }, { status });
-}
 
 // keys never carry this scope, so only a signed-in session gets through
 async function authorize(request: NextRequest) {

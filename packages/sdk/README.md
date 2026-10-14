@@ -64,7 +64,7 @@ const vaze = new Vaze();
 
 # API Documentation
 
-The SDK is divided into two main modules: `files` and `folders`. All methods are asynchronous and return a standard `ApiResponse` object containing either `data` or an `error`. Files API Access file-related methods via `vaze.files.getAll(options?)` Retrieve a paginated list of all files.
+The SDK's main modules are `files` and `folders`, plus `keys`, `account`, `activity`, `users` and `settings` for signed-in users. All methods are asynchronous and return a standard `ApiResponse` object containing either `data` or an `error`. Files API Access file-related methods via `vaze.files.getAll(options?)` Retrieve a paginated list of all files.
 
 - options (optional):
   - `limit`
@@ -249,6 +249,44 @@ const { data, error } = await vaze.keys.rename({ id: "key-id", name: "Nightly ba
 const { data, error } = await vaze.keys.delete("key-id");
 ```
 
+Account API Change the signed-in user's own account via `vaze.account`. These calls need a client that acts as a signed-in user (`headers`); a client built with an API key gets a `403`.
+
+```ts
+await vaze.account.update({ name: "Dana Scully", email: "dana@example.org" });
+await vaze.account.changePassword({ currentPassword: "old", newPassword: "new-password", revokeOtherSessions: true });
+
+const { data } = await vaze.account.getSessions(); // devices, the current one first
+await vaze.account.revokeSession("session-id");
+await vaze.account.revokeOtherSessions();
+```
+
+Activity API Read and prune the caller's history of uploads, deletions and changes via `vaze.activity`. Needs a signed-in user.
+
+```ts
+const { data } = await vaze.activity.getAll(); // the 200 most recent entries
+await vaze.activity.delete(["activity-id"]);
+await vaze.activity.clear();
+```
+
+Users API Manage accounts via `vaze.users`. Needs a signed-in admin (`users:manage`). None of the changes work on the caller's own account.
+
+```ts
+const { data } = await vaze.users.getAll();
+await vaze.users.create({ name: "Dana", email: "dana@example.com", password: "a-long-password", role: "viewer" });
+await vaze.users.setAccess({ id: "user-id", role: "custom", scopes: ["files:read"] });
+await vaze.users.resetPassword({ id: "user-id", password: "a-new-password" });
+await vaze.users.setDisabled({ id: "user-id", disabled: true });
+await vaze.users.delete("user-id");
+```
+
+Settings API Read and change instance-wide settings via `vaze.settings`. Needs a signed-in user holding `settings:manage`.
+
+```ts
+const { data } = await vaze.settings.get(); // defaultVisibility, visibilityCounts, limits
+await vaze.settings.update({ defaultVisibility: "private", limits: { activityRetentionDays: 30 } });
+await vaze.settings.applyVisibility("private"); // every existing file
+```
+
 # Health Check
 
 `vaze.health()` pings the instance to verify connectivity.
@@ -274,4 +312,4 @@ Failed requests carry the HTTP status in `error.status`, such as `401` once a se
 
 # Types
 
-This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `File`, `Folder`, `ApiKey`, `ApiResponse`, `ListOptions`, and `VazeOptions`.
+This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `File`, `Folder`, `ApiKey`, `Activity`, `User`, `Session`, `InstanceSettings`, `ApiResponse`, `ListOptions`, and `VazeOptions`.

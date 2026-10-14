@@ -54,6 +54,13 @@ is how the dashboard and the mobile app call the API. A session acts with the
 user's own scopes, so it works for every role, including Viewers, who can't
 create API keys.
 
+Some endpoints accept only a session, since they act on the account rather
+than its files: [account changes](/docs/api-reference/account#update-your-profile),
+[activity](/docs/api-reference/activity), [API keys](/docs/api-reference/keys),
+[users](/docs/api-reference/users) and [instance
+settings](/docs/api-reference/settings). A request to them made with an API
+key gets a `403`.
+
 Sign in with `POST /api/auth/sign-in/email` and send the returned cookie back
 in the `Cookie` header. Clients outside a browser that send a cookie to
 `/api/auth/*` must also send an `expo-origin` header with an origin the
@@ -77,9 +84,9 @@ Errors also carry a meaningful HTTP status code:
 | ------ | ----------------------------------------------------------- |
 | `400`  | Invalid input (missing fields, invalid names)               |
 | `401`  | Missing or invalid API key or session, or the user is disabled |
-| `403`  | The key, or its owner, lacks the scope the endpoint needs   |
+| `403`  | The key, or its owner, lacks the scope the endpoint needs, or an API key called a session-only endpoint |
 | `404`  | File or folder not found                                    |
-| `409`  | Name conflict (a name already taken in the same folder, or by another of your API keys) |
+| `409`  | Name conflict (a name already taken in the same folder, or by another of your API keys), or an email another account uses |
 | `413`  | Upload too large, or too many files in one request          |
 | `429`  | Rate limited — retry after the `Retry-After` header         |
 | `500`  | Unexpected server error                                     |
@@ -97,8 +104,8 @@ by one:
 | `files:write`     | ✓     | ✓      |        | Upload, rename, move and change visibility; create, rename and move folders |
 | `files:delete`    | ✓     | ✓      |        | Delete files and folders                                      |
 | `api-keys:manage` | ✓     | ✓      |        | Create API keys, and call the API with them                   |
-| `settings:manage` | ✓     |        |        | Instance settings (dashboard only)                            |
-| `users:manage`    | ✓     |        |        | Add, edit, disable and remove users (dashboard only; Admin role only) |
+| `settings:manage` | ✓     |        |        | Instance settings (signed-in sessions only)                   |
+| `users:manage`    | ✓     |        |        | Add, edit, disable and remove users (signed-in sessions only; Admin role only) |
 
 `api-keys:manage` is checked on every request made with a key, so taking it
 away (or disabling the user) stops all of that user's keys at once. Role
@@ -129,6 +136,9 @@ Keys created before key scopes existed carry all three file scopes.
 | `POST /api/folders`, `PUT /api/folders`                 | `files:write`  |
 | `DELETE /api/files`, `DELETE /api/folders`              | `files:delete` |
 | `/api/keys` (signed-in sessions only)                   | `api-keys:manage` |
+| `/api/me` changes, `/api/me/*`, `/api/activity` (signed-in sessions only) | none |
+| `/api/users` (signed-in sessions only)                  | `users:manage` |
+| `/api/settings`, `/api/settings/*` (signed-in sessions only) | `settings:manage` |
 
 ## Rate limits
 
@@ -170,12 +180,27 @@ and container health checks:
   />
   <Card
     title="Account"
-    description="Who the caller is, what they may do, and dashboard stats."
+    description="Who the caller is, their profile, password and devices, and dashboard stats."
     href="/docs/api-reference/account"
   />
   <Card
     title="API keys"
     description="Create, list, rename and delete your API keys."
     href="/docs/api-reference/keys"
+  />
+  <Card
+    title="Activity"
+    description="Read and prune your history of uploads, deletions and changes."
+    href="/docs/api-reference/activity"
+  />
+  <Card
+    title="Users"
+    description="Add, change, disable and remove accounts."
+    href="/docs/api-reference/users"
+  />
+  <Card
+    title="Instance settings"
+    description="Default visibility, limits and retention for everyone."
+    href="/docs/api-reference/settings"
   />
 </Cards>

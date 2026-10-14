@@ -1,6 +1,5 @@
 "use client";
 
-import changePassword from "@/actions/account/change-password";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,6 +11,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { callApi } from "@/utils/api";
 import { KeyRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -36,8 +36,9 @@ export default function PasswordForm({ email }: { email: string }) {
 
     try {
       setLoading(true);
-      const { error } = await changePassword({
-        ...fields,
+      const { error } = await callApi<null>("/api/me/password", "PUT", {
+        currentPassword: fields.currentPassword,
+        newPassword: fields.newPassword,
         revokeOtherSessions,
       });
 

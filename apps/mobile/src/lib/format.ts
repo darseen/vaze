@@ -45,6 +45,28 @@ export function timeAgo(value: string) {
   return formatDate(value);
 }
 
+/** Shortens an IPv6 address the way the web's device list does. */
+export function formatIpAddress(ip: string): string {
+  if (!ip.includes(":") || ip.includes("::")) return ip;
+
+  const groups = ip.split(":").map((group) => group.replace(/^0+(?=.)/, ""));
+
+  // the longest run of two or more zero groups collapses to "::"
+  let start = -1;
+  let length = 0;
+  for (let i = 0; i < groups.length; i++) {
+    let end = i;
+    while (groups[end] === "0") end++;
+    if (end - i > Math.max(length, 1)) {
+      start = i;
+      length = end - i;
+    }
+  }
+
+  if (start === -1) return groups.join(":");
+  return `${groups.slice(0, start).join(":")}::${groups.slice(start + length).join(":")}`;
+}
+
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const letters =

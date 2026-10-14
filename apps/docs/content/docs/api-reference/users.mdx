@@ -1,0 +1,114 @@
+---
+title: Users
+description: Add, change, disable and remove accounts
+icon: Users
+---
+
+These endpoints need a [signed-in
+session](/docs/api-reference#signed-in-sessions) whose role holds
+`users:manage`, which only the Admin role carries. A request made with an API
+key gets a `403`. They are what the **Users** page in the dashboard and the
+mobile app use, and every change is recorded in the admin's
+[activity history](/docs/api-reference/activity).
+
+A user object looks like this:
+
+```json
+{
+  "id": "mYaNkYgtuFD3p3Z5N3Na2cNjqR1ytOMu",
+  "name": "Dana",
+  "email": "dana@example.com",
+  "role": "custom",
+  "scopes": ["files:read", "files:write"],
+  "customScopes": ["files:read", "files:write"],
+  "disabled": false,
+  "apiKeys": 2,
+  "createdAt": "2026-10-14T09:12:44.000Z"
+}
+```
+
+`scopes` is what the account can actually do, from its
+[role](/docs/api-reference#scopes). `customScopes` holds the scopes picked for
+the `custom` role, and is empty for the other roles. `apiKeys` counts the
+account's keys.
+
+## List users
+
+```
+GET /api/users
+```
+
+Returns every account, oldest first: `{ "users": [ ... ] }`.
+
+## Add a user
+
+```
+POST /api/users
+```
+
+```json
+{
+  "name": "Dana",
+  "email": "dana@example.com",
+  "password": "a-long-password",
+  "role": "custom",
+  "scopes": ["files:read", "files:write"]
+}
+```
+
+| Field      | Description                                                                         |
+| ---------- | ----------------------------------------------------------------------------------- |
+| `name`     | Required                                                                            |
+| `email`    | Required. What they sign in with                                                    |
+| `password` | Required. 8 to 128 characters                                                       |
+| `role`     | Required. `admin`, `editor`, `viewer` or `custom`                                   |
+| `scopes`   | For `custom` only, which needs at least one. `users:manage` is left out if sent     |
+
+The response is the new user object, `{ "user": { ... } }`. A taken email
+responds `400`.
+
+## Change a user
+
+```
+PUT /api/users
+```
+
+Send the user's `id` with the changes to make. Any combination works, and the
+response is the updated user object.
+
+```json
+// change their access
+{ "id": "<user-id>", "role": "custom", "scopes": ["files:read"] }
+
+// set a new password, which also signs them out of every device
+{ "id": "<user-id>", "password": "another-long-password" }
+
+// disable them: signed out everywhere, and their API keys stop working
+{ "id": "<user-id>", "disabled": true }
+```
+
+A new role applies to the user's very next request, sessions and API keys
+alike. Enabling a user again (`"disabled": false`) lets them sign in, and their
+keys work again.
+
+| Status | Meaning                                                                      |
+| ------ | ---------------------------------------------------------------------------- |
+| `400`  | Nothing to change, an invalid role or password, or the caller's own account  |
+| `404`  | No user with that id                                                         |
+
+Admins can't change their own role, password or status here, which keeps the
+last admin from locking everyone out. They change their own password with
+[`PUT /api/me/password`](/docs/api-reference/account#change-your-password).
+
+## Delete a user
+
+```
+DELETE /api/users
+```
+
+```json
+{ "id": "<user-id>" }
+```
+
+Removes the account with its sessions, API keys and activity history. Files
+they uploaded stay where they are. Deleting yourself responds `400`.

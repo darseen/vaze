@@ -1,0 +1,90 @@
+---
+title: Instance settings
+description: Default visibility, limits and retention for the whole instance
+icon: Settings
+---
+
+These endpoints need a [signed-in
+session](/docs/api-reference#signed-in-sessions) whose role holds
+`settings:manage`. A request made with an API key gets a `403`. They are what
+the server section of **Settings** in the dashboard and the mobile app use.
+Changes apply to everyone, right away and without a restart.
+
+The settings object looks like this:
+
+```json
+{
+  "defaultVisibility": "public",
+  "visibilityCounts": { "public": 120, "private": 8 },
+  "limits": {
+    "maxUploadSize": 5368709120,
+    "defaultPresignTtl": 3600,
+    "maxPresignTtl": 604800,
+    "hostingCacheMaxAge": 0,
+    "activityRetentionDays": 90,
+    "apiRequestRetentionDays": 90
+  }
+}
+```
+
+`visibilityCounts` counts the files that are public and private now.
+
+| Limit                     | Unit    | Minimum | Description                                                            |
+| ------------------------- | ------- | ------- | ---------------------------------------------------------------------- |
+| `maxUploadSize`           | bytes   | `1`     | Largest single file an upload may contain                              |
+| `defaultPresignTtl`       | seconds | `1`     | Lifetime of a signed link when the request doesn't ask for one         |
+| `maxPresignTtl`           | seconds | `1`     | Longest lifetime a signed link may have; longer requests are shortened |
+| `hostingCacheMaxAge`      | seconds | `0`     | How long browsers and CDNs may reuse a public file; `0` checks every time |
+| `activityRetentionDays`   | days    | `1`     | Activity entries older than this are deleted                           |
+| `apiRequestRetentionDays` | days    | `1`     | API request records older than this are deleted                        |
+
+Their [environment variables](/docs/getting-started/configuration) only set
+the starting values.
+
+## Read the settings
+
+```
+GET /api/settings
+```
+
+Returns the settings object.
+
+## Change the settings
+
+```
+PUT /api/settings
+```
+
+```json
+{
+  "defaultVisibility": "private",
+  "limits": { "maxUploadSize": 1073741824, "activityRetentionDays": 30 }
+}
+```
+
+Send `defaultVisibility`, `limits` or both. Limits left out keep their current
+values, and every limit must be a whole number of at least its minimum. A
+shorter retention prunes older history right away. The response is the
+updated settings object.
+
+The default visibility applies to uploads that don't ask for one, from the
+dashboard, the app and the API alike, and to new folders. It doesn't change
+files that already exist; apply it to those separately.
+
+| Status | Meaning                                                                       |
+| ------ | ----------------------------------------------------------------------------- |
+| `400`  | Nothing to change, an invalid visibility or limit, or a default signed link lifetime longer than the maximum |
+
+## Apply a visibility to every file
+
+```
+POST /api/settings/apply-visibility
+```
+
+```json
+{ "visibility": "private" }
+```
+
+Gives every existing file this visibility and responds with how many changed,
+`{ "updated": 120 }`. Files made private stop being publicly readable, so their
+plain links break; [signed links](/docs/api-reference/files#sign-a-url) keep working.

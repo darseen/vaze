@@ -76,18 +76,28 @@ export function StatTile({
   icon,
   label,
   value,
+  onPress,
 }: {
   icon: LucideIcon;
   label: string;
   value: number;
+  onPress?: () => void;
 }) {
   return (
-    <Card className="flex-1 gap-2 border border-border p-3.5">
-      <StatHeading label={label} icon={icon} />
-      <Text className="text-2xl font-bold text-foreground">
-        {value.toLocaleString()}
-      </Text>
-    </Card>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      className="flex-1 active:opacity-80"
+      accessibilityRole={onPress ? "link" : undefined}
+      accessibilityLabel={`${label}: ${value}`}
+    >
+      <Card className="flex-1 gap-2 border border-border p-3.5">
+        <StatHeading label={label} icon={icon} />
+        <Text className="text-2xl font-bold text-foreground">
+          {value.toLocaleString()}
+        </Text>
+      </Card>
+    </Pressable>
   );
 }
 

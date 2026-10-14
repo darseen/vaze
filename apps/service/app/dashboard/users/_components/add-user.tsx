@@ -1,6 +1,5 @@
 "use client";
 
-import createUser from "@/actions/users/create-user";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +12,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { callApi } from "@/utils/api";
+import type { UserSummary } from "@repo/types";
 import { UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import AccessPicker, { type Access } from "./access-picker";
@@ -23,6 +25,7 @@ const EMPTY = { name: "", email: "", password: "" };
 const DEFAULT_ACCESS: Access = { role: "viewer", scopes: [] };
 
 export default function AddUser() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [fields, setFields] = useState(EMPTY);
   const [access, setAccess] = useState(DEFAULT_ACCESS);
@@ -46,10 +49,15 @@ export default function AddUser() {
 
     try {
       setLoading(true);
-      const { error } = await createUser({ ...fields, ...access });
+      const { error } = await callApi<{ user: UserSummary }>(
+        "/api/users",
+        "POST",
+        { ...fields, ...access },
+      );
 
       if (error) return toast.error(error.message);
 
+      router.refresh();
       toast.success(`${fields.name.trim()} can now sign in`, {
         description:
           "Share their password with them. They can change it in Settings.",

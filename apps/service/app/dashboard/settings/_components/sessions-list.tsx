@@ -1,7 +1,5 @@
 "use client";
 
-import revokeOtherSessions from "@/actions/account/revoke-other-sessions";
-import revokeSession from "@/actions/account/revoke-session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,11 +11,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatDate, formatIpAddress } from "@/utils";
+import { callApi } from "@/utils/api";
 import { describeUserAgent, isMobileUserAgent } from "@/utils/user-agent";
+import type { SessionSummary } from "@repo/types";
 import { Laptop, MonitorSmartphone, Smartphone } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { SessionSummary } from "../_utils/fetch-settings";
 
 // marks the "sign out other devices" request as the pending one
 const OTHERS = "others";
@@ -27,6 +27,7 @@ interface Props {
 }
 
 export default function SessionsList({ sessions }: Props) {
+  const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
 
   const hasOthers = sessions.some((session) => !session.current);
@@ -34,11 +35,14 @@ export default function SessionsList({ sessions }: Props) {
   const handleRevoke = async (id: string) => {
     try {
       setPending(id);
-      const { error } = await revokeSession(id);
+      const { error } = await callApi<null>("/api/me/sessions", "DELETE", {
+        id,
+      });
 
       if (error) return toast.error(error.message);
 
       toast.success("Device signed out");
+      router.refresh();
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -49,11 +53,14 @@ export default function SessionsList({ sessions }: Props) {
   const handleRevokeOthers = async () => {
     try {
       setPending(OTHERS);
-      const { error } = await revokeOtherSessions();
+      const { error } = await callApi<null>("/api/me/sessions", "DELETE", {
+        others: true,
+      });
 
       if (error) return toast.error(error.message);
 
       toast.success("All other devices signed out");
+      router.refresh();
     } catch {
       toast.error("Something went wrong");
     } finally {

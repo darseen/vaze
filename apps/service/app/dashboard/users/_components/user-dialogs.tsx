@@ -1,7 +1,5 @@
 "use client";
 
-import resetPassword from "@/actions/users/reset-password";
-import updateAccess from "@/actions/users/update-access";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,18 +10,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { callApi } from "@/utils/api";
+import type { UserSummary } from "@repo/types";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { UserRow } from "../_utils/fetch-users";
 import AccessPicker, { type Access } from "./access-picker";
 import PasswordInput from "./password-input";
 
 interface Props {
-  user: UserRow;
+  user: UserSummary;
   onClose: () => void;
 }
 
 export function EditAccessDialog({ user, onClose }: Props) {
+  const router = useRouter();
   const [access, setAccess] = useState<Access>({
     role: user.role,
     scopes: user.role === "custom" ? user.customScopes : [],
@@ -37,10 +38,15 @@ export function EditAccessDialog({ user, onClose }: Props) {
 
     try {
       setLoading(true);
-      const { error } = await updateAccess(user.id, access);
+      const { error } = await callApi<{ user: UserSummary }>(
+        "/api/users",
+        "PUT",
+        { id: user.id, ...access },
+      );
 
       if (error) return toast.error(error.message);
 
+      router.refresh();
       toast.success(`Updated access for ${user.name}`);
       onClose();
     } catch {
@@ -89,7 +95,11 @@ export function ResetPasswordDialog({ user, onClose }: Props) {
 
     try {
       setLoading(true);
-      const { error } = await resetPassword(user.id, password);
+      const { error } = await callApi<{ user: UserSummary }>(
+        "/api/users",
+        "PUT",
+        { id: user.id, password },
+      );
 
       if (error) return toast.error(error.message);
 

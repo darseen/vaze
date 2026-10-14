@@ -1,9 +1,28 @@
+import { ACTIVITY_PAGE_LIMIT } from "@/constants";
 import { db } from "@/db";
 import { activities, type ActivityType } from "@repo/db";
-import type { ApiResponse } from "@repo/types";
+import type { ActivityEntry, ApiResponse } from "@repo/types";
+import { desc, eq } from "drizzle-orm";
 import crypto from "node:crypto";
 
-interface ActivityEntry {
+/** A user's most recent history, newest first. */
+export function listActivities(userId: string): ActivityEntry[] {
+  return db
+    .select({
+      id: activities.id,
+      type: activities.type,
+      target: activities.target,
+      detail: activities.detail,
+      createdAt: activities.createdAt,
+    })
+    .from(activities)
+    .where(eq(activities.userId, userId))
+    .orderBy(desc(activities.createdAt))
+    .limit(ACTIVITY_PAGE_LIMIT)
+    .all();
+}
+
+interface NewActivity {
   userId: string;
   type: ActivityType;
   target?: string | null;
@@ -16,7 +35,7 @@ export function recordActivity({
   type,
   target = null,
   detail = null,
-}: ActivityEntry) {
+}: NewActivity) {
   try {
     db.insert(activities)
       .values({ id: crypto.randomUUID(), userId, type, target, detail })

@@ -1,8 +1,12 @@
 import type { Me, Stats } from "@repo/types";
+import Account from "./account.js";
+import Activity from "./activity.js";
 import Base from "./base.js";
 import Files from "./files.js";
 import Folders from "./folders.js";
 import Keys from "./keys.js";
+import Settings from "./settings.js";
+import Users from "./users.js";
 import type { IVaze, VazeOptions } from "./types/index.js";
 import { constructFileUrls } from "./utils/index.js";
 
@@ -10,6 +14,10 @@ export default class Vaze extends Base implements IVaze {
   public files: Files;
   public folders: Folders;
   public keys: Keys;
+  public account: Account;
+  public activity: Activity;
+  public users: Users;
+  public settings: Settings;
 
   constructor(options: VazeOptions = {}) {
     super(options);
@@ -17,6 +25,10 @@ export default class Vaze extends Base implements IVaze {
     this.files = new Files(options);
     this.folders = new Folders(options);
     this.keys = new Keys(options);
+    this.account = new Account(options);
+    this.activity = new Activity(options);
+    this.users = new Users(options);
+    this.settings = new Settings(options);
   }
 
   public async health() {
@@ -64,15 +76,21 @@ export default class Vaze extends Base implements IVaze {
 }
 
 export type {
+  ActivityEntry as Activity,
+  ActivityType,
   ApiKeySummary as ApiKey,
   ApiResponse,
   CreatedApiKey,
   FileWithUrl as File,
   Folder,
+  InstanceSettings,
+  Limits,
   Me,
   Role,
   Scope,
+  SessionSummary as Session,
   Stats,
+  UserSummary as User,
   Visibility,
 } from "@repo/types";
 export type {
@@ -82,8 +100,13 @@ export type {
   ListOptions,
   MoveDestination,
   NewKeyOptions,
+  NewUserOptions,
+  PasswordChange,
+  ProfileChanges,
+  SettingsChanges,
   SignedUrl,
   SignOptions,
+  UserAccess,
   VazeHeaders,
   VazeOptions,
 } from "./types/index.js";

@@ -1,0 +1,74 @@
+---
+title: Users
+description: Manage the instance's accounts as an admin
+icon: Users
+---
+
+`vaze.users` adds, changes and removes accounts. These calls need a client
+that [acts as a signed-in user](/docs/sdk#act-as-a-signed-in-user) whose role
+holds `users:manage`, which only Admins have. Every method returns the
+[response envelope](/docs/sdk#response-shape).
+
+## The `User` object
+
+```ts
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "editor" | "viewer" | "custom";
+  scopes: Scope[]; // what the account can actually do
+  customScopes: Scope[]; // the picks for the custom role
+  disabled: boolean;
+  apiKeys: number;
+  createdAt: string;
+};
+```
+
+## List users
+
+```ts
+const { data } = await vaze.users.getAll();
+// data => { users: User[] }, oldest first
+```
+
+## Add a user
+
+`scopes` is only read for the `custom` role, which needs at least one.
+`users:manage` can't be picked; it stays with the Admin role.
+
+```ts
+const { data, error } = await vaze.users.create({
+  name: "Dana",
+  email: "dana@example.com",
+  password: "a-long-password",
+  role: "custom",
+  scopes: ["files:read", "files:write"],
+});
+// data => { user: User }
+```
+
+## Change a user
+
+Each method responds with the updated user. None of them work on the caller's
+own account, which keeps the last admin from locking everyone out.
+
+```ts
+// a new role applies to their next request, sessions and API keys alike
+await vaze.users.setAccess({ id: "user-id", role: "editor" });
+
+// also signs them out of every device
+await vaze.users.resetPassword({ id: "user-id", password: "a-new-password" });
+
+// signs them out and pauses their API keys until enabled again
+await vaze.users.setDisabled({ id: "user-id", disabled: true });
+```
+
+## Delete a user
+
+```ts
+await vaze.users.delete("user-id");
+```
+
+The account, its API keys and its history are removed. Files the user uploaded
+stay.

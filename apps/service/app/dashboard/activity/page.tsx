@@ -1,8 +1,10 @@
+import { listActivities } from "@/lib/activity";
+import auth from "@/utils/auth";
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { History } from "lucide-react";
 import ActivityList from "./_components/activity-list";
-import fetchActivities from "./_utils/fetch-activities";
 
 export const metadata: Metadata = {
   title: "Activity",
@@ -13,9 +15,8 @@ export default async function Page() {
   await connection();
   // everything below will be excluded from prerendering
 
-  const { data, error } = await fetchActivities();
-
-  if (error) throw error;
+  const user = await auth();
+  if (!user) redirect("/");
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -30,7 +31,7 @@ export default async function Page() {
         </p>
       </div>
 
-      <ActivityList activities={data.activities} />
+      <ActivityList activities={listActivities(user.id)} />
     </div>
   );
 }

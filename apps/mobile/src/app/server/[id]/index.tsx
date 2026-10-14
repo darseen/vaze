@@ -1,4 +1,4 @@
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Avatar, Button, Spinner, useThemeColor } from "heroui-native";
 import {
   ChevronDown,
@@ -15,7 +15,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { AccountSheet } from "@/components/account-sheet";
 import { useEntryActions } from "@/components/files/entry-actions";
 import { Icon } from "@/components/icon";
 import {
@@ -31,13 +30,11 @@ import { initials } from "@/lib/format";
 import { hostOf } from "@/lib/server-url";
 import { useLibrary } from "@/stores/library";
 
-type SheetName = "account" | "servers";
-
 export default function OverviewScreen() {
   const { server, vaze, me } = useServer();
   const actions = useEntryActions();
   const muted = useThemeColor("muted");
-  const [sheet, setSheet] = useState<SheetName | null>(null);
+  const [switching, setSwitching] = useState(false);
   const [pulling, setPulling] = useState(false);
 
   const stats = useLibrary((state) => state.stats[server.id]);
@@ -54,9 +51,10 @@ export default function OverviewScreen() {
     }, [refresh]),
   );
 
-  const closer = (name: SheetName) => (open: boolean) => {
-    if (!open) setSheet((current) => (current === name ? null : current));
-  };
+  const filesHref = {
+    pathname: "/server/[id]/files",
+    params: { id: server.id },
+  } as const;
 
   const data = stats?.data;
   const firstName = me.user.name.split(" ")[0];
@@ -80,7 +78,7 @@ export default function OverviewScreen() {
       >
         <View className="flex-row items-center justify-between pb-2">
           <Pressable
-            onPress={() => setSheet("servers")}
+            onPress={() => setSwitching(true)}
             className="flex-1 gap-0.5"
             accessibilityLabel="Switch server"
           >
@@ -100,9 +98,14 @@ export default function OverviewScreen() {
             </Text>
           </Pressable>
           <Pressable
-            onPress={() => setSheet("account")}
+            onPress={() =>
+              router.navigate({
+                pathname: "/server/[id]/settings",
+                params: { id: server.id },
+              })
+            }
             hitSlop={8}
-            accessibilityLabel="Account"
+            accessibilityLabel="Settings"
           >
             <Avatar size="md" color="accent" variant="soft" alt={me.user.name}>
               <Avatar.Fallback>{initials(me.user.name)}</Avatar.Fallback>
@@ -149,11 +152,13 @@ export default function OverviewScreen() {
                     icon={FileText}
                     label="Files"
                     value={data.files.total}
+                    onPress={() => router.navigate(filesHref)}
                   />
                   <StatTile
                     icon={Folder}
                     label="Folders"
                     value={data.files.folders}
+                    onPress={() => router.navigate(filesHref)}
                   />
                 </>
               ) : null}
@@ -162,6 +167,12 @@ export default function OverviewScreen() {
                   icon={KeyRound}
                   label="API keys"
                   value={data.apiKeys.total}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/server/[id]/settings/keys",
+                      params: { id: server.id },
+                    })
+                  }
                 />
               ) : null}
             </View>
@@ -193,15 +204,7 @@ export default function OverviewScreen() {
       <View className="absolute inset-x-0 top-0 pt-safe bg-background" />
 
       {actions.element}
-      <AccountSheet
-        isOpen={sheet === "account"}
-        onOpenChange={closer("account")}
-        onSwitchServer={() => setSheet("servers")}
-      />
-      <ServerSwitcherSheet
-        isOpen={sheet === "servers"}
-        onOpenChange={closer("servers")}
-      />
+      <ServerSwitcherSheet isOpen={switching} onOpenChange={setSwitching} />
     </View>
   );
 }

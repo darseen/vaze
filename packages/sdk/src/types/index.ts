@@ -1,12 +1,20 @@
-import type { FileWithUrl, Scope } from "@repo/types";
+import type { FileWithUrl, Limits, Role, Scope, Visibility } from "@repo/types";
+import type Account from "../account.js";
+import type Activity from "../activity.js";
 import type Files from "../files.js";
 import type Folders from "../folders.js";
 import type Keys from "../keys.js";
+import type Settings from "../settings.js";
+import type Users from "../users.js";
 
 export interface IVaze {
   files: Files;
   folders: Folders;
   keys: Keys;
+  account: Account;
+  activity: Activity;
+  users: Users;
+  settings: Settings;
 }
 
 export type VazeHeaders =
@@ -71,6 +79,38 @@ export type NewKeyOptions = {
   scopes: Scope[];
   /** Leave it out, or pass `null`, for a key that never expires. */
   expiresAt?: Date | string | null;
+};
+
+export type ProfileChanges = {
+  name?: string;
+  /** The new sign-in email; it applies right away. */
+  email?: string;
+};
+
+export type PasswordChange = {
+  currentPassword: string;
+  /** At least 8 characters. */
+  newPassword: string;
+  /** Signs out every other device too. */
+  revokeOtherSessions?: boolean;
+};
+
+export type UserAccess = {
+  role: Role;
+  /** Only read for the `custom` role, which needs at least one. `users:manage` can't be picked. */
+  scopes?: Scope[];
+};
+
+export type NewUserOptions = UserAccess & {
+  name: string;
+  email: string;
+  /** At least 8 characters. */
+  password: string;
+};
+
+export type SettingsChanges = {
+  defaultVisibility?: Visibility;
+  limits?: Partial<Limits>;
 };
 
 export type BulkDeleteResult = {

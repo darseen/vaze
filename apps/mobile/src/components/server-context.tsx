@@ -12,6 +12,8 @@ export type ServerContextValue = {
   /** Auth headers for image loaders and downloads that bypass the SDK's fetch. */
   headers: Record<string, string>;
   can: (scope: Scope) => boolean;
+  /** Re-reads the account in place, e.g. after a profile change. */
+  reloadMe: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 

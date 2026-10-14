@@ -1,6 +1,5 @@
 "use client";
 
-import updateProfile from "@/actions/account/update-profile";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,7 +10,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { callApi } from "@/utils/api";
+import type { Me } from "@repo/types";
 import { UserRound } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +23,7 @@ interface Props {
 }
 
 export default function ProfileForm(initial: Props) {
+  const router = useRouter();
   const [saved, setSaved] = useState(initial);
   const [name, setName] = useState(initial.name);
   const [email, setEmail] = useState(initial.email);
@@ -34,14 +37,19 @@ export default function ProfileForm(initial: Props) {
 
     try {
       setLoading(true);
-      const { data, error } = await updateProfile({ name, email });
+      const { data, error } = await callApi<Me>("/api/me", "PUT", {
+        name,
+        email,
+      });
 
       if (error) return toast.error(error.message);
 
-      setSaved(data);
-      setName(data.name);
-      setEmail(data.email);
+      const { user } = data;
+      setSaved({ name: user.name, email: user.email });
+      setName(user.name);
+      setEmail(user.email);
       toast.success("Profile updated");
+      router.refresh();
     } catch {
       toast.error("Something went wrong");
     } finally {

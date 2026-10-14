@@ -1,0 +1,60 @@
+---
+title: Account
+description: Change the signed-in user's profile, password and devices
+icon: UserRound
+---
+
+`vaze.account` changes the account the client acts as. These calls need a
+client that [acts as a signed-in user](/docs/sdk#act-as-a-signed-in-user) and
+no scope; a client built with an API key gets a `403`. To read the account,
+use [`vaze.me()`](/docs/sdk#current-account). Every method returns the
+[response envelope](/docs/sdk#response-shape).
+
+## Update the profile
+
+Send a new `name`, `email` or both. The response is the updated account, the
+same shape `vaze.me()` returns.
+
+```ts
+const { data, error } = await vaze.account.update({
+  name: "Dana Scully",
+  email: "dana@example.org",
+});
+```
+
+A new email is the one the user signs in with from then on. One that another
+account already uses responds `409`.
+
+## Change the password
+
+```ts
+const { error } = await vaze.account.changePassword({
+  currentPassword: "old-password",
+  newPassword: "new-password",
+  revokeOtherSessions: true, // optional, keeps this session signed in
+});
+```
+
+## Devices
+
+Each device signed in to the account is a session:
+
+```ts
+type Session = {
+  id: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  current: boolean; // the session this client uses
+};
+```
+
+```ts
+const { data } = await vaze.account.getSessions();
+// data => { sessions: Session[] }, the current one first
+
+await vaze.account.revokeSession("session-id"); // sign out one other device
+await vaze.account.revokeOtherSessions(); // sign out every other device
+```
+
+The current session can't be revoked this way; sign the user out instead.

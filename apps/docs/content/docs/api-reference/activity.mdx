@@ -1,0 +1,67 @@
+---
+title: Activity
+description: Read and prune your activity history
+icon: History
+---
+
+Vaze keeps a history of each user's uploads, deletions and API key changes,
+plus the account changes an admin makes. It is what the **Activity** page in
+the dashboard and the mobile app shows. These endpoints need a [signed-in
+session](/docs/api-reference#signed-in-sessions) and no scope; a request made
+with an API key gets a `403`.
+
+Every call only sees the caller's own entries. An entry looks like this:
+
+```json
+{
+  "id": "4c1f9a7e-...",
+  "type": "upload.succeeded",
+  "target": "3 files",
+  "detail": "report.pdf, photo.jpg, notes.txt",
+  "createdAt": "2026-10-14 09:12:44"
+}
+```
+
+`target` is what the event happened to, such as a file or key name, and
+`detail` an optional extra line, such as the error that failed an upload.
+`createdAt` is a UTC timestamp without a zone marker.
+
+| `type`                                                    | Recorded when                         |
+| --------------------------------------------------------- | ------------------------------------- |
+| `upload.succeeded`, `upload.failed`, `upload.canceled`    | An upload request finishes            |
+| `file.deleted`, `file.delete-failed`                      | Files are deleted                     |
+| `folder.deleted`, `folder.delete-failed`                  | A folder is deleted                   |
+| `api-key.created`, `api-key.renamed`, `api-key.deleted`   | The caller changes one of their keys  |
+| `user.created`, `user.access-changed`, `user.password-reset`, `user.disabled`, `user.enabled`, `user.deleted` | An admin changes an account |
+
+Entries older than the activity retention set under [instance
+settings](/docs/api-reference/settings) are deleted automatically.
+
+## List entries
+
+```
+GET /api/activity
+```
+
+Returns the 200 most recent entries, newest first:
+
+```json
+{ "data": { "activities": [ ... ] }, "error": null }
+```
+
+## Delete entries
+
+```
+DELETE /api/activity
+```
+
+```json
+// some entries
+{ "ids": ["4c1f9a7e-...", "8d0b2c11-..."] }
+
+// every entry
+{ "all": true }
+```
+
+Responds with how many entries were removed, `{ "deleted": 2 }`. Ids that
+aren't the caller's are skipped. Files, keys and accounts are never affected.

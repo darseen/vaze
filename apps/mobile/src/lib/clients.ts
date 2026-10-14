@@ -2,6 +2,7 @@ import { expoClient } from "@better-auth/expo/client";
 import Vaze from "@darseen/vaze";
 import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
+import { APP_USER_AGENT } from "./user-agent";
 
 type ServerRef = { id: string; url: string };
 
@@ -18,6 +19,8 @@ const omitCredentials: typeof fetch = (input, init) =>
 function createClients(server: ServerRef) {
   const auth = createAuthClient({
     baseURL: `${server.url}/api/auth`,
+    // a session records the user agent it signed in with
+    fetchOptions: { headers: { "User-Agent": APP_USER_AGENT } },
     plugins: [
       expoClient({
         scheme: "vaze",

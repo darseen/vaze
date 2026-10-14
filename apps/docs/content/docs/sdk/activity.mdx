@@ -1,0 +1,43 @@
+---
+title: Activity
+description: Read and prune the caller's activity history
+icon: History
+---
+
+`vaze.activity` reads the history of the caller's uploads, deletions, API key
+changes and, for admins, account changes. These calls need a client that [acts
+as a signed-in user](/docs/sdk#act-as-a-signed-in-user); a client built with
+an API key gets a `403`. Every method returns the [response
+envelope](/docs/sdk#response-shape).
+
+## The `Activity` object
+
+```ts
+type Activity = {
+  id: string;
+  type: ActivityType; // e.g. "upload.succeeded", "api-key.created", "user.disabled"
+  target: string | null; // what it happened to, such as a file name
+  detail: string | null; // an extra line, such as the error that failed an upload
+  createdAt: string; // UTC, e.g. "2026-10-14 09:12:44"
+};
+```
+
+The [API reference](/docs/api-reference/activity) lists every type.
+
+## List entries
+
+```ts
+const { data } = await vaze.activity.getAll();
+// data => { activities: Activity[] }, the 200 most recent, newest first
+```
+
+## Delete entries
+
+```ts
+await vaze.activity.delete(["activity-id", "another-id"]);
+// data => { deleted: 2 }
+
+await vaze.activity.clear(); // every entry
+```
+
+Only the history goes; files, keys and accounts are never affected.

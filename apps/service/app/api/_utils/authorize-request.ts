@@ -20,7 +20,15 @@ interface AuthorizedUser {
 }
 
 type AuthorizeResult =
-  | { error: null; data: { user: AuthorizedUser; scopes: Scope[] } }
+  | {
+      error: null;
+      data: {
+        user: AuthorizedUser;
+        scopes: Scope[];
+        /** Null when the request used an API key. */
+        sessionId: string | null;
+      };
+    }
   | {
       error: { message: string; status: number; retryAfter?: number };
       data: null;
@@ -45,7 +53,9 @@ export default async function authorizeRequest(
     // a separate bucket keeps a burst of previews from locking out the API
     bucket = "api",
     limit: max = 300,
-  }: { scope?: Scope; bucket?: string; limit?: number },
+    // for endpoints that act on the account itself rather than its files
+    session: sessionOnly = false,
+  }: { scope?: Scope; bucket?: string; limit?: number; session?: boolean },
 ): Promise<AuthorizeResult> {
   const limit = rateLimit(bucket, clientIp(request), {
     limit: max,
@@ -69,6 +79,16 @@ export default async function authorizeRequest(
   // Check the key first: `getSession` costs a DB round trip, and a keyed
   // request never carries a session cookie.
   if (apiKey) {
+    if (sessionOnly) {
+      return {
+        error: {
+          message: "This endpoint needs a signed-in session",
+          status: 403,
+        },
+        data: null,
+      };
+    }
+
     const key = validateApiKey(apiKey);
     if (!key) return unauthorized;
 
@@ -99,6 +119,7 @@ export default async function authorizeRequest(
       data: {
         user: { id: user.id, username: user.name },
         scopes: scopesOf(user).filter((held) => keyScopes.includes(held)),
+        sessionId: null,
       },
     };
   }
@@ -112,6 +133,7 @@ export default async function authorizeRequest(
       data: {
         user: { id: session.user.id, username: session.user.name },
         scopes: scopesOf(session.user),
+        sessionId: session.session.id,
       },
     };
   }

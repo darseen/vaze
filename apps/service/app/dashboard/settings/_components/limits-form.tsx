@@ -1,6 +1,5 @@
 "use client";
 
-import updateLimits from "@/actions/settings/update-limits";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,7 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Limits } from "@/lib/settings";
+import { callApi } from "@/utils/api";
+import type { InstanceSettings, Limits } from "@repo/types";
 import { Gauge } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -137,7 +137,11 @@ export default function LimitsForm({ limits: initial }: Props) {
 
     try {
       setLoading(true);
-      const { data, error } = await updateLimits(limits);
+      const { data, error } = await callApi<InstanceSettings>(
+        "/api/settings",
+        "PUT",
+        { limits },
+      );
 
       if (error) return toast.error(error.message);
 

@@ -1,7 +1,5 @@
 "use client";
 
-import applyDefaultVisibility from "@/actions/settings/apply-default-visibility";
-import updateDefaultVisibility from "@/actions/settings/update-default-visibility";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,8 +21,10 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import type { Visibility } from "@repo/types";
+import { callApi } from "@/utils/api";
+import type { InstanceSettings, Visibility } from "@repo/types";
 import { Eye, Globe, Lock, type LucideIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -60,6 +60,7 @@ export default function DefaultVisibility({
   visibility: initial,
   counts,
 }: Props) {
+  const router = useRouter();
   const [visibility, setVisibility] = useState(initial);
   const [loading, setLoading] = useState(false);
 
@@ -72,7 +73,13 @@ export default function DefaultVisibility({
 
     try {
       setLoading(true);
-      const { error } = await updateDefaultVisibility(value);
+      const { error } = await callApi<InstanceSettings>(
+        "/api/settings",
+        "PUT",
+        {
+          defaultVisibility: value,
+        },
+      );
 
       if (error) {
         setVisibility(previous);
@@ -95,11 +102,16 @@ export default function DefaultVisibility({
   const handleApply = async () => {
     try {
       setLoading(true);
-      const { data, error } = await applyDefaultVisibility(visibility);
+      const { data, error } = await callApi<{ updated: number }>(
+        "/api/settings/apply-visibility",
+        "POST",
+        { visibility },
+      );
 
       if (error) return toast.error(error.message);
 
       toast.success(`${pluralFiles(data.updated)} made ${visibility}`);
+      router.refresh();
     } catch {
       toast.error("Something went wrong");
     } finally {

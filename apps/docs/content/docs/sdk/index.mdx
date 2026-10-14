@@ -138,6 +138,9 @@ const { data } = await vaze.me();
 const canUpload = data?.scopes.includes("files:write");
 ```
 
+To change the profile, password or signed-in devices, see
+[`vaze.account`](/docs/sdk/account).
+
 ## Stats
 
 `stats()` returns the numbers behind the dashboard's home page. Each section
@@ -167,8 +170,28 @@ if (data?.files) {
     href="/docs/sdk/folders"
   />
   <Card
+    title="Account"
+    description="Change the signed-in user's profile, password and devices."
+    href="/docs/sdk/account"
+  />
+  <Card
     title="API keys"
     description="Create, list, rename and delete keys from a signed-in session."
     href="/docs/sdk/keys"
+  />
+  <Card
+    title="Activity"
+    description="Read and prune the history of uploads, deletions and changes."
+    href="/docs/sdk/activity"
+  />
+  <Card
+    title="Users"
+    description="Add, change, disable and remove accounts as an admin."
+    href="/docs/sdk/users"
+  />
+  <Card
+    title="Instance settings"
+    description="Default visibility, limits and retention as an admin."
+    href="/docs/sdk/settings"
   />
 </Cards>

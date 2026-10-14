@@ -8,19 +8,9 @@ import {
   MAX_UPLOAD_SIZE,
 } from "@/constants";
 import { db, SETTINGS_ID } from "@/db";
-import { settings } from "@repo/db";
-import type { Visibility } from "@repo/types";
-import { eq, sql } from "drizzle-orm";
-
-/** Byte, second and day limits an admin can change at runtime. */
-export interface Limits {
-  maxUploadSize: number;
-  defaultPresignTtl: number;
-  maxPresignTtl: number;
-  hostingCacheMaxAge: number;
-  activityRetentionDays: number;
-  apiRequestRetentionDays: number;
-}
+import { files, settings } from "@repo/db";
+import type { InstanceSettings, Limits, Visibility } from "@repo/types";
+import { count, eq, sql } from "drizzle-orm";
 
 function readSettings() {
   return db.select().from(settings).where(eq(settings.id, SETTINGS_ID)).get();
@@ -43,6 +33,26 @@ export function getLimits(): Limits {
       row?.activityRetentionDays ?? ACTIVITY_RETENTION_DAYS,
     apiRequestRetentionDays:
       row?.apiRequestRetentionDays ?? API_REQUEST_RETENTION_DAYS,
+  };
+}
+
+/** What the instance settings page shows. */
+export function getInstanceSettings(): InstanceSettings {
+  const visibilityCounts: Record<Visibility, number> = {
+    public: 0,
+    private: 0,
+  };
+  const counted = db
+    .select({ visibility: files.visibility, total: count() })
+    .from(files)
+    .groupBy(files.visibility)
+    .all();
+  for (const row of counted) visibilityCounts[row.visibility] = row.total;
+
+  return {
+    defaultVisibility: getDefaultVisibility(),
+    visibilityCounts,
+    limits: getLimits(),
   };
 }
 

@@ -1,5 +1,5 @@
 {
   "title": "SDK",
   "icon": "Package",
-  "pages": ["index", "files", "folders", "keys"]
+  "pages": ["index", "files", "folders", "account", "keys", "activity", "users", "settings"]
 }

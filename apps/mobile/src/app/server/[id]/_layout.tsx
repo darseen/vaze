@@ -78,6 +78,18 @@ function ServerGate({ server }: { server: Server }) {
     load();
   }, [load]);
 
+  const reloadMe = useCallback(async () => {
+    const { data } = await vaze.me();
+    if (!data) return;
+
+    setState((current) =>
+      current.status === "ready" ? { ...current, me: data } : current,
+    );
+    update(server.id, {
+      account: { name: data.user.name, email: data.user.email },
+    });
+  }, [vaze, server.id, update]);
+
   const context = useMemo<ServerContextValue | null>(() => {
     if (state.status !== "ready") return null;
     return {
@@ -87,6 +99,7 @@ function ServerGate({ server }: { server: Server }) {
       me: state.me,
       headers: state.headers,
       can: (scope) => state.me.scopes.includes(scope),
+      reloadMe,
       signOut: async () => {
         update(server.id, { account: null });
         clearLibrary(server.id);
@@ -94,7 +107,7 @@ function ServerGate({ server }: { server: Server }) {
         await auth.signOut().catch(() => undefined);
       },
     };
-  }, [state, server, vaze, auth, update, clearLibrary]);
+  }, [state, server, vaze, auth, update, clearLibrary, reloadMe]);
 
   if (state.status === "loading") {
     return (
@@ -136,21 +149,13 @@ function ServerGate({ server }: { server: Server }) {
 
   return (
     <ServerContext.Provider value={context}>
-      <Tabs
-        canReadFiles={context.can("files:read")}
-        canManageKeys={context.can("api-keys:manage")}
-      />
+      <Tabs canReadFiles={context.can("files:read")} />
     </ServerContext.Provider>
   );
 }
 
-function Tabs({
-  canReadFiles,
-  canManageKeys,
-}: {
-  canReadFiles: boolean;
-  canManageKeys: boolean;
-}) {
+// API keys, users and instance settings are pages inside the Settings tab
+function Tabs({ canReadFiles }: { canReadFiles: boolean }) {
   const [background, foreground, muted, indicator] = useThemeColor([
     "background",
     "foreground",
@@ -168,6 +173,7 @@ function Tabs({
         selected: { color: foreground, fontFamily: fonts.medium },
       }}
       indicatorColor={indicator}
+      labelVisibilityMode="labeled"
     >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Icon
@@ -183,12 +189,16 @@ function Tabs({
         />
         <NativeTabs.Trigger.Label>Files</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="keys" hidden={!canManageKeys}>
+      <NativeTabs.Trigger name="activity">
+        <NativeTabs.Trigger.Icon sf="clock.arrow.circlepath" md="history" />
+        <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="settings">
         <NativeTabs.Trigger.Icon
-          sf={{ default: "key", selected: "key.fill" }}
-          md="key"
+          sf={{ default: "gearshape", selected: "gearshape.fill" }}
+          md="settings"
         />
-        <NativeTabs.Trigger.Label>API keys</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

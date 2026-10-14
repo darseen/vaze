@@ -1,0 +1,47 @@
+---
+title: Instance settings
+description: Read and change the instance-wide settings as an admin
+icon: Settings
+---
+
+`vaze.settings` reads and changes what applies to everyone on the instance.
+These calls need a client that [acts as a signed-in
+user](/docs/sdk#act-as-a-signed-in-user) whose role holds `settings:manage`.
+Every method returns the [response envelope](/docs/sdk#response-shape).
+
+## Read the settings
+
+```ts
+const { data } = await vaze.settings.get();
+// data => {
+//   defaultVisibility: "public" | "private",
+//   visibilityCounts: { public: number, private: number },
+//   limits: Limits,
+// }
+```
+
+`limits` holds byte, second and day values; the [API
+reference](/docs/api-reference/settings) lists each one with its unit and
+minimum.
+
+## Change the settings
+
+Pass `defaultVisibility`, `limits` or both. Limits left out keep their
+current values. The response is the updated settings.
+
+```ts
+const { data, error } = await vaze.settings.update({
+  defaultVisibility: "private",
+  limits: { maxUploadSize: 1024 ** 3, activityRetentionDays: 30 },
+});
+```
+
+## Apply a visibility to every file
+
+A new default only affects files uploaded from then on. To change existing
+files too:
+
+```ts
+const { data } = await vaze.settings.applyVisibility("private");
+// data => { updated: 120 }
+```

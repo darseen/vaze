@@ -1,5 +1,7 @@
 // order matters: Edge and Opera also claim Chrome, Chrome also claims Safari
 const BROWSERS: [RegExp, string][] = [
+  // the mobile app, e.g. "Vaze/1.0.0 (Android 16)"
+  [/^Vaze\//, "Vaze app"],
   [/Edg\//, "Edge"],
   [/OPR\/|Opera/, "Opera"],
   [/Firefox\//, "Firefox"],

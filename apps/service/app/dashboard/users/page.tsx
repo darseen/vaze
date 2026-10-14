@@ -1,3 +1,4 @@
+import { listUsers } from "@/lib/users";
 import { authorize } from "@/utils/auth";
 import { Users } from "lucide-react";
 import { Metadata } from "next";
@@ -5,7 +6,6 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import AddUser from "./_components/add-user";
 import UsersList from "./_components/users-list";
-import fetchUsers from "./_utils/fetch-users";
 
 export const metadata: Metadata = {
   title: "Users",
@@ -18,10 +18,6 @@ export default async function Page() {
 
   const { user, error: authError } = await authorize("users:manage");
   if (authError) redirect("/dashboard");
-
-  const { data, error } = fetchUsers();
-
-  if (error) throw error;
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -40,7 +36,7 @@ export default async function Page() {
         <AddUser />
       </div>
 
-      <UsersList users={data.users} currentUserId={user.id} />
+      <UsersList users={listUsers()} currentUserId={user.id} />
     </div>
   );
 }

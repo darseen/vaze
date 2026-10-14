@@ -1,10 +1,6 @@
 "use client";
 
 import {
-  clearActivities,
-  deleteActivities,
-} from "@/actions/activity/delete-activities";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -21,7 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { formatDate, parseTimestamp } from "@/utils";
-import type { Activity, ActivityType } from "@repo/types";
+import { callApi } from "@/utils/api";
+import type { ActivityEntry, ActivityType } from "@repo/types";
 import { formatDistanceToNow, isToday, isYesterday } from "date-fns";
 import {
   CheckCircle2,
@@ -40,13 +37,9 @@ import {
   XCircle,
   type LucideIcon,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-
-export type ActivityRow = Pick<
-  Activity,
-  "id" | "type" | "target" | "detail" | "createdAt"
->;
 
 const TYPE_META: Record<
   ActivityType,
@@ -168,7 +161,7 @@ function Row({
   selected,
   onToggle,
 }: {
-  activity: ActivityRow;
+  activity: ActivityEntry;
   selected: boolean;
   onToggle: () => void;
 }) {
@@ -225,8 +218,9 @@ function Row({
 export default function ActivityList({
   activities,
 }: {
-  activities: ActivityRow[];
+  activities: ActivityEntry[];
 }) {
+  const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
@@ -249,7 +243,7 @@ export default function ActivityList({
 
   // one heading per calendar day, in the order the rows already arrive
   const groups = useMemo(() => {
-    const out: { label: string; items: ActivityRow[] }[] = [];
+    const out: { label: string; items: ActivityEntry[] }[] = [];
 
     for (const activity of visible) {
       const label = dayLabel(parseTimestamp(activity.createdAt));
@@ -290,13 +284,18 @@ export default function ActivityList({
     const ids = [...selected];
 
     startTransition(async () => {
-      const { error } = await deleteActivities(ids);
+      const { error } = await callApi<{ deleted: number }>(
+        "/api/activity",
+        "DELETE",
+        { ids },
+      ).catch(() => ({ error: { message: "Something went wrong" } }));
       if (error) {
         toast.error(error.message);
         return;
       }
 
       setSelected(new Set());
+      router.refresh();
       toast.success(
         `Deleted ${ids.length} ${ids.length === 1 ? "entry" : "entries"}`,
       );
@@ -305,13 +304,18 @@ export default function ActivityList({
 
   const removeAll = () =>
     startTransition(async () => {
-      const { error } = await clearActivities();
+      const { error } = await callApi<{ deleted: number }>(
+        "/api/activity",
+        "DELETE",
+        { all: true },
+      ).catch(() => ({ error: { message: "Something went wrong" } }));
       if (error) {
         toast.error(error.message);
         return;
       }
 
       setSelected(new Set());
+      router.refresh();
       toast.success("Activity history cleared");
     });
 

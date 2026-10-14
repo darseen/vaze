@@ -1,5 +1,11 @@
+import { auth } from "@/lib/auth";
+import { hasScope } from "@/lib/permissions";
+import { listSessions } from "@/lib/sessions";
+import { getInstanceSettings } from "@/lib/settings";
 import { Settings } from "lucide-react";
 import { Metadata } from "next";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { ReactNode } from "react";
 import DefaultVisibility from "./_components/default-visibility";
@@ -7,7 +13,6 @@ import LimitsForm from "./_components/limits-form";
 import PasswordForm from "./_components/password-form";
 import ProfileForm from "./_components/profile-form";
 import SessionsList from "./_components/sessions-list";
-import fetchSettings from "./_utils/fetch-settings";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -38,9 +43,13 @@ export default async function Page() {
   await connection();
   // everything below will be excluded from prerendering
 
-  const { data, error } = await fetchSettings();
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/");
 
-  if (error) throw error;
+  const { user } = session;
+  const instance = hasScope(user, "settings:manage")
+    ? getInstanceSettings()
+    : null;
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -50,7 +59,7 @@ export default async function Page() {
           <h1 className="text-foreground text-3xl font-bold">Settings</h1>
         </div>
         <p className="text-muted-foreground text-balance">
-          {data.canManageInstance
+          {instance
             ? "Manage your account and how your Vaze instance handles files."
             : "Manage your account and the devices signed in to it."}
         </p>
@@ -61,20 +70,20 @@ export default async function Page() {
           title="Account"
           description="Your sign-in details and the devices using them."
         >
-          <ProfileForm {...data.profile} />
-          <PasswordForm email={data.profile.email} />
-          <SessionsList sessions={data.sessions} />
+          <ProfileForm name={user.name} email={user.email} />
+          <PasswordForm email={user.email} />
+          <SessionsList sessions={listSessions(user.id, session.session.id)} />
         </Section>
 
-        {data.canManageInstance && (
+        {instance && (
           <>
             <Section
               title="Files"
               description="Defaults for files and folders you create."
             >
               <DefaultVisibility
-                visibility={data.defaultVisibility}
-                counts={data.visibilityCounts}
+                visibility={instance.defaultVisibility}
+                counts={instance.visibilityCounts}
               />
             </Section>
 
@@ -82,7 +91,7 @@ export default async function Page() {
               title="Limits"
               description="Upload size, signed links, caching and how long history is kept."
             >
-              <LimitsForm limits={data.limits} />
+              <LimitsForm limits={instance.limits} />
             </Section>
           </>
         )}

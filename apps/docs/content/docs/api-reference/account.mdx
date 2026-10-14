@@ -1,12 +1,16 @@
 ---
 title: Account
-description: The caller's account, scopes, and dashboard stats
+description: The caller's account, profile, password, devices and dashboard stats
 icon: UserRound
 ---
 
-Both endpoints accept an [API key or a signed-in
+`GET /api/me` and `GET /api/stats` accept an [API key or a signed-in
 session](/docs/api-reference#authentication) and need no particular scope.
 What they return depends on what the caller may do.
+
+The endpoints that change the account (profile, password and devices) need a
+[signed-in session](/docs/api-reference#signed-in-sessions) and no scope, so
+every role can use them. A request made with an API key gets a `403`.
 
 ## Current account
 
@@ -82,3 +86,83 @@ caller lacks its scope:
 `largest` and `recent` are file objects, the same shape the
 [files endpoints](/docs/api-reference/files) return. `folders` includes the
 root folder.
+
+## Update your profile
+
+```
+PUT /api/me
+```
+
+```json
+{ "name": "Dana Scully", "email": "dana@example.org" }
+```
+
+Send `name`, `email` or both; a field left out keeps its value. A new email is
+the one you sign in with from then on, and applies right away. The response is
+the updated account, the same shape `GET /api/me` returns.
+
+| Status | Meaning                                       |
+| ------ | --------------------------------------------- |
+| `400`  | Neither field sent, or one of them is empty    |
+| `409`  | Another account already uses that email        |
+
+## Change your password
+
+```
+PUT /api/me/password
+```
+
+```json
+{
+  "currentPassword": "old-password",
+  "newPassword": "new-password",
+  "revokeOtherSessions": true
+}
+```
+
+`newPassword` needs at least 8 characters. With `revokeOtherSessions`, every
+other device is signed out and the session making the request stays signed
+in. A wrong `currentPassword` responds `400`.
+
+## Devices
+
+Each device signed in to the account is a session:
+
+```json
+{
+  "id": "Xb1x2Qm0...",
+  "ipAddress": "203.0.113.7",
+  "userAgent": "Vaze/1.0.0 (Android 16)",
+  "createdAt": "2026-10-14T09:12:44.000Z",
+  "current": true
+}
+```
+
+`current` marks the session making the request. Session tokens are never
+returned, only their ids.
+
+### List devices
+
+```
+GET /api/me/sessions
+```
+
+Returns `{ "sessions": [ ... ] }`, the current session first, then the most
+recently used.
+
+### Sign out a device
+
+```
+DELETE /api/me/sessions
+```
+
+```json
+// one device
+{ "id": "<session-id>" }
+
+// every device but this one
+{ "others": true }
+```
+
+The current session can't be ended here, which responds `400`; sign out
+instead. A session that isn't the caller's responds `404`.

@@ -15,7 +15,7 @@ export type {
   Visibility,
 } from "@repo/db";
 
-import type { File, Scope, User } from "@repo/db";
+import type { Activity, File, Role, Scope, User, Visibility } from "@repo/db";
 
 export type ApiResponse<T> =
   | {
@@ -49,6 +49,55 @@ export type ApiKeySummary = {
 
 /** A key just created, with the secret that is only returned this once. */
 export type CreatedApiKey = ApiKeySummary & { key: string };
+
+/** One row of the caller's activity history. */
+export type ActivityEntry = Pick<
+  Activity,
+  "id" | "type" | "target" | "detail" | "createdAt"
+>;
+
+/** A device signed in to the caller's account. */
+export type SessionSummary = {
+  id: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  /** The session making this request. */
+  current: boolean;
+};
+
+/** An account as an admin sees it. */
+export type UserSummary = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  /** What the account can actually do. */
+  scopes: Scope[];
+  /** The picks saved for the custom role, kept to prefill an editor. */
+  customScopes: Scope[];
+  disabled: boolean;
+  apiKeys: number;
+  createdAt: string;
+};
+
+/** Byte, second and day limits an admin can change at runtime. */
+export type Limits = {
+  maxUploadSize: number;
+  defaultPresignTtl: number;
+  maxPresignTtl: number;
+  hostingCacheMaxAge: number;
+  activityRetentionDays: number;
+  apiRequestRetentionDays: number;
+};
+
+export type InstanceSettings = {
+  /** Applied to uploads and new folders that don't ask for one. */
+  defaultVisibility: Visibility;
+  /** How many existing files are public and private. */
+  visibilityCounts: Record<Visibility, number>;
+  limits: Limits;
+};
 
 export type Stats = {
   /** Present when the caller holds `files:read`. */
