@@ -59,5 +59,3 @@ jobs:
       - name: Release to NPM
         if: steps.version_check.outputs.should_publish == 'true'
         run: pnpm --filter @darseen/vaze run release
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
