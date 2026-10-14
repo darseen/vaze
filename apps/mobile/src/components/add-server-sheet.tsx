@@ -17,7 +17,7 @@ import { Sheet } from "./sheet";
 import { SheetInput } from "./sheet-input";
 import { SignInForm } from "./sign-in-form";
 
-type Draft = { id: string; url: string };
+type Draft = { id: string; url: string; name: string };
 
 type AddServerSheetProps = {
   isOpen: boolean;
@@ -35,20 +35,24 @@ export function AddServerSheet({
   const update = useServers((state) => state.update);
 
   const [address, setAddress] = useState("");
+  const [name, setName] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const spinnerColor = useThemeColor("accent-foreground");
 
+  const candidates = candidateUrls(address);
+  const defaultName = candidates[0] ? hostOf(candidates[0]) : "Home server";
+
   function reset() {
     setAddress("");
+    setName("");
     setDraft(null);
     setError(null);
     setBusy(false);
   }
 
   async function connect() {
-    const candidates = candidateUrls(address);
     if (candidates.length === 0) {
       setError("That doesn't look like a server address.");
       return;
@@ -60,7 +64,7 @@ export function AddServerSheet({
     for (const url of candidates) {
       if (await probeServer(url).catch(() => false)) {
         const existing = servers.find((server) => server.url === url);
-        setDraft({ id: existing?.id ?? newServerId(), url });
+        setDraft({ id: existing?.id ?? newServerId(), url, name: name.trim() });
         setBusy(false);
         return;
       }
@@ -74,11 +78,17 @@ export function AddServerSheet({
     if (!draft) return;
 
     const existing = servers.find((server) => server.id === draft.id);
+    const patch = draft.name ? { account, name: draft.name } : { account };
     const server: Server = existing
-      ? { ...existing, account }
-      : { ...draft, name: hostOf(draft.url), account, addedAt: Date.now() };
+      ? { ...existing, ...patch }
+      : {
+          ...draft,
+          name: draft.name || hostOf(draft.url),
+          account,
+          addedAt: Date.now(),
+        };
 
-    if (existing) update(existing.id, { account });
+    if (existing) update(existing.id, patch);
     else add(server);
 
     onOpenChange(false);
@@ -122,6 +132,18 @@ export function AddServerSheet({
         </View>
       ) : (
         <View className="gap-4">
+          <TextField>
+            <Label>Name</Label>
+            <SheetInput
+              value={name}
+              onChangeText={setName}
+              placeholder={defaultName}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+            <Description>Optional. Only shown on this device.</Description>
+          </TextField>
+
           <TextField isInvalid={Boolean(error)}>
             <Label>Server address</Label>
             <SheetInput
