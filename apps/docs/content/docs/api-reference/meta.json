@@ -1,5 +1,5 @@
 {
   "title": "API Reference",
   "icon": "Terminal",
-  "pages": ["index", "files", "folders"]
+  "pages": ["index", "files", "folders", "account"]
 }

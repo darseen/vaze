@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@import "uniwind";
+@import "heroui-native/styles";
+
+/* iOS reads a font's PostScript name, Android its file name */
+@theme {
+  --font-normal: "Inter-Regular";
+  --font-medium: "Inter-Medium";
+  --font-semibold: "Inter-SemiBold";
+  --font-bold: "Inter-Bold";
+}
+
+@layer theme {
+  :root {
+    @variant light {
+      --accent: oklch(0.74 0.13 80);
+      --accent-foreground: var(--eclipse);
+    }
+
+    @variant dark {
+      --accent: oklch(0.8 0.12 84);
+      --accent-foreground: var(--eclipse);
+    }
+
+    @variant android {
+      --font-normal: "Inter_400Regular";
+      --font-medium: "Inter_500Medium";
+      --font-semibold: "Inter_600SemiBold";
+      --font-bold: "Inter_700Bold";
+    }
+  }
+}

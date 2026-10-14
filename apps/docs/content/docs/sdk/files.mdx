@@ -71,6 +71,25 @@ uploading over an existing name returns a `409` error.
   `413`, and a full volume returns `507`.
 </Callout>
 
+### From React Native
+
+React Native has no Web `File`, so pass a `FileReference` instead: the `uri`
+a picker returns, plus a name and MIME type. React Native streams the file from
+disk without reading it into memory.
+
+```ts
+import * as DocumentPicker from "expo-document-picker";
+
+const result = await DocumentPicker.getDocumentAsync();
+
+if (!result.canceled) {
+  const [asset] = result.assets;
+  await vaze.files.upload({
+    files: [{ uri: asset.uri, name: asset.name, type: asset.mimeType ?? "application/octet-stream" }],
+  });
+}
+```
+
 ## Get all files
 
 ```ts
@@ -145,6 +164,30 @@ exist, otherwise `error` is set and no archive is returned. The zip is read into
 a `Blob`, so for selections too large to hold in memory, stream [the
 endpoint](/docs/api-reference/files#download-several-files-as-a-zip) with
 `fetch` instead.
+
+## URLs for your own requests
+
+Some clients fetch a file themselves: an image component, or a download manager
+that writes straight to disk. These return the URL to request, and
+[`authHeaders()`](/docs/sdk#fetching-urls-yourself) gives the headers to send
+with it:
+
+```ts
+vaze.files.downloadUrl("file-id"); // what download() fetches
+vaze.files.thumbnailUrl("file-id"); // a WebP preview of an image file
+```
+
+A thumbnail is only available for image files; other files respond `404`.
+
+```ts
+import { File, Paths } from "expo-file-system";
+
+const saved = await File.downloadFileAsync(
+  vaze.files.downloadUrl(file.id),
+  new File(Paths.cache, file.name),
+  { headers: await vaze.authHeaders() },
+);
+```
 
 ## Rename a file
 

@@ -1,0 +1,158 @@
+import {
+  Button,
+  Description,
+  Label,
+  Spinner,
+  TextField,
+  useThemeColor,
+} from "heroui-native";
+import { ArrowLeft } from "lucide-react-native";
+import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import { forgetServer, probeServer } from "@/lib/clients";
+import { candidateUrls, hostOf } from "@/lib/server-url";
+import { newServerId, useServers, type Server } from "@/stores/servers";
+import { Icon } from "./icon";
+import { Sheet } from "./sheet";
+import { SheetInput } from "./sheet-input";
+import { SignInForm } from "./sign-in-form";
+
+type Draft = { id: string; url: string };
+
+type AddServerSheetProps = {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAdded: (server: Server) => void;
+};
+
+export function AddServerSheet({
+  isOpen,
+  onOpenChange,
+  onAdded,
+}: AddServerSheetProps) {
+  const servers = useServers((state) => state.servers);
+  const add = useServers((state) => state.add);
+  const update = useServers((state) => state.update);
+
+  const [address, setAddress] = useState("");
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const spinnerColor = useThemeColor("accent-foreground");
+
+  function reset() {
+    setAddress("");
+    setDraft(null);
+    setError(null);
+    setBusy(false);
+  }
+
+  async function connect() {
+    const candidates = candidateUrls(address);
+    if (candidates.length === 0) {
+      setError("That doesn't look like a server address.");
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+
+    for (const url of candidates) {
+      if (await probeServer(url).catch(() => false)) {
+        const existing = servers.find((server) => server.url === url);
+        setDraft({ id: existing?.id ?? newServerId(), url });
+        setBusy(false);
+        return;
+      }
+    }
+
+    setBusy(false);
+    setError("Couldn't find a Vaze server at that address.");
+  }
+
+  function finish(account: Server["account"]) {
+    if (!draft) return;
+
+    const existing = servers.find((server) => server.id === draft.id);
+    const server: Server = existing
+      ? { ...existing, account }
+      : { ...draft, name: hostOf(draft.url), account, addedAt: Date.now() };
+
+    if (existing) update(existing.id, { account });
+    else add(server);
+
+    onOpenChange(false);
+    reset();
+    onAdded(server);
+  }
+
+  function close(open: boolean) {
+    onOpenChange(open);
+    if (open) return;
+    // a sign-in that never finished must not leave a cookie behind
+    if (draft && !servers.some((server) => server.id === draft.id)) {
+      forgetServer(draft);
+    }
+    reset();
+  }
+
+  return (
+    <Sheet
+      isOpen={isOpen}
+      onOpenChange={close}
+      title={draft ? "Sign in" : "Add a server"}
+      description={
+        draft
+          ? hostOf(draft.url)
+          : "Enter the address you open Vaze on in your browser."
+      }
+    >
+      {draft ? (
+        <View className="gap-5">
+          <SignInForm server={draft} onSignedIn={finish} />
+          <Pressable
+            onPress={() => setDraft(null)}
+            className="flex-row items-center justify-center gap-2 py-1"
+          >
+            <Icon icon={ArrowLeft} size={16} className="text-muted" />
+            <Text className="font-normal text-sm text-muted">
+              Use a different server
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View className="gap-4">
+          <TextField isInvalid={Boolean(error)}>
+            <Label>Server address</Label>
+            <SheetInput
+              value={address}
+              onChangeText={(value) => {
+                setAddress(value);
+                setError(null);
+              }}
+              placeholder="files.example.com"
+              keyboardType="url"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="url"
+              returnKeyType="go"
+              onSubmitEditing={connect}
+            />
+            <Description>
+              A LAN address like 192.168.1.20:3000 works too.
+            </Description>
+          </TextField>
+
+          {error ? (
+            <Text className="font-normal text-sm text-danger">{error}</Text>
+          ) : null}
+
+          <Button onPress={connect} isDisabled={busy || !address.trim()}>
+            {busy ? <Spinner size="sm" color={spinnerColor} /> : null}
+            <Button.Label>{busy ? "Connecting" : "Continue"}</Button.Label>
+          </Button>
+        </View>
+      )}
+    </Sheet>
+  );
+}

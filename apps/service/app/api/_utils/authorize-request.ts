@@ -1,7 +1,12 @@
 import { db } from "@/db";
 import { apiRequests, users } from "@repo/db";
 import { auth } from "@/lib/auth";
-import { hasScope, isDisabled, parseKeyScopes } from "@/lib/permissions";
+import {
+  hasScope,
+  isDisabled,
+  parseKeyScopes,
+  scopesOf,
+} from "@/lib/permissions";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import type { Scope } from "@repo/types";
 import { validateApiKey } from "@/utils/api-keys";
@@ -15,7 +20,7 @@ interface AuthorizedUser {
 }
 
 type AuthorizeResult =
-  | { error: null; data: { user: AuthorizedUser } }
+  | { error: null; data: { user: AuthorizedUser; scopes: Scope[] } }
   | {
       error: { message: string; status: number; retryAfter?: number };
       data: null;
@@ -40,7 +45,7 @@ export default async function authorizeRequest(
     // a separate bucket keeps a burst of previews from locking out the API
     bucket = "api",
     limit: max = 300,
-  }: { scope: Scope; bucket?: string; limit?: number },
+  }: { scope?: Scope; bucket?: string; limit?: number },
 ): Promise<AuthorizeResult> {
   const limit = rateLimit(bucket, clientIp(request), {
     limit: max,
@@ -82,24 +87,32 @@ export default async function authorizeRequest(
 
     // keys only work while their owner may hold them
     if (!hasScope(user, "api-keys:manage")) return forbidden("api-keys:manage");
-    if (!hasScope(user, scope)) return forbidden(scope);
-    if (!parseKeyScopes(key.scopes).includes(scope)) {
+
+    const keyScopes = parseKeyScopes(key.scopes);
+    if (scope && !hasScope(user, scope)) return forbidden(scope);
+    if (scope && !keyScopes.includes(scope)) {
       return forbidden(scope, "API key");
     }
 
     return {
       error: null,
-      data: { user: { id: user.id, username: user.name } },
+      data: {
+        user: { id: user.id, username: user.name },
+        scopes: scopesOf(user).filter((held) => keyScopes.includes(held)),
+      },
     };
   }
 
   const session = await auth.api.getSession({ headers: request.headers });
   if (session) {
-    if (!hasScope(session.user, scope)) return forbidden(scope);
+    if (scope && !hasScope(session.user, scope)) return forbidden(scope);
 
     return {
       error: null,
-      data: { user: { id: session.user.id, username: session.user.name } },
+      data: {
+        user: { id: session.user.id, username: session.user.name },
+        scopes: scopesOf(session.user),
+      },
     };
   }
 

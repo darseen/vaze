@@ -37,6 +37,20 @@ const vaze = new Vaze({
 });
 ```
 
+# Acting as a Signed-in User
+
+Apps that sign people in can send their session instead of an API key. Pass `headers`, an object or a function called before every request, and an optional `fetch` to replace the global one:
+
+```ts
+const vaze = new Vaze({
+  vazeUrl: "http://your-server-ip:3000",
+  headers: async () => ({ cookie: await getSessionCookie() }),
+  fetch: (input, init) => fetch(input, { ...init, credentials: "omit" }),
+});
+```
+
+`vaze.authHeaders()` returns the headers the SDK sends, for clients that fetch an SDK URL themselves, such as `vaze.files.thumbnailUrl(id)` or `vaze.files.downloadUrl(id)`.
+
 # Using Environment Variables
 
 If you set `VAZE_URL` and `VAZE_API_KEY` in your environment, you can initialize the client without passing arguments:
@@ -87,7 +101,7 @@ const { data, error } = await vaze.files.getByName("document.pdf", {
 `upload(data)` Upload one or multiple files to your Vaze instance.
 
 - data:
-  - `files` (File[]): An array of standard web [`File`](https://developer.mozilla.org/en-US/docs/Web/API/File) objects.
+  - `files` (File[]): An array of standard web [`File`](https://developer.mozilla.org/en-US/docs/Web/API/File) objects, or in React Native, `{ uri, name, type }` references.
   - `folder?` (string): The path of the target folder, created if it doesn't exist.
 
 ```ts
@@ -210,6 +224,17 @@ if (data) {
   console.log(data.message); // "Vaze is running!"
 }
 ```
+
+# Account and Stats
+
+`vaze.me()` returns the caller's account and the scopes it may use. `vaze.stats()` returns the dashboard's numbers, with each section `null` when the caller lacks its scope.
+
+```ts
+const { data } = await vaze.me();
+const canUpload = data?.scopes.includes("files:write");
+```
+
+Failed requests carry the HTTP status in `error.status`, such as `401` once a session expires.
 
 # Types
 

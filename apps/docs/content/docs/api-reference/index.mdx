@@ -46,6 +46,18 @@ scope on both the key and its owner's current role; otherwise it receives a
   endpoint](/docs/api-reference/files#serve-a-file-publicly).
 </Callout>
 
+### Signed-in sessions
+
+Every endpoint also accepts the session cookie a user gets by signing in, which
+is how the dashboard and the mobile app call the API. A session acts with the
+user's own scopes, so it works for every role, including Viewers, who can't
+create API keys.
+
+Sign in with `POST /api/auth/sign-in/email` and send the returned cookie back
+in the `Cookie` header. Clients outside a browser that send a cookie to
+`/api/auth/*` must also send an `expo-origin` header with an origin the
+instance trusts. The instance trusts `vaze://`, the mobile app's scheme.
+
 ## Response envelope
 
 Every JSON endpoint responds with the same envelope:
@@ -63,7 +75,7 @@ Errors also carry a meaningful HTTP status code:
 | Status | Meaning                                                     |
 | ------ | ----------------------------------------------------------- |
 | `400`  | Invalid input (missing fields, invalid names)               |
-| `401`  | Missing or invalid API key, or its owner is disabled        |
+| `401`  | Missing or invalid API key or session, or the user is disabled |
 | `403`  | The key, or its owner, lacks the scope the endpoint needs   |
 | `404`  | File or folder not found                                    |
 | `409`  | Name conflict (a name already taken in the same folder)     |
@@ -107,6 +119,7 @@ Keys created before key scopes existed carry all three file scopes.
 
 | Endpoint                                                | Scope          |
 | ------------------------------------------------------- | -------------- |
+| `GET /api/me`, `GET /api/stats`                         | none           |
 | `GET /api/files`, `GET /api/folders`                    | `files:read`   |
 | `GET /api/files/download/:id`, `POST /api/files/download` | `files:read` |
 | `GET /api/folders/download`, `POST /api/files/sign`     | `files:read`   |
@@ -152,5 +165,10 @@ and container health checks:
     title="Folders"
     description="Browse, create, rename, move, and delete folders."
     href="/docs/api-reference/folders"
+  />
+  <Card
+    title="Account"
+    description="Who the caller is, what they may do, and dashboard stats."
+    href="/docs/api-reference/account"
   />
 </Cards>

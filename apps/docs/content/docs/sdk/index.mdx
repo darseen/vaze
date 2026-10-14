@@ -34,9 +34,57 @@ Both options can also be provided through environment variables, in which case
 | `VAZE_API_KEY`       | `apiKey`          |
 
 <Callout>
-  The constructor throws if no URL or API key can be resolved, so
-  misconfiguration fails fast at startup rather than on the first request.
+  The constructor throws if no URL and no API key or `headers` can be
+  resolved, so misconfiguration fails fast at startup rather than on the first
+  request.
 </Callout>
+
+## Act as a signed-in user
+
+An app that signs people in can skip API keys and send their session instead.
+Pass `headers`, either an object or a function the SDK calls before every
+request, and leave `apiKey` out. A session works for every role, while API
+keys need the `api-keys:manage` scope.
+
+With [Better Auth](https://www.better-auth.com) in an Expo app, hand the SDK
+the cookie the Expo client stores:
+
+```ts
+import { expoClient } from "@better-auth/expo/client";
+import Vaze from "@darseen/vaze";
+import { createAuthClient } from "better-auth/react";
+import * as SecureStore from "expo-secure-store";
+
+const auth = createAuthClient({
+  baseURL: "https://files.example.com/api/auth",
+  plugins: [expoClient({ scheme: "vaze", storage: SecureStore })],
+});
+
+const vaze = new Vaze({
+  vazeUrl: "https://files.example.com",
+  headers: async (): Promise<Record<string, string>> => {
+    const cookie = await auth.getCookie();
+    return cookie ? { cookie } : {};
+  },
+  // keep React Native's own cookie jar out of it
+  fetch: (input, init) => fetch(input, { ...init, credentials: "omit" }),
+});
+```
+
+`fetch` swaps in your own fetch implementation for every request, which also
+covers timeouts, retries and logging.
+
+### Fetching URLs yourself
+
+Image loaders and download managers fetch outside the SDK. `authHeaders()`
+returns the headers the SDK would send, ready to pass along with URLs such as
+[`files.thumbnailUrl`](/docs/sdk/files#urls-for-your-own-requests):
+
+```ts
+const headers = await vaze.authHeaders();
+
+<Image source={{ uri: vaze.files.thumbnailUrl(file.id), headers }} />;
+```
 
 ## Response shape
 
@@ -46,8 +94,11 @@ errors:
 ```ts
 type ApiResponse<T> =
   | { data: T; error: null }
-  | { data: null; error: { message: string } };
+  | { data: null; error: { message: string; status?: number } };
 ```
+
+`status` is the HTTP status of a failed request, such as `401` once a session
+has expired. It is missing when no response arrived at all.
 
 Check `error` before using `data`:
 
@@ -72,6 +123,34 @@ Verify connectivity and that your instance is up:
 ```ts
 const { data, error } = await vaze.health();
 // data => { message: "Vaze is running!" }
+```
+
+## Current account
+
+`me()` returns the account behind the client and the
+[scopes](/docs/api-reference#scopes) it can use, so an app can hide what would
+fail:
+
+```ts
+const { data } = await vaze.me();
+// data => { user: { id, name, email, image, role }, scopes: ["files:read", ...] }
+
+const canUpload = data?.scopes.includes("files:write");
+```
+
+## Stats
+
+`stats()` returns the numbers behind the dashboard's home page. Each section
+is `null` when the caller can't see it; see the [API
+reference](/docs/api-reference/account#stats) for the full shape.
+
+```ts
+const { data } = await vaze.stats();
+
+if (data?.files) {
+  console.log(data.files.total, data.files.storage.used);
+  console.log(data.files.recent); // File[] with absolute URLs
+}
 ```
 
 ## What's next

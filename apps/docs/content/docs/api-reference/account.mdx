@@ -1,0 +1,84 @@
+---
+title: Account
+description: The caller's account, scopes, and dashboard stats
+icon: UserRound
+---
+
+Both endpoints accept an [API key or a signed-in
+session](/docs/api-reference#authentication) and need no particular scope.
+What they return depends on what the caller may do.
+
+## Current account
+
+```
+GET /api/me
+```
+
+Returns the account behind the request and the scopes it can use. For an API
+key, `scopes` holds only what both the key and its owner's role allow, so a
+client can hide actions that would fail.
+
+```bash
+curl https://files.example.com/api/me \
+  -H "API-Key: your-api-key"
+```
+
+```json
+{
+  "data": {
+    "user": {
+      "id": "mYaNkYgtuFD3p3Z5N3Na2cNjqR1ytOMu",
+      "name": "Dana",
+      "email": "dana@example.com",
+      "image": null,
+      "role": "editor"
+    },
+    "scopes": ["files:read", "files:write", "files:delete", "api-keys:manage"]
+  },
+  "error": null
+}
+```
+
+## Stats
+
+```
+GET /api/stats
+```
+
+The numbers on the dashboard's home page. Each section is `null` when the
+caller lacks its scope:
+
+- `files` needs `files:read`. It covers the whole instance: totals, used and
+  free storage, usage per MIME type, and the five largest and five most recent
+  files.
+- `apiKeys` needs `api-keys:manage` and a signed-in session, since an API key
+  never carries that scope. It counts the user's own keys and their requests
+  over the last seven UTC days, oldest first.
+
+```json
+{
+  "data": {
+    "files": {
+      "total": 128,
+      "folders": 12,
+      "storage": { "used": 734003200, "available": 96636764160 },
+      "types": [{ "mimeType": "image/png", "size": 524288000, "count": 96 }],
+      "largest": [ ... ],
+      "recent": [ ... ]
+    },
+    "apiKeys": {
+      "total": 2,
+      "requests": [
+        { "date": "2026-10-06", "count": 14 },
+        { "date": "2026-10-07", "count": 0 },
+        ...
+      ]
+    }
+  },
+  "error": null
+}
+```
+
+`largest` and `recent` are file objects, the same shape the
+[files endpoints](/docs/api-reference/files) return. `folders` includes the
+root folder.

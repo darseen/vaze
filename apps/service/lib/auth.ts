@@ -1,4 +1,5 @@
 import { db, schema } from "@/db";
+import { expo } from "@better-auth/expo";
 import { users, type Role } from "@repo/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -34,6 +35,8 @@ const roles = {
 export const auth = betterAuth({
   baseURL: process.env.BASE_URL,
   secret: process.env.AUTH_SECRET,
+  // the mobile app's scheme, sent as its origin by the expo plugin
+  trustedOrigins: ["vaze://"],
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
   emailAndPassword: {
     enabled: true,
@@ -92,6 +95,7 @@ export const auth = betterAuth({
       defaultRole: "viewer",
       bannedUserMessage: "This account has been disabled.",
     }),
+    expo(),
     // must stay last so it sees cookies set by the plugins before it
     nextCookies(),
   ],

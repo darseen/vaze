@@ -1,5 +1,10 @@
 import type { FileWithUrl } from "@repo/types";
 
+// React Native and browsers may have no `process` at all
+export function env(name: string): string | undefined {
+  return typeof process === "undefined" ? undefined : process.env?.[name];
+}
+
 export function constructFileUrls({
   vazeUrl,
   files,

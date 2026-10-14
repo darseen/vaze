@@ -3,6 +3,7 @@ import Base from "./base.js";
 import type {
   BulkDeleteResult,
   BulkMoveResult,
+  FileReference,
   ListOptions,
   MoveDestination,
   SignedUrl,
@@ -96,7 +97,7 @@ export default class Files extends Base {
   }
 
   public async upload(data: {
-    files: File[];
+    files: (File | FileReference)[];
     folder?: string;
     visibility?: Visibility;
   }) {
@@ -108,7 +109,8 @@ export default class Files extends Base {
     if (visibility) formData.append("visibility", visibility);
 
     files.forEach((file) => {
-      formData.append("files", file);
+      // React Native's FormData reads uri, name and type off a plain object
+      formData.append("files", file as Blob);
     });
 
     const { error, data: responseData } = await this.request<{
@@ -129,8 +131,17 @@ export default class Files extends Base {
   }
 
   public async download(id: string) {
-    const url = this.apiUrl(`/api/files/download/${encodeURIComponent(id)}`);
-    return await this.requestBlob(url);
+    return await this.requestBlob(this.downloadUrl(id));
+  }
+
+  /** Where `download` reads from; fetch it yourself with `authHeaders()`. */
+  public downloadUrl(id: string) {
+    return this.apiUrl(`/api/files/download/${encodeURIComponent(id)}`);
+  }
+
+  /** A WebP thumbnail of an image file; fetch it with `authHeaders()`. */
+  public thumbnailUrl(id: string) {
+    return this.apiUrl(`/api/files/thumbnail/${encodeURIComponent(id)}`);
   }
 
   /** Download several files as one zip, with paths below their shared folder. */

@@ -1,15 +1,18 @@
 import type { ApiResponse } from "@repo/types";
-import type { VazeOptions } from "./types/index.js";
-import { parseContentDispositionFilename } from "./utils/index.js";
+import type { VazeHeaders, VazeOptions } from "./types/index.js";
+import { env, parseContentDispositionFilename } from "./utils/index.js";
 
 export default class Base {
-  private apiKey: string;
+  private apiKey: string | undefined;
+  private headers: VazeHeaders | undefined;
+  // wrapped so the global fetch is never called with this class as `this`
+  private fetch: typeof fetch;
 
   protected vazeUrl: string;
 
   constructor(options: VazeOptions = {}) {
-    const vazeUrl = options.vazeUrl || process.env.VAZE_URL;
-    const apiKey = options.apiKey || process.env.VAZE_API_KEY;
+    const vazeUrl = options.vazeUrl || env("VAZE_URL");
+    const apiKey = options.apiKey || env("VAZE_API_KEY");
 
     if (!vazeUrl) {
       throw new Error(
@@ -17,13 +20,15 @@ export default class Base {
       );
     }
 
-    if (!apiKey) {
+    if (!apiKey && !options.headers) {
       throw new Error(
-        "You must provide an API key or set the VAZE_API_KEY environment variable.",
+        "You must provide an API key or headers, or set the VAZE_API_KEY environment variable.",
       );
     }
 
     this.apiKey = apiKey;
+    this.headers = options.headers;
+    this.fetch = options.fetch ?? ((input, init) => fetch(input, init));
     // A trailing slash makes `new URL(relativePath, base)` preserve a base
     // path in the URL (e.g. https://host/vaze) instead of dropping it.
     this.vazeUrl = vazeUrl.endsWith("/") ? vazeUrl : `${vazeUrl}/`;
@@ -42,6 +47,15 @@ export default class Base {
     return url.toString();
   }
 
+  /** The headers every request carries, for clients fetching an SDK URL themselves. */
+  public async authHeaders(): Promise<Record<string, string>> {
+    const headers =
+      typeof this.headers === "function" ? await this.headers() : this.headers;
+    return this.apiKey
+      ? { ...headers, "API-Key": this.apiKey }
+      : { ...headers };
+  }
+
   protected async request<T>(
     method: string,
     url: string,
@@ -50,7 +64,7 @@ export default class Base {
   ): Promise<ApiResponse<T>> {
     try {
       const fetchHeaders: Record<string, string> = {
-        "API-Key": this.apiKey,
+        ...(await this.authHeaders()),
         ...headers,
       };
       const isFormData = body instanceof FormData;
@@ -59,7 +73,7 @@ export default class Base {
         fetchHeaders["Content-Type"] = "application/json";
       }
 
-      const response = await fetch(url, {
+      const response = await this.fetch(url, {
         method,
         headers: fetchHeaders,
         body: isFormData
@@ -68,23 +82,29 @@ export default class Base {
             ? JSON.stringify(body)
             : null,
       });
+      const { status } = response;
 
       const contentType = response.headers.get("content-type") ?? "";
       if (!contentType.includes("application/json")) {
         return {
           data: null,
           error: {
-            message: `Unexpected non-JSON response from server (status ${response.status}).`,
+            message: `Unexpected non-JSON response from server (status ${status}).`,
+            status,
           },
         };
       }
 
       const result = (await response.json()) as ApiResponse<T>;
 
-      if (!response.ok && !result.error) {
+      if (!response.ok) {
         return {
           data: null,
-          error: { message: `Request failed with status ${response.status}.` },
+          error: {
+            message:
+              result.error?.message ?? `Request failed with status ${status}.`,
+            status,
+          },
         };
       }
 
@@ -110,24 +130,27 @@ export default class Base {
     ApiResponse<{ blob: Blob; filename: string | null; contentType: string }>
   > {
     try {
-      const headers: Record<string, string> = { "API-Key": this.apiKey };
+      const headers = await this.authHeaders();
       if (body !== undefined) headers["Content-Type"] = "application/json";
 
-      const response = await fetch(url, {
+      const response = await this.fetch(url, {
         method,
         headers,
         body: body !== undefined ? JSON.stringify(body) : null,
       });
+      const { status } = response;
       const contentType = response.headers.get("content-type") ?? "";
 
       if (!response.ok) {
         if (contentType.includes("application/json")) {
           const result = (await response.json()) as ApiResponse<never>;
-          if (result.error) return { data: null, error: result.error };
+          if (result.error) {
+            return { data: null, error: { ...result.error, status } };
+          }
         }
         return {
           data: null,
-          error: { message: `Request failed with status ${response.status}.` },
+          error: { message: `Request failed with status ${status}.`, status },
         };
       }
 
