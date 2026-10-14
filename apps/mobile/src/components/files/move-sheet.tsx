@@ -120,10 +120,7 @@ export function MoveSheet({
                   {index > 0 ? <Separator className="mx-4" /> : null}
                   <ListGroup.Item onPress={() => setBrowseKey(folder.key)}>
                     <ListGroup.ItemPrefix>
-                      <Icon
-                        icon={FolderIcon}
-                        className="text-accent-soft-foreground"
-                      />
+                      <Icon icon={FolderIcon} filled className="text-folder" />
                     </ListGroup.ItemPrefix>
                     <ListGroup.ItemContent>
                       <ListGroup.ItemTitle numberOfLines={1}>

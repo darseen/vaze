@@ -13,19 +13,15 @@ export type Server = {
 
 type ServersState = {
   servers: Server[];
-  /** The dashboard open when the app was last closed, reopened on launch. */
-  activeId: string | null;
   add: (server: Server) => void;
   update: (id: string, patch: Partial<Omit<Server, "id">>) => void;
   remove: (id: string) => void;
-  setActive: (id: string | null) => void;
 };
 
 export const useServers = create<ServersState>()(
   persist(
     (set) => ({
       servers: [],
-      activeId: null,
       add: (server) =>
         set((state) => ({ servers: [...state.servers, server] })),
       update: (id, patch) =>
@@ -37,14 +33,12 @@ export const useServers = create<ServersState>()(
       remove: (id) =>
         set((state) => ({
           servers: state.servers.filter((server) => server.id !== id),
-          activeId: state.activeId === id ? null : state.activeId,
         })),
-      setActive: (activeId) => set({ activeId }),
     }),
     {
       name: "vaze.servers",
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ servers, activeId }) => ({ servers, activeId }),
+      partialize: ({ servers }) => ({ servers }),
     },
   ),
 );

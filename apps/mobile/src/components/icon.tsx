@@ -8,6 +8,8 @@ type IconProps = {
   className?: string;
   size?: number;
   strokeWidth?: number;
+  /** Fills the glyph with its stroke color. */
+  filled?: boolean;
 };
 
 export function Icon({
@@ -15,7 +17,15 @@ export function Icon({
   className = "text-foreground",
   size = 20,
   strokeWidth = 1.75,
+  filled = false,
 }: IconProps) {
   const { color } = useResolveClassNames(className) as { color?: ColorValue };
-  return <Glyph size={size} color={color} strokeWidth={strokeWidth} />;
+  return (
+    <Glyph
+      size={size}
+      color={color}
+      strokeWidth={strokeWidth}
+      fill={filled ? color : "none"}
+    />
+  );
 }

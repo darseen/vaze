@@ -8,18 +8,87 @@
   --font-medium: "Inter-Medium";
   --font-semibold: "Inter-SemiBold";
   --font-bold: "Inter-Bold";
+
+  --radius: 0.3rem;
+  --field-border-width: 1px;
+
+  /* the web dashboard's chart and file type colors */
+  --color-chart: oklch(0.8 0.15 85);
+  --color-kind-image: oklch(0.7 0.15 220);
+  --color-kind-document: oklch(0.7 0.15 160);
+  --color-kind-archive: oklch(0.75 0.15 45);
+  --color-kind-video: oklch(0.65 0.2 280);
+  --color-kind-audio: oklch(0.6 0.2 25);
+  --color-kind-code: oklch(0.75 0.15 90);
 }
 
+/* the web app's neutral shadcn palette mapped onto HeroUI's tokens */
 @layer theme {
   :root {
     @variant light {
-      --accent: oklch(0.74 0.13 80);
-      --accent-foreground: var(--eclipse);
+      --background: oklch(1 0 0);
+      --foreground: oklch(0.145 0 0);
+      --surface: oklch(1 0 0);
+      --surface-secondary: oklch(0.97 0 0);
+      --surface-tertiary: oklch(0.945 0 0);
+      --overlay: oklch(1 0 0);
+      --backdrop: oklch(0 0 0 / 50%);
+      --muted: oklch(0.556 0 0);
+      --default: oklch(0.97 0 0);
+      --default-foreground: oklch(0.205 0 0);
+      --accent: oklch(0.205 0 0);
+      --accent-foreground: oklch(0.985 0 0);
+      --danger: oklch(0.577 0.245 27.325);
+      --danger-foreground: oklch(0.985 0 0);
+      --field-background: oklch(1 0 0);
+      --field-foreground: oklch(0.145 0 0);
+      --field-border: oklch(0.922 0 0);
+      --segment: oklch(1 0 0);
+      --border: oklch(0.922 0 0);
+      --separator: oklch(0.922 0 0);
+      --focus: oklch(0.708 0 0);
+
+      --folder: oklch(0.623 0.214 259.815);
+      --folder-soft: oklch(0.955 0.022 255);
+      --folder-badge: oklch(0.97 0.014 254.604);
+      --folder-badge-border: oklch(0.882 0.059 254.128);
+      --folder-badge-foreground: oklch(0.488 0.243 264.376);
+      --file-badge: oklch(0.982 0.018 155.826);
+      --file-badge-border: oklch(0.925 0.084 155.995);
+      --file-badge-foreground: oklch(0.527 0.154 150.069);
     }
 
     @variant dark {
-      --accent: oklch(0.8 0.12 84);
-      --accent-foreground: var(--eclipse);
+      --background: oklch(0.145 0 0);
+      --foreground: oklch(0.985 0 0);
+      --surface: oklch(0.205 0 0);
+      --surface-secondary: oklch(0.269 0 0);
+      --surface-tertiary: oklch(0.31 0 0);
+      --overlay: oklch(0.205 0 0);
+      --backdrop: oklch(0 0 0 / 50%);
+      --muted: oklch(0.708 0 0);
+      --default: oklch(0.269 0 0);
+      --default-foreground: oklch(0.985 0 0);
+      --accent: oklch(0.922 0 0);
+      --accent-foreground: oklch(0.205 0 0);
+      --danger: oklch(0.704 0.191 22.216);
+      --danger-foreground: oklch(0.985 0 0);
+      --field-background: oklch(1 0 0 / 4.5%);
+      --field-foreground: oklch(0.985 0 0);
+      --field-border: oklch(1 0 0 / 15%);
+      --segment: oklch(0.371 0 0);
+      --border: oklch(1 0 0 / 10%);
+      --separator: oklch(1 0 0 / 10%);
+      --focus: oklch(0.556 0 0);
+
+      --folder: oklch(0.623 0.214 259.815);
+      --folder-soft: oklch(0.26 0.06 265);
+      --folder-badge: oklch(0.282 0.091 267.935);
+      --folder-badge-border: oklch(0.424 0.199 265.638);
+      --folder-badge-foreground: oklch(0.809 0.105 251.813);
+      --file-badge: oklch(0.266 0.065 152.934);
+      --file-badge-border: oklch(0.448 0.119 151.328);
+      --file-badge-foreground: oklch(0.871 0.15 154.449);
     }
 
     @variant android {
@@ -29,4 +98,15 @@
       --font-bold: "Inter_700Bold";
     }
   }
+}
+
+@theme inline static {
+  --color-folder: var(--folder);
+  --color-folder-soft: var(--folder-soft);
+  --color-folder-badge: var(--folder-badge);
+  --color-folder-badge-border: var(--folder-badge-border);
+  --color-folder-badge-foreground: var(--folder-badge-foreground);
+  --color-file-badge: var(--file-badge);
+  --color-file-badge-border: var(--file-badge-border);
+  --color-file-badge-foreground: var(--file-badge-foreground);
 }

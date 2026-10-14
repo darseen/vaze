@@ -1,5 +1,6 @@
 import type { File } from "@darseen/vaze";
 import { Image } from "expo-image";
+import { cn } from "heroui-native";
 import { useState } from "react";
 import { View } from "react-native";
 import { fileKind, KIND_INFO } from "@/lib/file-kind";
@@ -11,20 +12,28 @@ type FileThumbProps = {
   size?: number;
   /** Fills the parent's width instead of a fixed square. */
   wide?: boolean;
+  className?: string;
 };
 
-export function FileThumb({ file, size = 40, wide = false }: FileThumbProps) {
+export function FileThumb({
+  file,
+  size = 40,
+  wide = false,
+  className,
+}: FileThumbProps) {
   const { server, vaze, headers } = useServer();
   const [failed, setFailed] = useState(false);
   const kind = fileKind(file.name, file.mimeType);
-  const { icon, tint } = KIND_INFO[kind];
   const box = wide
     ? { width: "100%" as const, height: size }
     : { width: size, height: size };
 
   if (kind === "image" && !failed) {
     return (
-      <View className="overflow-hidden rounded-xl bg-default" style={box}>
+      <View
+        className={cn("overflow-hidden rounded-xl bg-default", className)}
+        style={box}
+      >
         <Image
           source={{
             uri: vaze.files.thumbnailUrl(file.id),
@@ -43,10 +52,17 @@ export function FileThumb({ file, size = 40, wide = false }: FileThumbProps) {
 
   return (
     <View
-      className="items-center justify-center rounded-xl bg-default"
+      className={cn(
+        "items-center justify-center rounded-xl bg-default",
+        className,
+      )}
       style={box}
     >
-      <Icon icon={icon} className={tint} size={Math.min(size * 0.5, 40)} />
+      <Icon
+        icon={KIND_INFO[kind].icon}
+        className="text-muted"
+        size={Math.min(size * 0.5, 40)}
+      />
     </View>
   );
 }

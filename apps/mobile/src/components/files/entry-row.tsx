@@ -32,8 +32,8 @@ export function EntryRow({ entry, onPress, onLongPress }: EntryRowProps) {
       {entry.type === "file" ? (
         <FileThumb file={entry.file} />
       ) : (
-        <View className="size-10 items-center justify-center rounded-xl bg-accent-soft">
-          <Icon icon={FolderIcon} className="text-accent-soft-foreground" />
+        <View className="size-10 items-center justify-center rounded-xl bg-folder-soft">
+          <Icon icon={FolderIcon} filled className="text-folder" />
         </View>
       )}
 

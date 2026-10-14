@@ -1,6 +1,6 @@
 import type { File, Stats } from "@darseen/vaze";
 import { Card, cn } from "heroui-native";
-import type { LucideIcon } from "lucide-react-native";
+import { HardDrive, type LucideIcon } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { fileKind, KIND_INFO, type FileKind } from "@/lib/file-kind";
@@ -15,23 +15,37 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function Section({
   title,
+  description,
   aside,
   children,
 }: {
   title: string;
-  aside?: string;
+  description: string;
+  aside?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <Card className="gap-4">
-      <View className="flex-row items-baseline justify-between">
-        <Text className="text-base font-medium text-foreground">{title}</Text>
-        {aside ? (
-          <Text className="font-normal text-sm text-muted">{aside}</Text>
-        ) : null}
+    <Card className="gap-5 border border-border">
+      <View className="flex-row items-start gap-3">
+        <View className="flex-1 gap-1">
+          <Text className="text-base font-medium text-foreground">{title}</Text>
+          <Text className="font-normal text-sm text-muted">{description}</Text>
+        </View>
+        {aside}
       </View>
       {children}
     </Card>
+  );
+}
+
+function StatHeading({ label, icon }: { label: string; icon: LucideIcon }) {
+  return (
+    <View className="flex-row items-center gap-2">
+      <Text numberOfLines={1} className="flex-1 text-sm font-medium text-muted">
+        {label}
+      </Text>
+      <Icon icon={icon} size={16} className="text-muted" />
+    </View>
   );
 }
 
@@ -40,20 +54,18 @@ export function StorageCard({ storage }: { storage: FileStats["storage"] }) {
   const share = total > 0 ? storage.used / total : 0;
 
   return (
-    <Card className="gap-4">
-      <View className="gap-1">
-        <Text className="font-normal text-sm text-muted">Storage used</Text>
-        <Text className="text-3xl font-semibold text-foreground">
-          {formatBytes(storage.used)}
-        </Text>
-      </View>
+    <Card className="gap-3 border border-border">
+      <StatHeading label="Total storage" icon={HardDrive} />
+      <Text className="text-2xl font-bold text-foreground">
+        {formatBytes(storage.used)}
+      </Text>
       <View className="h-2 overflow-hidden rounded-full bg-default">
         <View
-          className="h-full rounded-full bg-accent"
+          className="h-full rounded-full bg-chart"
           style={{ width: `${Math.max(share * 100, 1)}%` }}
         />
       </View>
-      <Text className="font-normal text-sm text-muted">
+      <Text className="font-normal text-xs text-muted">
         {formatBytes(storage.available)} free on the server
       </Text>
     </Card>
@@ -70,14 +82,11 @@ export function StatTile({
   value: number;
 }) {
   return (
-    <Card className="flex-1 gap-3">
-      <Icon icon={icon} size={18} className="text-muted" />
-      <View>
-        <Text className="text-2xl font-semibold text-foreground">
-          {value.toLocaleString()}
-        </Text>
-        <Text className="font-normal text-sm text-muted">{label}</Text>
-      </View>
+    <Card className="flex-1 gap-2 border border-border p-3.5">
+      <StatHeading label={label} icon={icon} />
+      <Text className="text-2xl font-bold text-foreground">
+        {value.toLocaleString()}
+      </Text>
     </Card>
   );
 }
@@ -98,7 +107,10 @@ export function TypeBreakdown({ types }: { types: FileStats["types"] }) {
   if (total === 0) return null;
 
   return (
-    <Section title="Storage by type">
+    <Section
+      title="Storage by type"
+      description="Breakdown of storage by file type"
+    >
       <View className="h-3 flex-row gap-0.5 overflow-hidden rounded-full">
         {sorted.map(([kind, group]) => (
           <View
@@ -129,11 +141,13 @@ export function TypeBreakdown({ types }: { types: FileStats["types"] }) {
 
 export function FileListCard({
   title,
+  description,
   files,
   detail,
   onOpen,
 }: {
   title: string;
+  description: string;
   files: File[];
   detail: "time" | "size";
   onOpen: (file: File) => void;
@@ -142,7 +156,7 @@ export function FileListCard({
   const largest = Math.max(...files.map((file) => file.size), 1);
 
   return (
-    <Section title={title}>
+    <Section title={title} description={description}>
       <View className="gap-1">
         {files.map((file) => (
           <Pressable
@@ -161,7 +175,7 @@ export function FileListCard({
               {detail === "size" ? (
                 <View className="h-1 overflow-hidden rounded-full bg-default">
                   <View
-                    className="h-full rounded-full bg-accent"
+                    className="h-full rounded-full bg-chart"
                     style={{ width: `${(file.size / largest) * 100}%` }}
                   />
                 </View>
@@ -193,7 +207,18 @@ export function RequestsChart({ apiKeys }: { apiKeys: KeyStats }) {
   const peak = Math.max(...apiKeys.requests.map((day) => day.count), 1);
 
   return (
-    <Section title="API requests" aside={`${total.toLocaleString()} this week`}>
+    <Section
+      title="API requests"
+      description="Daily usage of your API keys"
+      aside={
+        <View className="items-end">
+          <Text className="text-2xl font-bold text-foreground">
+            {total.toLocaleString()}
+          </Text>
+          <Text className="font-normal text-xs text-muted">This week</Text>
+        </View>
+      }
+    >
       <View className="h-28 flex-row items-end gap-2">
         {apiKeys.requests.map((day) => (
           <View key={day.date} className="flex-1 items-center gap-2">
@@ -201,7 +226,7 @@ export function RequestsChart({ apiKeys }: { apiKeys: KeyStats }) {
               <View
                 className={cn(
                   "w-full rounded-md",
-                  day.count > 0 ? "bg-accent" : "bg-default",
+                  day.count > 0 ? "bg-chart" : "bg-default",
                 )}
                 style={{ height: `${Math.max((day.count / peak) * 100, 4)}%` }}
               />

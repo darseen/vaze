@@ -28,16 +28,6 @@ export default function ServerLayout() {
   const server = useServers((state) =>
     state.servers.find((item) => item.id === id),
   );
-  const setActive = useServers((state) => state.setActive);
-
-  useEffect(() => {
-    if (!server) return;
-    setActive(server.id);
-    // leaving the dashboard means the next launch starts on the server list
-    return () => {
-      if (useServers.getState().activeId === server.id) setActive(null);
-    };
-  }, [server?.id, setActive]);
 
   if (!server) return <Redirect href="/" />;
   return <ServerGate key={server.id} server={server} />;
@@ -156,7 +146,7 @@ function Tabs({ canReadFiles }: { canReadFiles: boolean }) {
     "background",
     "foreground",
     "muted",
-    "accent-soft",
+    "default",
   ]);
 
   return (

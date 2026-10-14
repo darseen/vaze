@@ -142,7 +142,7 @@ export default function OverviewScreen() {
           <>
             {data.files ? <StorageCard storage={data.files.storage} /> : null}
 
-            <View className="flex-row gap-4">
+            <View className="flex-row gap-3">
               {data.files ? (
                 <>
                   <StatTile
@@ -169,14 +169,16 @@ export default function OverviewScreen() {
             {data.files ? (
               <>
                 <FileListCard
-                  title="Recent"
+                  title="Recent files"
+                  description="Latest uploaded files"
                   files={data.files.recent}
                   detail="time"
                   onOpen={(file) => actions.open({ type: "file", file })}
                 />
                 <TypeBreakdown types={data.files.types} />
                 <FileListCard
-                  title="Largest"
+                  title="Largest files"
+                  description="Files using the most space"
                   files={data.files.largest}
                   detail="size"
                   onOpen={(file) => actions.open({ type: "file", file })}

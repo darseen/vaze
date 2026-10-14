@@ -66,55 +66,48 @@ export function fileKind(name: string, mimeType: string): FileKind {
 
 export const KIND_INFO: Record<
   FileKind,
-  { label: string; noun: string; icon: LucideIcon; tint: string; bar: string }
+  { label: string; noun: string; icon: LucideIcon; bar: string }
 > = {
   image: {
     label: "Images",
     noun: "Image",
     icon: FileImage,
-    tint: "text-sky-500",
-    bar: "bg-sky-500",
+    bar: "bg-kind-image",
   },
   video: {
     label: "Videos",
     noun: "Video",
     icon: FileVideo,
-    tint: "text-violet-500",
-    bar: "bg-violet-500",
+    bar: "bg-kind-video",
   },
   audio: {
     label: "Audio",
     noun: "Audio",
     icon: FileAudio,
-    tint: "text-pink-500",
-    bar: "bg-pink-500",
+    bar: "bg-kind-audio",
   },
   document: {
     label: "Documents",
     noun: "Document",
     icon: FileText,
-    tint: "text-emerald-500",
-    bar: "bg-emerald-500",
+    bar: "bg-kind-document",
   },
   archive: {
     label: "Archives",
     noun: "Archive",
     icon: FileArchive,
-    tint: "text-orange-500",
-    bar: "bg-orange-500",
+    bar: "bg-kind-archive",
   },
   code: {
     label: "Code",
     noun: "Code",
     icon: FileCode,
-    tint: "text-teal-500",
-    bar: "bg-teal-500",
+    bar: "bg-kind-code",
   },
   other: {
     label: "Other",
     noun: "File",
     icon: File,
-    tint: "text-muted",
     bar: "bg-muted",
   },
 };
