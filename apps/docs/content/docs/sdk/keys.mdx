@@ -1,0 +1,67 @@
+---
+title: API keys
+description: Manage the caller's API keys through the SDK
+icon: KeyRound
+---
+
+Key management lives on `vaze.keys`. These calls need a client that [acts as
+a signed-in user](/docs/sdk#act-as-a-signed-in-user) whose role holds
+`api-keys:manage`; a client built with an API key gets a `403`. Every method
+returns the [response envelope](/docs/sdk#response-shape).
+
+## The `ApiKey` object
+
+```ts
+type ApiKey = {
+  id: string;
+  name: string;
+  scopes: Scope[]; // capped by the owner's current role on every request
+  createdAt: string;
+  lastUsed: string | null;
+  expiresAt: string | null; // null for a key that never expires
+};
+```
+
+## List keys
+
+```ts
+const { data } = await vaze.keys.getAll();
+// data => { keys: ApiKey[] }, newest first
+```
+
+## Create a key
+
+`scopes` takes any of `files:read`, `files:write` and `files:delete` that the
+caller holds. `expiresAt` takes a `Date` or an ISO string; leave it out for a
+key that never expires.
+
+```ts
+const { data, error } = await vaze.keys.create({
+  name: "Backup script",
+  scopes: ["files:read", "files:write"],
+  expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+});
+
+// data => { key: ApiKey & { key: string } }
+console.log(data?.key.key); // "vz_..."
+```
+
+The secret in `key.key` is only returned here. Store it right away, since the
+instance keeps nothing but its hash. A taken name responds `409`.
+
+## Rename a key
+
+```ts
+await vaze.keys.rename({ id: "key-id", name: "Nightly backup" });
+```
+
+Scopes and expiry are fixed once a key exists. To change them, create a new
+key and delete the old one.
+
+## Delete a key
+
+```ts
+await vaze.keys.delete("key-id");
+```
+
+Anything using the key stops working on its next request.

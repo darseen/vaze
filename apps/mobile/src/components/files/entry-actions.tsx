@@ -4,17 +4,17 @@ import { useToast } from "heroui-native";
 import { useState } from "react";
 import { shareFile } from "@/lib/transfer";
 import { parentKey, useLibrary } from "@/stores/library";
+import { ConfirmSheet } from "../confirm-sheet";
+import { NameSheet } from "../name-sheet";
 import { useServer } from "../server-context";
-import { ConfirmSheet } from "./confirm-sheet";
+import { SHEET_CLOSE_MS } from "../sheet";
 import type { Entry } from "./entry-row";
 import { EntrySheet, type EntryAction } from "./entry-sheet";
 import { MoveSheet } from "./move-sheet";
-import { NameSheet } from "./name-sheet";
 
 type SheetName = "details" | "rename" | "move" | "delete";
 
-// a toast shown over an open bottom sheet leaves the sheet invisible but touchable
-const SHEET_CLOSE_MS = 400;
+export const NO_SLASH = "Names can't contain a slash.";
 
 const keyOf = (entry: Entry) =>
   entry.type === "file" ? entry.file.key : entry.folder.key;
@@ -142,6 +142,7 @@ export function useEntryActions() {
 
   async function rename(name: string) {
     if (!entry) return null;
+    if (name.includes("/")) return NO_SLASH;
     const { error } =
       entry.type === "file"
         ? await vaze.files.rename({ id: entry.file.id, name })

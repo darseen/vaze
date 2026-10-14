@@ -136,12 +136,21 @@ function ServerGate({ server }: { server: Server }) {
 
   return (
     <ServerContext.Provider value={context}>
-      <Tabs canReadFiles={context.can("files:read")} />
+      <Tabs
+        canReadFiles={context.can("files:read")}
+        canManageKeys={context.can("api-keys:manage")}
+      />
     </ServerContext.Provider>
   );
 }
 
-function Tabs({ canReadFiles }: { canReadFiles: boolean }) {
+function Tabs({
+  canReadFiles,
+  canManageKeys,
+}: {
+  canReadFiles: boolean;
+  canManageKeys: boolean;
+}) {
   const [background, foreground, muted, indicator] = useThemeColor([
     "background",
     "foreground",
@@ -173,6 +182,13 @@ function Tabs({ canReadFiles }: { canReadFiles: boolean }) {
           md="folder"
         />
         <NativeTabs.Trigger.Label>Files</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="keys" hidden={!canManageKeys}>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "key", selected: "key.fill" }}
+          md="key"
+        />
+        <NativeTabs.Trigger.Label>API keys</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

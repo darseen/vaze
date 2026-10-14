@@ -1,7 +1,7 @@
 import { Button, Spinner, useThemeColor } from "heroui-native";
 import { useState } from "react";
 import { View } from "react-native";
-import { Sheet } from "../sheet";
+import { Sheet } from "./sheet";
 
 type ConfirmSheetProps = {
   isOpen: boolean;

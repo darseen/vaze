@@ -1,6 +1,5 @@
 "use client";
 
-import { deleteApiKey } from "@/actions/api-keys/delete-key";
 import { useCan } from "@/app/dashboard/_components/permissions";
 import {
   AlertDialog,
@@ -16,9 +15,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { parseKeyScopes, SCOPE_INFO } from "@/lib/permissions";
+import { SCOPE_INFO } from "@/lib/permissions";
 import { formatDate } from "@/utils";
-import type { ApiKey } from "@repo/types";
+import type { ApiKeySummary, ApiResponse } from "@repo/types";
 import {
   AlertCircle,
   Calendar,
@@ -28,21 +27,29 @@ import {
   Timer,
   Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 interface Props {
-  keys: Omit<ApiKey, "keyHash" | "userId" | "updatedAt">[];
+  keys: ApiKeySummary[];
 }
 
 export default function KeysList({ keys }: Props) {
+  const router = useRouter();
   const can = useCan();
 
   const deleteKey = async (keyId: string) => {
     try {
-      const { error } = await deleteApiKey(keyId);
+      const response = await fetch("/api/keys", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: keyId }),
+      });
+      const { error } = (await response.json()) as ApiResponse<null>;
       if (error) return toast.error(error.message);
 
       toast.success("API key has been deleted.");
+      router.refresh();
     } catch {
       toast.error("Something went wrong");
     }
@@ -159,7 +166,7 @@ export default function KeysList({ keys }: Props) {
                           {key.name}
                         </h3>
                         <div className="flex flex-wrap gap-1.5">
-                          {parseKeyScopes(key.scopes).map((scope) => {
+                          {key.scopes.map((scope) => {
                             const held = can(scope);
 
                             return (

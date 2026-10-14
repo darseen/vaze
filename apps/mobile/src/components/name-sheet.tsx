@@ -1,8 +1,8 @@
 import { Button, Spinner, useThemeColor, type InputRef } from "heroui-native";
 import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
-import { Sheet } from "../sheet";
-import { SheetInput } from "../sheet-input";
+import { Sheet } from "./sheet";
+import { SheetInput } from "./sheet-input";
 
 type NameSheetProps = {
   isOpen: boolean;
@@ -45,10 +45,6 @@ export function NameSheet({
 
   async function submit() {
     if (!name || unchanged || busy) return;
-    if (name.includes("/")) {
-      setError("Names can't contain a slash.");
-      return;
-    }
 
     setBusy(true);
     const message = await onSubmit(name);

@@ -1,6 +1,5 @@
 "use client";
 
-import generateApiKey from "@/actions/api-keys/generate-key";
 import { useCan } from "@/app/dashboard/_components/permissions";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,12 +28,14 @@ import {
 } from "@/components/ui/select";
 import { KEY_SCOPES, SCOPE_INFO } from "@/lib/permissions";
 import { copyToClipboard } from "@/utils/clipboard";
-import type { Scope } from "@repo/types";
+import type { ApiResponse, CreatedApiKey, Scope } from "@repo/types";
 import { Check, Copy, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function GenerateKey() {
+  const router = useRouter();
   const can = useCan();
   const heldScopes = KEY_SCOPES.filter(can);
   const [keyName, setKeyName] = useState("");
@@ -108,7 +109,18 @@ export default function GenerateKey() {
 
       setLoading(true);
 
-      const { data, error } = await generateApiKey(keyName, expiresAt, scopes);
+      const response = await fetch("/api/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: keyName,
+          scopes,
+          expiresAt: expiresAt?.toISOString() ?? null,
+        }),
+      });
+      const { data, error } = (await response.json()) as ApiResponse<{
+        key: CreatedApiKey;
+      }>;
 
       if (error) return toast.error(error.message);
 
@@ -120,6 +132,7 @@ export default function GenerateKey() {
       });
       setShowKeyDialog(true);
       toast.success(`API key ${newKey.name} has been created successfully.`);
+      router.refresh();
     } catch {
       toast.error("Something went wrong");
     } finally {

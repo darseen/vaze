@@ -1,3 +1,4 @@
+import { listApiKeys } from "@/utils/api-keys";
 import { authorize } from "@/utils/auth";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -5,7 +6,6 @@ import { connection } from "next/server";
 import GenerateKey from "./_components/generate-key";
 import Header from "./_components/header";
 import KeysList from "./_components/keys-list";
-import fetchKeys from "./_utils/fetch-keys";
 
 export const metadata: Metadata = {
   title: "API Key Management",
@@ -16,14 +16,10 @@ export default async function Page() {
   await connection();
   // everything below will be excluded from prerendering
 
-  const { error: authError } = await authorize("api-keys:manage");
+  const { user, error: authError } = await authorize("api-keys:manage");
   if (authError) redirect("/dashboard");
 
-  const { data, error } = await fetchKeys();
-
-  if (error) throw error;
-
-  const { keys } = data;
+  const keys = listApiKeys(user.id);
 
   return (
     <div className="mx-auto w-full max-w-4xl">

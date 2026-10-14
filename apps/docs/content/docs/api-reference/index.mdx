@@ -13,8 +13,9 @@ https://<your-vaze-instance>/api
 
 ## Authentication
 
-Create an API key from the **API Keys** page in the dashboard, then send it
-in the `API-Key` header on every request:
+Create an API key from the **API Keys** page in the dashboard (or with
+[`POST /api/keys`](/docs/api-reference/keys#create-a-key) from a signed-in
+session), then send it in the `API-Key` header on every request:
 
 ```bash
 curl https://files.example.com/api/files \
@@ -78,7 +79,7 @@ Errors also carry a meaningful HTTP status code:
 | `401`  | Missing or invalid API key or session, or the user is disabled |
 | `403`  | The key, or its owner, lacks the scope the endpoint needs   |
 | `404`  | File or folder not found                                    |
-| `409`  | Name conflict (a name already taken in the same folder)     |
+| `409`  | Name conflict (a name already taken in the same folder, or by another of your API keys) |
 | `413`  | Upload too large, or too many files in one request          |
 | `429`  | Rate limited — retry after the `Retry-After` header         |
 | `500`  | Unexpected server error                                     |
@@ -127,6 +128,7 @@ Keys created before key scopes existed carry all three file scopes.
 | `POST /api/files`, `PUT /api/files`                     | `files:write`  |
 | `POST /api/folders`, `PUT /api/folders`                 | `files:write`  |
 | `DELETE /api/files`, `DELETE /api/folders`              | `files:delete` |
+| `/api/keys` (signed-in sessions only)                   | `api-keys:manage` |
 
 ## Rate limits
 
@@ -170,5 +172,10 @@ and container health checks:
     title="Account"
     description="Who the caller is, what they may do, and dashboard stats."
     href="/docs/api-reference/account"
+  />
+  <Card
+    title="API keys"
+    description="Create, list, rename and delete your API keys."
+    href="/docs/api-reference/keys"
   />
 </Cards>

@@ -2,18 +2,21 @@ import type { Me, Stats } from "@repo/types";
 import Base from "./base.js";
 import Files from "./files.js";
 import Folders from "./folders.js";
+import Keys from "./keys.js";
 import type { IVaze, VazeOptions } from "./types/index.js";
 import { constructFileUrls } from "./utils/index.js";
 
 export default class Vaze extends Base implements IVaze {
   public files: Files;
   public folders: Folders;
+  public keys: Keys;
 
   constructor(options: VazeOptions = {}) {
     super(options);
 
     this.files = new Files(options);
     this.folders = new Folders(options);
+    this.keys = new Keys(options);
   }
 
   public async health() {
@@ -61,7 +64,9 @@ export default class Vaze extends Base implements IVaze {
 }
 
 export type {
+  ApiKeySummary as ApiKey,
   ApiResponse,
+  CreatedApiKey,
   FileWithUrl as File,
   Folder,
   Me,
@@ -76,6 +81,7 @@ export type {
   FileReference,
   ListOptions,
   MoveDestination,
+  NewKeyOptions,
   SignedUrl,
   SignOptions,
   VazeHeaders,

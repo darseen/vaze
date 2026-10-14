@@ -1,0 +1,115 @@
+---
+title: API keys
+description: Create, list, rename and delete your API keys
+icon: KeyRound
+---
+
+These endpoints need a [signed-in
+session](/docs/api-reference#signed-in-sessions) whose role holds
+`api-keys:manage`. A request made with an API key gets a `403`, since a key
+can't carry that scope, so a key can never create or remove other keys. They
+are what the dashboard's **API Keys** page and the mobile app use.
+
+Every call only sees the caller's own keys. Key objects have this shape:
+
+```json
+{
+  "id": "6f1d2c3b-...",
+  "name": "Backup script",
+  "scopes": ["files:read", "files:write"],
+  "createdAt": "2026-10-14T11:02:00.000Z",
+  "lastUsed": "2026-10-14T11:05:12.000Z",
+  "expiresAt": null
+}
+```
+
+`scopes` lists what the key was created with. A scope the owner's role has
+since lost stays listed, but the key can't use it until the role gets it back.
+`lastUsed` and `expiresAt` are `null` until the key is used, and for keys that
+never expire.
+
+## List keys
+
+```
+GET /api/keys
+```
+
+Returns the caller's keys, newest first:
+
+```json
+{ "data": { "keys": [ ... ] }, "error": null }
+```
+
+## Create a key
+
+```
+POST /api/keys
+```
+
+```json
+{
+  "name": "Backup script",
+  "scopes": ["files:read", "files:write"],
+  "expiresAt": "2026-11-14T00:00:00.000Z"
+}
+```
+
+| Field       | Description                                                                         |
+| ----------- | ----------------------------------------------------------------------------------- |
+| `name`      | Required. Unique among the caller's keys                                            |
+| `scopes`    | Required. Any of `files:read`, `files:write` and `files:delete` the caller holds     |
+| `expiresAt` | Optional ISO date in the future. Leave it out or send `null` for a key that never expires |
+
+The response is the new key object plus `key`, the secret to send in the
+`API-Key` header. Only its hash is stored, so this is the only time it can be
+read:
+
+```json
+{
+  "data": {
+    "key": {
+      "id": "6f1d2c3b-...",
+      "name": "Backup script",
+      "scopes": ["files:read", "files:write"],
+      "createdAt": "2026-10-14T11:02:00.000Z",
+      "lastUsed": null,
+      "expiresAt": "2026-11-14T00:00:00.000Z",
+      "key": "vz_3f9a..."
+    }
+  },
+  "error": null
+}
+```
+
+| Status | Meaning                                                              |
+| ------ | -------------------------------------------------------------------- |
+| `400`  | Missing name, no scopes, or an `expiresAt` that isn't a future date |
+| `403`  | A scope the caller's role doesn't hold                               |
+| `409`  | The caller already has a key with that name                          |
+
+## Rename a key
+
+```
+PUT /api/keys
+```
+
+```json
+{ "id": "<key-id>", "name": "Nightly backup" }
+```
+
+A key's scopes and expiry can't change. To change them, create a new key and
+delete the old one. Responds `404` for a key that isn't the caller's and `409`
+when the name is taken.
+
+## Delete a key
+
+```
+DELETE /api/keys
+```
+
+```json
+{ "id": "<key-id>" }
+```
+
+Anything using the key gets a `401` from the next request on. Responds `404`
+for a key that isn't the caller's.

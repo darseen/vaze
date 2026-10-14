@@ -1,10 +1,12 @@
-import type { FileWithUrl } from "@repo/types";
+import type { FileWithUrl, Scope } from "@repo/types";
 import type Files from "../files.js";
 import type Folders from "../folders.js";
+import type Keys from "../keys.js";
 
 export interface IVaze {
   files: Files;
   folders: Folders;
+  keys: Keys;
 }
 
 export type VazeHeaders =
@@ -61,6 +63,14 @@ export type MoveDestination = {
 export type BulkMoveResult = {
   files: FileWithUrl[];
   failed: { id: string; message: string }[];
+};
+
+export type NewKeyOptions = {
+  name: string;
+  /** Only `files:read`, `files:write` and `files:delete`, and only ones the caller holds. */
+  scopes: Scope[];
+  /** Leave it out, or pass `null`, for a key that never expires. */
+  expiresAt?: Date | string | null;
 };
 
 export type BulkDeleteResult = {

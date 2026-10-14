@@ -45,13 +45,13 @@ import {
 } from "@/stores/preferences";
 import { useUploads } from "@/stores/uploads";
 import { Icon } from "../icon";
+import { NameSheet } from "../name-sheet";
 import { useServer } from "../server-context";
 import { AddSheet } from "./add-sheet";
 import { Breadcrumb } from "./breadcrumb";
 import { EntryCard } from "./entry-card";
-import { useEntryActions } from "./entry-actions";
+import { NO_SLASH, useEntryActions } from "./entry-actions";
 import { EntryRow, type Entry } from "./entry-row";
-import { NameSheet } from "./name-sheet";
 import { SortSheet } from "./sort-sheet";
 
 type SheetName = "add" | "sort" | "new-folder";
@@ -184,6 +184,7 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   }
 
   async function createFolder(name: string) {
+    if (name.includes("/")) return NO_SLASH;
     const { error } = await vaze.folders.create(joinKey(folderKey, name));
     if (error) return error.message;
     refresh();

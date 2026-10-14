@@ -213,6 +213,42 @@ if (data) {
 const { data, error } = await vaze.folders.delete("folder-id");
 ```
 
+Keys API Manage the caller's API keys via `vaze.keys`. These calls need a client that acts as a signed-in user (`headers`) holding `api-keys:manage`; a client built with an API key gets a `403`.
+
+`getAll()` List the caller's keys, newest first.
+
+```ts
+const { data, error } = await vaze.keys.getAll();
+```
+
+`create(options)` Create a key. The secret in `data.key.key` is only returned this once.
+
+- options:
+  - `name`: Unique among the caller's keys.
+  - `scopes`: Any of `files:read`, `files:write` and `files:delete` the caller holds.
+  - `expiresAt` (optional): A `Date` or ISO string; leave it out for a key that never expires.
+
+```ts
+const { data, error } = await vaze.keys.create({
+  name: "Backup script",
+  scopes: ["files:read", "files:write"],
+});
+
+console.log(data?.key.key); // "vz_..."
+```
+
+`rename(data)` Rename a key. Scopes and expiry can't change.
+
+```ts
+const { data, error } = await vaze.keys.rename({ id: "key-id", name: "Nightly backup" });
+```
+
+`delete(id)` Delete a key, which stops working right away.
+
+```ts
+const { data, error } = await vaze.keys.delete("key-id");
+```
+
 # Health Check
 
 `vaze.health()` pings the instance to verify connectivity.
@@ -238,4 +274,4 @@ Failed requests carry the HTTP status in `error.status`, such as `401` once a se
 
 # Types
 
-This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `File`, `Folder`, `ApiResponse`, `ListOptions`, and `VazeOptions`.
+This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `File`, `Folder`, `ApiKey`, `ApiResponse`, `ListOptions`, and `VazeOptions`.

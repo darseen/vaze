@@ -36,6 +36,20 @@ export type Me = {
   scopes: Scope[];
 };
 
+/** An API key as its owner sees it; the secret itself is never stored. */
+export type ApiKeySummary = {
+  id: string;
+  name: string;
+  /** Capped by the owner's current role on every request. */
+  scopes: Scope[];
+  createdAt: string;
+  lastUsed: string | null;
+  expiresAt: string | null;
+};
+
+/** A key just created, with the secret that is only returned this once. */
+export type CreatedApiKey = ApiKeySummary & { key: string };
+
 export type Stats = {
   /** Present when the caller holds `files:read`. */
   files: {

@@ -6,10 +6,12 @@ export const fonts = Platform.select({
     regular: "Inter_400Regular",
     medium: "Inter_500Medium",
     semibold: "Inter_600SemiBold",
+    mono: "monospace",
   },
   default: {
     regular: "Inter-Regular",
     medium: "Inter-Medium",
     semibold: "Inter-SemiBold",
+    mono: "Menlo",
   },
 });
