@@ -91,7 +91,7 @@ docker compose -f compose.prod.yaml up -d
 ```bash
 docker run -d \
   -p 3000:3000 \
-  -v vaze_data:/app/data \
+  -v vaze_data:/var/lib/vaze \
   -e BASE_URL="http://your-server-ip-or-domain:3000" \
   -e AUTH_SECRET="$(openssl rand -base64 32)" \
   --restart unless-stopped \
@@ -100,7 +100,7 @@ docker run -d \
 ```
 
 - `-p 3000:3000` maps port 3000 on your host to the container's port 3000.
-- `-v vaze_data:/app/data` persists uploads and the SQLite database outside the
+- `-v vaze_data:/var/lib/vaze` persists uploads and the SQLite database outside the
   container, so they survive updates and removals.
 
 ### Initial setup (admin registration)
@@ -171,9 +171,10 @@ The installer generates `AUTH_SECRET` for you. To make one by hand:
 openssl rand -base64 32
 ```
 
-All data lives at `/app/data` inside the container, backed by the `vaze_data`
-volume. Keep it on a volume or you will lose every file and account when the
-container is removed.
+All data lives at `/var/lib/vaze` inside the container, backed by the `vaze_data`
+volume. The container refuses to start without a volume there, since every file
+and account would be lost when it is removed. Set `ALLOW_EPHEMERAL_DATA=true` to
+start without one anyway.
 
 ## API Usage
 

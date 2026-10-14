@@ -37,10 +37,11 @@ be redirected to `/register` to create the admin account.
 ## Data & persistence
 
 The SQLite database lives in `${DATA_PATH}/db/vaze.db` and uploaded files in
-`${DATA_PATH}/uploads`. In Docker, `DATA_PATH` is pinned to `/app/data`, which is
-where the named `vaze_data` volume is mounted (see
-[`compose.prod.yaml`](../../compose.prod.yaml)) — so data survives container
-recreation.
+`${DATA_PATH}/uploads`. In Docker, `DATA_PATH` is pinned to `/var/lib/vaze`, which
+is where the named `vaze_data` volume is mounted (see
+[`compose.prod.yaml`](../../compose.prod.yaml)), so data survives container
+recreation. The entrypoint refuses to start when `DATA_PATH` is not on a mounted
+volume unless `ALLOW_EPHEMERAL_DATA=true`.
 
 ## Docker
 

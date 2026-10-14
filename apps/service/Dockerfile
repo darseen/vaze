@@ -40,7 +40,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV DATA_PATH=/app/data
+ENV DATA_PATH=/var/lib/vaze
 
 COPY --from=installer /app/apps/service/.next/standalone ./
 COPY --from=installer /app/apps/service/.next/static ./apps/service/.next/static
@@ -51,9 +51,8 @@ COPY --from=builder /app/apps/service/entrypoint.sh ./apps/service/entrypoint.sh
 
 RUN chmod +x ./apps/service/entrypoint.sh
 
-# Run unprivileged. `node` (uid 1000) ships with the base image; a named volume
-# mounted at /app/data inherits this ownership when Docker first creates it.
-RUN mkdir -p /app/data && chown -R node:node /app
+# Run unprivileged; a named volume at /var/lib/vaze inherits node's ownership on first use.
+RUN mkdir -p /var/lib/vaze && chown node:node /var/lib/vaze && chown -R node:node /app
 
 USER node
 

@@ -10,10 +10,11 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env — generate with openssl rand -base64 32}
       TZ: ${TZ:-UTC}
       HOSTNAME: 0.0.0.0
+      DATA_PATH: /var/lib/vaze
     ports:
       - "${VAZE_BIND_ADDR:-0.0.0.0}:${VAZE_PORT:-3000}:3000"
     volumes:
-      - vaze_data:/app/data
+      - vaze_data:/var/lib/vaze
     healthcheck:
       test:
         - CMD

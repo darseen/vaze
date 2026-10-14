@@ -84,21 +84,22 @@ openssl rand -base64 32
 
 ## Persistent storage
 
-Inside the container, Vaze keeps everything under `/app/data`:
+Inside the container, Vaze keeps everything under `/var/lib/vaze`:
 
-- `uploads/` — all uploaded files and folders, stored as plain files on disk.
-- `tmp/` — in-flight uploads, staged here and moved into `uploads/` once fully
+- `db/`: the SQLite database with file metadata, users, and API keys.
+- `uploads/`: all uploaded files and folders, stored as plain files on disk.
+- `tmp/`: in-flight uploads, staged here and moved into `uploads/` once fully
   received. Cleared on startup.
-- the SQLite database with file metadata, users, and API keys.
+- `thumbnails/`: cached image previews for the dashboard, rebuilt on demand.
 
-The container runs as an unprivileged user, so a bind mount at `/app/data`
+The container runs as an unprivileged user, so a bind mount at `/var/lib/vaze`
 must be writable by uid 1000.
 
 `compose.prod.yaml` mounts a named Docker volume there:
 
 ```yaml
 volumes:
-  - vaze_data:/app/data
+  - vaze_data:/var/lib/vaze
 ```
 
 Named volumes are the safer default — SQLite's locking is unreliable on bind
@@ -107,7 +108,7 @@ the host, swap it for a bind mount:
 
 ```yaml
 volumes:
-  - /srv/vaze:/app/data
+  - /srv/vaze:/var/lib/vaze
 ```
 
 To back up the named volume:
@@ -123,8 +124,10 @@ docker run --rm -v vaze_vaze_data:/data -v "$PWD:/backup" alpine \
 </Callout>
 
 <Callout type="warn">
-  Without a volume mounted at `/app/data`, all files and accounts are lost when
-  the container is removed.
+  Vaze refuses to start unless `/var/lib/vaze` is on a mounted volume, since
+  without one every file and account is lost when the container is replaced.
+  Set `ALLOW_EPHEMERAL_DATA=true` to start without one anyway, for example on a
+  throwaway test instance.
 </Callout>
 
 ## Health checks

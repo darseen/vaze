@@ -20,4 +20,13 @@ else
   echo ">>> Using existing BASE_URL: ${BASE_URL}"
 fi
 
+# Refuse to start when DATA_PATH is on the container's own filesystem, which a redeploy wipes
+DATA_DEVICE_PATH="${DATA_PATH}"
+while [ ! -e "${DATA_DEVICE_PATH}" ]; do DATA_DEVICE_PATH=$(dirname "${DATA_DEVICE_PATH}"); done
+if [ "${ALLOW_EPHEMERAL_DATA}" != "true" ] && [ "$(stat -c %d "${DATA_DEVICE_PATH}")" = "$(stat -c %d /)" ]; then
+  echo ">>> ${DATA_PATH} is not on a mounted volume, so files and accounts would be lost when this container is replaced."
+  echo ">>> Mount a volume at ${DATA_PATH}, or set ALLOW_EPHEMERAL_DATA=true to run without one."
+  exit 1
+fi
+
 exec "$@"
