@@ -198,16 +198,19 @@ function Filmstrip({
 export function FileViewer({
   folderKey,
   fileId,
+  query,
 }: {
   folderKey: string;
   fileId: string;
+  query?: string;
 }) {
   const { server, vaze } = useServer();
   const { toast } = useToast();
   const { top } = useSafeAreaInsets();
   const actions = useEntryActions();
   const loadFolder = useLibrary((state) => state.loadFolder);
-  const { contents, entries } = useFolderEntries(server.id, folderKey);
+  // pages through what the folder's search showed, like the web
+  const { contents, entries } = useFolderEntries(server.id, folderKey, query);
   const files = useMemo(
     () =>
       entries.flatMap((entry) => (entry.type === "file" ? [entry.file] : [])),

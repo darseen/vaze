@@ -9,6 +9,7 @@ import {
 import {
   Button,
   cn,
+  SearchField,
   Separator,
   Spinner,
   Surface,
@@ -23,6 +24,7 @@ import {
   LayoutGrid,
   List,
   Plus,
+  Search,
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react-native";
@@ -82,11 +84,12 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   const actions = useEntryActions();
   const [sheet, setSheet] = useState<SheetName | null>(null);
   const [pulling, setPulling] = useState(false);
+  const [query, setQuery] = useState("");
   const muted = useThemeColor("muted");
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
 
-  const { contents, entries } = useFolderEntries(server.id, folderKey);
+  const { contents, entries } = useFolderEntries(server.id, folderKey, query);
   const loadFolder = useLibrary((state) => state.loadFolder);
   const loadStats = useLibrary((state) => state.loadStats);
   const fileView = usePreferences((state) => state.fileView);
@@ -184,7 +187,12 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
     } else {
       router.push({
         pathname: "/server/[id]/view",
-        params: { id: server.id, folder: folderKey, file: entry.file.id },
+        params: {
+          id: server.id,
+          folder: folderKey,
+          file: entry.file.id,
+          ...(query.trim() ? { q: query } : {}),
+        },
       });
     }
   }
@@ -197,7 +205,11 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   const current = uploads.find((upload) => upload.status === "uploading");
   const grid = fileView === "grid";
   const cardWidth = Math.floor((width - GUTTER * 2 - GAP) / 2);
-  const folderCount = contents?.data?.folders.length ?? 0;
+  const folderCount = entries.filter((entry) => entry.type === "folder").length;
+  const hasContent =
+    (contents?.data?.files.length ?? 0) +
+      (contents?.data?.folders.length ?? 0) >
+    0;
 
   return (
     <>
@@ -256,6 +268,8 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
         ItemSeparatorComponent={grid ? GridGap : RowSeparator}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerClassName="grow pb-6"
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         refreshControl={
           <RefreshControl
             refreshing={pulling}
@@ -288,12 +302,30 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
                 </View>
               </Surface>
             ) : null}
-            {entries.length > 0 ? (
-              <Toolbar
-                folders={folderCount}
-                files={entries.length - folderCount}
-                onSort={() => setSheet("sort")}
-              />
+            {hasContent ? (
+              <>
+                <SearchField
+                  value={query}
+                  onChange={setQuery}
+                  className="mx-5 mt-3"
+                >
+                  <SearchField.Group>
+                    <SearchField.SearchIcon />
+                    <SearchField.Input
+                      placeholder="Search files and folders"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="search"
+                    />
+                    <SearchField.ClearButton />
+                  </SearchField.Group>
+                </SearchField>
+                <Toolbar
+                  folders={folderCount}
+                  files={entries.length - folderCount}
+                  onSort={() => setSheet("sort")}
+                />
+              </>
             ) : null}
           </>
         }
@@ -308,6 +340,13 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
                   Try again
                 </Button>
               }
+            />
+          ) : hasContent ? (
+            <EmptyState
+              icon={Search}
+              title="No matching results"
+              message="Try a different search"
+              action={null}
             />
           ) : contents?.data ? (
             <EmptyState
