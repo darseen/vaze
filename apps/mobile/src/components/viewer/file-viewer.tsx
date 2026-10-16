@@ -15,7 +15,7 @@ import { FlatList } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScopedTheme } from "uniwind";
 import { useFolderEntries } from "@/hooks/use-folder-entries";
-import { previewKind } from "@/lib/file-kind";
+import { previewKind, type FileKind } from "@/lib/file-kind";
 import { formatBytes } from "@/lib/format";
 import { shareFile } from "@/lib/transfer";
 import { useLibrary } from "@/stores/library";
@@ -199,18 +199,23 @@ export function FileViewer({
   folderKey,
   fileId,
   query,
+  kind,
 }: {
   folderKey: string;
   fileId: string;
   query?: string;
+  kind?: FileKind | null;
 }) {
   const { server, vaze } = useServer();
   const { toast } = useToast();
   const { top } = useSafeAreaInsets();
   const actions = useEntryActions();
   const loadFolder = useLibrary((state) => state.loadFolder);
-  // pages through what the folder's search showed, like the web
-  const { contents, entries } = useFolderEntries(server.id, folderKey, query);
+  // pages through what the folder's search and filter showed, like the web
+  const { contents, entries } = useFolderEntries(server.id, folderKey, {
+    query,
+    kind,
+  });
   const files = useMemo(
     () =>
       entries.flatMap((entry) => (entry.type === "file" ? [entry.file] : [])),

@@ -23,6 +23,7 @@ import {
   FolderOpen,
   LayoutGrid,
   List,
+  ListFilter,
   Plus,
   Search,
   TriangleAlert,
@@ -39,6 +40,7 @@ import {
 } from "react-native";
 import { useShallow } from "zustand/react/shallow";
 import { useFolderEntries } from "@/hooks/use-folder-entries";
+import type { FileKind } from "@/lib/file-kind";
 import { useCardAudio } from "@/lib/playback";
 import { pickDocuments, pickMedia } from "@/lib/transfer";
 import { joinKey, useLibrary } from "@/stores/library";
@@ -53,8 +55,9 @@ import { EntryCard } from "./entry-card";
 import { NO_SLASH, useEntryActions } from "./entry-actions";
 import { EntryRow, type Entry } from "./entry-row";
 import { SortSheet } from "./sort-sheet";
+import { TypeSheet } from "./type-sheet";
 
-type SheetName = "add" | "sort" | "new-folder";
+type SheetName = "add" | "sort" | "type" | "new-folder";
 
 const GUTTER = 20;
 const GAP = 12;
@@ -85,11 +88,15 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   const [sheet, setSheet] = useState<SheetName | null>(null);
   const [pulling, setPulling] = useState(false);
   const [query, setQuery] = useState("");
+  const [kind, setKind] = useState<FileKind | null>(null);
   const muted = useThemeColor("muted");
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
 
-  const { contents, entries } = useFolderEntries(server.id, folderKey, query);
+  const { contents, entries } = useFolderEntries(server.id, folderKey, {
+    query,
+    kind,
+  });
   const loadFolder = useLibrary((state) => state.loadFolder);
   const loadStats = useLibrary((state) => state.loadStats);
   const fileView = usePreferences((state) => state.fileView);
@@ -192,6 +199,7 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
           folder: folderKey,
           file: entry.file.id,
           ...(query.trim() ? { q: query } : {}),
+          ...(kind ? { type: kind } : {}),
         },
       });
     }
@@ -323,7 +331,9 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
                 <Toolbar
                   folders={folderCount}
                   files={entries.length - folderCount}
+                  filtered={kind !== null}
                   onSort={() => setSheet("sort")}
+                  onFilter={() => setSheet("type")}
                 />
               </>
             ) : null}
@@ -345,7 +355,7 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
             <EmptyState
               icon={Search}
               title="No matching results"
-              message="Try a different search"
+              message="Try a different search or filter"
               action={null}
             />
           ) : contents?.data ? (
@@ -380,6 +390,13 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
         onNewFolder={() => setSheet("new-folder")}
       />
       <SortSheet isOpen={sheet === "sort"} onOpenChange={closer("sort")} />
+      <TypeSheet
+        isOpen={sheet === "type"}
+        onOpenChange={closer("type")}
+        files={contents?.data?.files ?? []}
+        kind={kind}
+        onKindChange={setKind}
+      />
       <NameSheet
         isOpen={sheet === "new-folder"}
         onOpenChange={closer("new-folder")}
@@ -395,11 +412,15 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
 function Toolbar({
   folders,
   files,
+  filtered,
   onSort,
+  onFilter,
 }: {
   folders: number;
   files: number;
+  filtered: boolean;
   onSort: () => void;
+  onFilter: () => void;
 }) {
   const fileView = usePreferences((state) => state.fileView);
   const setFileView = usePreferences((state) => state.setFileView);
@@ -410,7 +431,21 @@ function Toolbar({
         {folders > 0 ? <CountBadge kind="folder" count={folders} /> : null}
         {files > 0 ? <CountBadge kind="file" count={files} /> : null}
       </View>
-      <View className="rounded-2xl border border-border p-0.5">
+      <View className="flex-row rounded-2xl border border-border p-0.5">
+        <Pressable
+          onPress={onFilter}
+          className={cn(
+            "size-8 items-center justify-center rounded-xl active:bg-default",
+            filtered && "bg-accent",
+          )}
+          accessibilityLabel={filtered ? "File type, filtered" : "File type"}
+        >
+          <Icon
+            icon={ListFilter}
+            size={16}
+            className={filtered ? "text-accent-foreground" : "text-foreground"}
+          />
+        </Pressable>
         <Pressable
           onPress={onSort}
           className="size-8 items-center justify-center rounded-xl active:bg-default"

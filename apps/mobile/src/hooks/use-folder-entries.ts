@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Entry } from "@/components/files/entry-row";
+import { fileKind, type FileKind } from "@/lib/file-kind";
 import { folderCacheKey, useLibrary } from "@/stores/library";
 import { usePreferences, type SortBy } from "@/stores/preferences";
 
@@ -19,11 +20,13 @@ function compareFiles(by: SortBy) {
   };
 }
 
-/** A folder's cached contents whose names match `query`, folders first, in the user's sort order. */
+export type EntryFilter = { query?: string; kind?: FileKind | null };
+
+/** A folder's cached contents narrowed by `filter`, folders first, in the user's sort order. */
 export function useFolderEntries(
   serverId: string,
   folderKey: string,
-  query = "",
+  { query = "", kind = null }: EntryFilter = {},
 ) {
   const contents = useLibrary(
     (state) => state.folders[folderCacheKey(serverId, folderKey)],
@@ -38,17 +41,22 @@ export function useFolderEntries(
     const matches = (item: { name: string }) =>
       item.name.toLowerCase().includes(needle);
 
+    // like the web, the type filter only narrows files
     const folders = contents.data.folders
       .filter(matches)
       .sort((a, b) => byName(a, b) * (sortBy === "name" ? direction : 1))
       .map((folder): Entry => ({ type: "folder", folder }));
     const files = contents.data.files
-      .filter(matches)
+      .filter(
+        (file) =>
+          matches(file) &&
+          (!kind || fileKind(file.name, file.mimeType) === kind),
+      )
       .map((file) => ({ type: "file" as const, file }))
       .sort((a, b) => compareFiles(sortBy)(a, b) * direction);
 
     return [...folders, ...files];
-  }, [contents?.data, sortBy, sortDirection, needle]);
+  }, [contents?.data, sortBy, sortDirection, needle, kind]);
 
   return { contents, entries };
 }

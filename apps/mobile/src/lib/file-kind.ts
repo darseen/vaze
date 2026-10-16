@@ -12,6 +12,21 @@ import {
 export type FileKind =
   "image" | "video" | "audio" | "document" | "archive" | "code" | "other";
 
+/** The kinds in the web's type filter order. */
+export const FILE_KINDS: FileKind[] = [
+  "image",
+  "document",
+  "video",
+  "audio",
+  "archive",
+  "code",
+  "other",
+];
+
+export function isFileKind(value: unknown): value is FileKind {
+  return FILE_KINDS.includes(value as FileKind);
+}
+
 const ARCHIVES = ["zip", "rar", "7z", "tar", "gz", "bz2", "xz", "tgz"];
 const CODE = [
   "js",
