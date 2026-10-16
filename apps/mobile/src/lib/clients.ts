@@ -16,6 +16,18 @@ const { fetch: nativeFetch } =
 const omitCredentials: typeof fetch = (input, init) =>
   nativeFetch(input, { ...init, credentials: "omit" });
 
+const unauthorizedListeners = new Map<string, Set<() => void>>();
+
+/** Calls `listener` whenever a server answers one of its requests with 401. */
+export function onUnauthorized(serverId: string, listener: () => void) {
+  const listeners = unauthorizedListeners.get(serverId) ?? new Set();
+  listeners.add(listener);
+  unauthorizedListeners.set(serverId, listeners);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 function createClients(server: ServerRef) {
   const auth = createAuthClient({
     baseURL: `${server.url}/api/auth`,
@@ -32,7 +44,15 @@ function createClients(server: ServerRef) {
 
   const vaze = new Vaze({
     vazeUrl: server.url,
-    fetch: omitCredentials,
+    fetch: async (input, init) => {
+      const response = await omitCredentials(input, init);
+      if (response.status === 401) {
+        for (const listener of unauthorizedListeners.get(server.id) ?? []) {
+          listener();
+        }
+      }
+      return response;
+    },
     headers: async (): Promise<Record<string, string>> => {
       const cookie = await auth.getCookie();
       return cookie ? { cookie } : {};

@@ -18,7 +18,7 @@ import {
 import { SignInForm } from "@/components/sign-in-form";
 import { VIEWER_BACKGROUND } from "@/components/viewer/theme";
 import { RegisterForm } from "@/components/register-form";
-import { getClients, needsSetup } from "@/lib/clients";
+import { getClients, needsSetup, onUnauthorized } from "@/lib/clients";
 import { hostOf } from "@/lib/server-url";
 import { useLibrary } from "@/stores/library";
 import { useServers, type Server } from "@/stores/servers";
@@ -77,6 +77,25 @@ function ServerGate({ server }: { server: Server }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // a session that ends mid-use, by expiring or a sign-out elsewhere, returns to sign-in
+  const ready = state.status === "ready";
+  useEffect(() => {
+    if (!ready) return;
+    let checking = false;
+    return onUnauthorized(server.id, async () => {
+      if (checking) return;
+      // one refused request isn't proof, so ask who's signed in
+      checking = true;
+      const { error } = await vaze.me();
+      checking = false;
+      if (error?.status !== 401) return;
+
+      setState({ status: "signed-out", expired: true });
+      update(server.id, { account: null });
+      clearLibrary(server.id);
+    });
+  }, [ready, server.id, vaze, update, clearLibrary]);
 
   const reloadMe = useCallback(async () => {
     const { data } = await vaze.me();
