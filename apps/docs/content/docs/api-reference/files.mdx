@@ -122,6 +122,25 @@ fails partway through, nothing appears in the target folder.
 | `413`  | A file exceeded the maximum upload size set under **Settings**, or too many files in one request |
 | `507`  | Not enough free space on the volume                            |
 
+## Report canceled uploads
+
+```
+POST /api/files/canceled
+```
+
+An upload aborted partway through its request is recorded as canceled by the
+upload route itself. Files a client drops from its own queue before sending
+never reach the server, so report their names to keep the activity history
+complete. Needs the `files:write` scope.
+
+```json
+{ "names": ["holiday.mov", "notes.txt"] }
+```
+
+```json
+{ "data": null, "error": null }
+```
+
 ## Rename a file or change its visibility
 
 ```

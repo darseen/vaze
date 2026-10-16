@@ -102,7 +102,7 @@ export default class Files extends Base {
     visibility?: Visibility;
   }) {
     const { files, folder, visibility } = data;
-    const url = this.apiUrl("/api/files");
+    const url = this.uploadUrl();
     const formData = new FormData();
 
     if (folder) formData.append("folder", folder);
@@ -128,6 +128,20 @@ export default class Files extends Base {
           }
         : null,
     };
+  }
+
+  /** Where `upload` posts its form, for upload managers that report progress. */
+  public uploadUrl() {
+    return this.apiUrl("/api/files");
+  }
+
+  /** Record uploads canceled before they were sent, in the activity history. */
+  public async reportCanceled(names: string[]) {
+    return await this.request<null>(
+      "POST",
+      this.apiUrl("/api/files/canceled"),
+      { names },
+    );
   }
 
   public async download(id: string) {

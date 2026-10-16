@@ -1,6 +1,6 @@
 "use client";
 
-import recordCanceledUploads from "@/actions/activity/record-canceled-uploads";
+import { callApi } from "@/utils/api";
 import type { ApiResponse } from "@repo/types";
 import { useRouter } from "next/navigation";
 import {
@@ -100,7 +100,7 @@ function errorMessageOf(xhr: XMLHttpRequest): string | null {
 /** History for uploads dropped from the queue; failing it changes nothing. */
 function reportCanceled(names: string[]) {
   if (names.length === 0) return;
-  recordCanceledUploads(names).catch(() => {});
+  callApi("/api/files/canceled", "POST", { names }).catch(() => {});
 }
 
 export default function UploadsProvider({ children }: { children: ReactNode }) {

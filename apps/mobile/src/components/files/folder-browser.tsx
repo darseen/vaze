@@ -30,7 +30,13 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react-native";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   BackHandler,
   FlatList,
@@ -40,7 +46,6 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { useShallow } from "zustand/react/shallow";
 import { useFolderEntries } from "@/hooks/use-folder-entries";
 import type { FileKind } from "@/lib/file-kind";
 import { useCardAudio } from "@/lib/playback";
@@ -51,6 +56,7 @@ import { useUploads } from "@/stores/uploads";
 import { Icon } from "../icon";
 import { NameSheet } from "../name-sheet";
 import { useServer } from "../server-context";
+import { SHEET_CLOSE_MS } from "../sheet";
 import { AddSheet } from "./add-sheet";
 import { Breadcrumb } from "./breadcrumb";
 import { EntryCard } from "./entry-card";
@@ -58,9 +64,10 @@ import { NO_SLASH, useEntryActions } from "./entry-actions";
 import { EntryRow, type Entry } from "./entry-row";
 import { SelectionBar } from "./selection-bar";
 import { SortSheet } from "./sort-sheet";
+import { UploadBanner, UploadsSheet } from "./uploads-sheet";
 import { TypeSheet } from "./type-sheet";
 
-type SheetName = "add" | "sort" | "type" | "new-folder";
+type SheetName = "add" | "sort" | "type" | "new-folder" | "uploads";
 
 const GUTTER = 20;
 const GAP = 12;
@@ -89,6 +96,8 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   const { toast } = useToast();
   const actions = useEntryActions();
   const [sheet, setSheet] = useState<SheetName | null>(null);
+  const sheetRef = useRef(sheet);
+  sheetRef.current = sheet;
   const [pulling, setPulling] = useState(false);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<FileKind | null>(null);
@@ -107,14 +116,6 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   const loadStats = useLibrary((state) => state.loadStats);
   const fileView = usePreferences((state) => state.fileView);
   const startUploads = useUploads((state) => state.start);
-  const uploads = useUploads(
-    useShallow((state) =>
-      state.uploads.filter(
-        (upload) =>
-          upload.serverId === server.id && upload.folderKey === folderKey,
-      ),
-    ),
-  );
 
   const refresh = useCallback(
     () => loadFolder(server.id, vaze, folderKey),
@@ -173,7 +174,7 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
     const files = await pick();
     if (files.length === 0) return;
 
-    const { uploaded, failed } = await startUploads(
+    const { uploaded, failed, canceled } = await startUploads(
       server.id,
       vaze,
       folderKey,
@@ -181,22 +182,34 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
     );
     loadStats(server.id, vaze);
 
-    if (failed.length === 0) {
-      toast.show({
-        variant: "success",
-        label:
-          uploaded === 1 ? "Uploaded 1 file" : `Uploaded ${uploaded} files`,
-      });
-    } else {
-      toast.show({
-        variant: "danger",
-        label:
-          failed.length === 1
-            ? `Couldn't upload ${failed[0].name}`
-            : `${failed.length} uploads failed`,
-        description: failed[0].error,
-      });
-    }
+    // a toast can't show over an open sheet, so the uploads sheet closes first
+    const delay = sheetRef.current === "uploads" ? SHEET_CLOSE_MS : 0;
+    if (delay) setSheet(null);
+    const skipped = canceled > 0 ? `${canceled} canceled` : undefined;
+
+    setTimeout(() => {
+      if (failed.length > 0) {
+        toast.show({
+          variant: "danger",
+          label:
+            failed.length === 1
+              ? `Couldn't upload ${failed[0].name}`
+              : `${failed.length} uploads failed`,
+          description: failed[0].error,
+        });
+      } else if (uploaded > 0) {
+        toast.show({
+          variant: "success",
+          label:
+            uploaded === 1 ? "Uploaded 1 file" : `Uploaded ${uploaded} files`,
+          description: skipped,
+        });
+      } else if (canceled > 0) {
+        toast.show({
+          label: canceled === 1 ? "Upload canceled" : "Uploads canceled",
+        });
+      }
+    }, delay);
   }
 
   async function createFolder(name: string) {
@@ -257,10 +270,6 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
 
   const canWrite = can("files:write");
   const title = folderKey ? (folderKey.split("/").pop() ?? folderKey) : "Files";
-  const done = uploads.filter(
-    (upload) => upload.status === "done" || upload.status === "failed",
-  ).length;
-  const current = uploads.find((upload) => upload.status === "uploading");
   const grid = fileView === "grid";
   const cardWidth = Math.floor((width - GUTTER * 2 - GAP) / 2);
   const folderCount = entries.filter((entry) => entry.type === "folder").length;
@@ -389,25 +398,10 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
         }
         ListHeaderComponent={
           <>
-            {current ? (
-              <Surface
-                variant="secondary"
-                className="mx-5 mt-3 flex-row items-center gap-3 rounded-3xl p-4"
-              >
-                <Spinner size="sm" />
-                <View className="flex-1">
-                  <Text className="text-sm font-medium text-foreground">
-                    Uploading {done + 1} of {uploads.length}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    className="font-normal text-xs text-muted"
-                  >
-                    {current.name}
-                  </Text>
-                </View>
-              </Surface>
-            ) : null}
+            <UploadBanner
+              folderKey={folderKey}
+              onOpen={() => setSheet("uploads")}
+            />
             {hasContent ? (
               <>
                 <SearchField
@@ -493,6 +487,11 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
         onNewFolder={() => setSheet("new-folder")}
       />
       <SortSheet isOpen={sheet === "sort"} onOpenChange={closer("sort")} />
+      <UploadsSheet
+        isOpen={sheet === "uploads"}
+        onOpenChange={closer("uploads")}
+        folderKey={folderKey}
+      />
       <TypeSheet
         isOpen={sheet === "type"}
         onOpenChange={closer("type")}

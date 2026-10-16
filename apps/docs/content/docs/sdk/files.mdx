@@ -90,6 +90,19 @@ if (!result.canceled) {
 }
 ```
 
+### Progress and canceling
+
+`upload` reports no progress. To show it, send the same multipart form to
+`vaze.files.uploadUrl()` yourself with
+[`authHeaders()`](/docs/sdk#fetching-urls-yourself), for example with
+`XMLHttpRequest` or Expo's `UploadTask`. An upload aborted mid-request is
+recorded in the activity history as canceled. Ones you drop from your own
+queue before sending never reach the server, so report them:
+
+```ts
+await vaze.files.reportCanceled(["holiday.mov", "notes.txt"]);
+```
+
 ## Get all files
 
 ```ts
