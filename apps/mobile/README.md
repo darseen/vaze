@@ -31,8 +31,14 @@ app. Plain `http://` works for LAN servers on both platforms.
 
 ## How it fits together
 
-- `src/app`: routes. `index.tsx` is the server list; `server/[id]` holds the
-  dashboard and file browser for one server.
+- `src/app`: routes. `index.tsx` is the server list; `server/[id]/(tabs)`
+  holds the dashboard and file browser for one server, and `server/[id]/view`
+  is the full-screen file viewer above the tabs.
+- `modules/file-previews`: a local Expo module that grabs video frames
+  (`MediaMetadataRetriever` / AVFoundation) and renders PDF pages
+  (`PdfRenderer` / PDFKit) for thumbnails and the viewer. Changing it needs a
+  native rebuild. `src/lib/previews.ts` queues and caches its output under the
+  app's cache directory.
 - `src/lib/clients.ts`: one Better Auth client and one SDK client per server.
   The session cookie lives in SecureStore under a prefix per server, and the
   SDK sends it with every request.

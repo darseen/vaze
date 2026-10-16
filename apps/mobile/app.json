@@ -76,6 +76,15 @@
             "./node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf"
           ]
         }
+      ],
+      "expo-video",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
       ]
     ],
     "experiments": {

@@ -45,15 +45,58 @@ const DOCUMENTS = [
   "odt",
 ];
 
+// the web dashboard's image extensions, which the server also thumbnails
+const IMAGES = [
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "svg",
+  "bmp",
+  "ico",
+  "avif",
+];
+
+export type PreviewKind = "image" | "video" | "audio" | "pdf" | "text";
+
+export function extensionOf(name: string) {
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
+}
+
+/** How a file is previewed and viewed, or null when it can't be, like the web. */
+export function previewKind(file: {
+  name: string;
+  mimeType: string;
+  size: number;
+}): PreviewKind | null {
+  if (file.size === 0) return null;
+
+  // the extension wins: mime types misfile code (`.ts` is MPEG-TS video)
+  const ext = extensionOf(file.name);
+  if (CODE.includes(ext)) return "text";
+  if (IMAGES.includes(ext)) return "image";
+
+  const { mimeType } = file;
+  if (mimeType === "application/pdf") return "pdf";
+  if (mimeType.startsWith("text/")) return "text";
+  if (mimeType.startsWith("video/")) return "video";
+  if (mimeType.startsWith("audio/")) return "audio";
+  return null;
+}
+
 export function fileKind(name: string, mimeType: string): FileKind {
+  const ext = extensionOf(name);
+  // like `previewKind`, a code extension beats a misfiled mime type
+  if (CODE.includes(ext)) return "code";
+
   if (mimeType.startsWith("image/")) return "image";
   if (mimeType.startsWith("video/")) return "video";
   if (mimeType.startsWith("audio/")) return "audio";
 
-  const ext = name.split(".").pop()?.toLowerCase() ?? "";
   if (ARCHIVES.includes(ext) || /zip|compressed|tar/.test(mimeType))
     return "archive";
-  if (CODE.includes(ext)) return "code";
   if (
     DOCUMENTS.includes(ext) ||
     mimeType.startsWith("text/") ||

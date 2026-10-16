@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["FilePreviewsModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.filepreviews.FilePreviewsModule"]
+  }
+}

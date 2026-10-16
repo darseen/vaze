@@ -9,7 +9,7 @@ import {
   Trash2,
 } from "lucide-react-native";
 import { Text, View } from "react-native";
-import { fileKind, KIND_INFO } from "@/lib/file-kind";
+import { fileKind, KIND_INFO, previewKind } from "@/lib/file-kind";
 import { formatBytes, formatDateTime } from "@/lib/format";
 import { ActionGroup } from "../action-group";
 import { useServer } from "../server-context";
@@ -147,12 +147,15 @@ function EntryActions({
 function FileDetails({ entry }: { entry: Extract<Entry, { type: "file" }> }) {
   const { file } = entry;
   const kind = fileKind(file.name, file.mimeType);
+  const preview = previewKind(file);
+  // the kinds with something to look at get the big preview
+  const wide = preview === "image" || preview === "video" || preview === "pdf";
 
   return (
     <View className="gap-4">
-      {kind === "image" ? <FileThumb file={file} size={180} wide /> : null}
+      {wide ? <FileThumb file={file} size={180} wide /> : null}
       <View className="flex-row items-start gap-3">
-        {kind === "image" ? null : <FileThumb file={file} size={48} />}
+        {wide ? null : <FileThumb file={file} size={48} />}
         <View className="flex-1 gap-1">
           <Text
             numberOfLines={2}

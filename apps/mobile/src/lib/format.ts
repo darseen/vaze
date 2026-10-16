@@ -10,6 +10,16 @@ export function formatBytes(bytes: number) {
   return `${value >= 100 || exponent === 0 ? Math.round(value) : value.toFixed(1)} ${UNITS[exponent]}`;
 }
 
+export function formatDuration(totalSeconds: number) {
+  const safe = Number.isFinite(totalSeconds) ? Math.max(totalSeconds, 0) : 0;
+  const seconds = Math.floor(safe % 60);
+  const minutes = Math.floor(safe / 60) % 60;
+  const hours = Math.floor(safe / 3600);
+  const mm = hours > 0 ? String(minutes).padStart(2, "0") : String(minutes);
+  const ss = String(seconds).padStart(2, "0");
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
 /** SQLite's CURRENT_TIMESTAMP is UTC without a zone marker. */
 export function parseTimestamp(value: string) {
   if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) {

@@ -1,7 +1,6 @@
 import type { Me } from "@darseen/vaze";
-import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { NativeTabs } from "expo-router/unstable-native-tabs";
-import { Button, Spinner, useThemeColor } from "heroui-native";
+import { Redirect, router, Stack, useLocalSearchParams } from "expo-router";
+import { Button, Spinner } from "heroui-native";
 import { CloudOff } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -17,8 +16,8 @@ import {
   type ServerContextValue,
 } from "@/components/server-context";
 import { SignInForm } from "@/components/sign-in-form";
+import { VIEWER_BACKGROUND } from "@/components/viewer/theme";
 import { getClients } from "@/lib/clients";
-import { fonts } from "@/lib/fonts";
 import { hostOf } from "@/lib/server-url";
 import { useLibrary } from "@/stores/library";
 import { useServers, type Server } from "@/stores/servers";
@@ -149,58 +148,24 @@ function ServerGate({ server }: { server: Server }) {
 
   return (
     <ServerContext.Provider value={context}>
-      <Tabs canReadFiles={context.can("files:read")} />
+      <ServerStack />
     </ServerContext.Provider>
   );
 }
 
-// API keys, users and instance settings are pages inside the Settings tab
-function Tabs({ canReadFiles }: { canReadFiles: boolean }) {
-  const [background, foreground, muted, indicator] = useThemeColor([
-    "background",
-    "foreground",
-    "muted",
-    "default",
-  ]);
-
+// the file viewer opens above the tabs, so it covers the tab bar
+function ServerStack() {
   return (
-    <NativeTabs
-      backgroundColor={background}
-      tintColor={foreground}
-      iconColor={{ default: muted, selected: foreground }}
-      labelStyle={{
-        default: { color: muted, fontFamily: fonts.medium },
-        selected: { color: foreground, fontFamily: fonts.medium },
-      }}
-      indicatorColor={indicator}
-      labelVisibilityMode="labeled"
-    >
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "house", selected: "house.fill" }}
-          md="home"
-        />
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="files" hidden={!canReadFiles}>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "folder", selected: "folder.fill" }}
-          md="folder"
-        />
-        <NativeTabs.Trigger.Label>Files</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="activity">
-        <NativeTabs.Trigger.Icon sf="clock.arrow.circlepath" md="history" />
-        <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="settings">
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "gearshape", selected: "gearshape.fill" }}
-          md="settings"
-        />
-        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen
+        name="view"
+        options={{
+          animation: "fade",
+          contentStyle: { backgroundColor: VIEWER_BACKGROUND },
+        }}
+      />
+    </Stack>
   );
 }
 

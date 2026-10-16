@@ -26,7 +26,7 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react-native";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import {
   FlatList,
   Pressable,
@@ -36,13 +36,11 @@ import {
   View,
 } from "react-native";
 import { useShallow } from "zustand/react/shallow";
+import { useFolderEntries } from "@/hooks/use-folder-entries";
+import { useCardAudio } from "@/lib/playback";
 import { pickDocuments, pickMedia } from "@/lib/transfer";
-import { folderCacheKey, joinKey, useLibrary } from "@/stores/library";
-import {
-  usePreferences,
-  type FileView,
-  type SortBy,
-} from "@/stores/preferences";
+import { joinKey, useLibrary } from "@/stores/library";
+import { usePreferences, type FileView } from "@/stores/preferences";
 import { useUploads } from "@/stores/uploads";
 import { Icon } from "../icon";
 import { NameSheet } from "../name-sheet";
@@ -63,22 +61,6 @@ const VIEWS: { value: FileView; label: string; icon: LucideIcon }[] = [
   { value: "grid", label: "Grid view", icon: LayoutGrid },
   { value: "list", label: "List view", icon: List },
 ];
-
-const byName = (a: { name: string }, b: { name: string }) =>
-  a.name.localeCompare(b.name, undefined, {
-    numeric: true,
-    sensitivity: "base",
-  });
-
-function compareFiles(by: SortBy) {
-  return (a: Entry & { type: "file" }, b: Entry & { type: "file" }) => {
-    if (by === "size") return a.file.size - b.file.size;
-    // timestamps are zero-padded, so string order is time order
-    if (by === "createdAt")
-      return a.file.createdAt.localeCompare(b.file.createdAt);
-    return byName(a.file, b.file);
-  };
-}
 
 // lets a closing sheet finish before a system picker slides over it
 const afterSheetCloses = () =>
@@ -104,13 +86,9 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
 
-  const contents = useLibrary(
-    (state) => state.folders[folderCacheKey(server.id, folderKey)],
-  );
+  const { contents, entries } = useFolderEntries(server.id, folderKey);
   const loadFolder = useLibrary((state) => state.loadFolder);
   const loadStats = useLibrary((state) => state.loadStats);
-  const sortBy = usePreferences((state) => state.sortBy);
-  const sortDirection = usePreferences((state) => state.sortDirection);
   const fileView = usePreferences((state) => state.fileView);
   const startUploads = useUploads((state) => state.start);
   const uploads = useUploads(
@@ -130,22 +108,10 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   useFocusEffect(
     useCallback(() => {
       refresh();
+      // a card's song stops when the folder is left or the viewer opens
+      return () => useCardAudio.getState().stop();
     }, [refresh]),
   );
-
-  const entries = useMemo<Entry[]>(() => {
-    if (!contents?.data) return [];
-    const direction = sortDirection === "ASC" ? 1 : -1;
-
-    const folders = [...contents.data.folders]
-      .sort((a, b) => byName(a, b) * (sortBy === "name" ? direction : 1))
-      .map((folder): Entry => ({ type: "folder", folder }));
-    const files = contents.data.files
-      .map((file) => ({ type: "file" as const, file }))
-      .sort((a, b) => compareFiles(sortBy)(a, b) * direction);
-
-    return [...folders, ...files];
-  }, [contents?.data, sortBy, sortDirection]);
 
   const closer = (name: SheetName) => (open: boolean) => {
     if (!open) setSheet((current) => (current === name ? null : current));
@@ -216,7 +182,10 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
     if (entry.type === "folder") {
       router.push(folderHref(entry.folder.key));
     } else {
-      actions.open(entry);
+      router.push({
+        pathname: "/server/[id]/view",
+        params: { id: server.id, folder: folderKey, file: entry.file.id },
+      });
     }
   }
 
@@ -263,6 +232,8 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
         columnWrapperStyle={
           grid ? { gap: GAP, paddingHorizontal: GUTTER } : undefined
         }
+        // previews start as cards mount, so keep the mounted window short
+        windowSize={5}
         keyExtractor={(entry) =>
           entry.type === "file" ? entry.file.id : entry.folder.id
         }

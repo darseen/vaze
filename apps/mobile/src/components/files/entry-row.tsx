@@ -1,6 +1,11 @@
 import type { File, Folder } from "@darseen/vaze";
 import * as Haptics from "expo-haptics";
-import { ChevronRight, Folder as FolderIcon, Lock } from "lucide-react-native";
+import {
+  ChevronRight,
+  EllipsisVertical,
+  Folder as FolderIcon,
+  Lock,
+} from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 import { formatBytes, timeAgo } from "@/lib/format";
 import { Icon } from "../icon";
@@ -58,7 +63,16 @@ export function EntryRow({ entry, onPress, onLongPress }: EntryRowProps) {
 
       {entry.type === "folder" ? (
         <Icon icon={ChevronRight} size={18} className="text-muted" />
-      ) : null}
+      ) : (
+        <Pressable
+          onPress={onLongPress}
+          hitSlop={8}
+          className="-mr-2 size-9 items-center justify-center rounded-xl active:bg-default"
+          accessibilityLabel={`${name} options`}
+        >
+          <Icon icon={EllipsisVertical} size={18} className="text-muted" />
+        </Pressable>
+      )}
     </Pressable>
   );
 }

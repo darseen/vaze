@@ -9,7 +9,7 @@ import { Pressable, Text, View } from "react-native";
 import { formatBytes, timeAgo } from "@/lib/format";
 import { Icon } from "../icon";
 import type { Entry } from "./entry-row";
-import { FileThumb } from "./file-thumb";
+import { FilePreview } from "./file-preview";
 
 type EntryCardProps = {
   entry: Entry;
@@ -49,12 +49,7 @@ export function EntryCard({
         )}
       >
         {isFile ? (
-          <FileThumb
-            file={entry.file}
-            size={previewHeight}
-            wide
-            className="rounded-none bg-transparent"
-          />
+          <FilePreview file={entry.file} />
         ) : (
           <Icon icon={FolderIcon} size={44} filled className="text-folder" />
         )}
