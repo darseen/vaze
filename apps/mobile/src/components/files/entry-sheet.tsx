@@ -83,7 +83,7 @@ function EntryActions({
           {
             label: "Download",
             icon: Download,
-            hidden: !isFile,
+            description: isFile ? undefined : "Everything inside, as a zip",
             busy: busy === "download",
             onPress: () => onAction("download"),
           },

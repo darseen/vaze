@@ -2,7 +2,12 @@ import type { Visibility } from "@darseen/vaze";
 import * as Clipboard from "expo-clipboard";
 import { useToast } from "heroui-native";
 import { useState } from "react";
-import { fileDownload, saveDownload, shareFile } from "@/lib/transfer";
+import {
+  fileDownload,
+  folderDownload,
+  saveDownload,
+  shareFile,
+} from "@/lib/transfer";
 import { parentKey, useLibrary } from "@/stores/library";
 import { ConfirmSheet } from "../confirm-sheet";
 import { NameSheet } from "../name-sheet";
@@ -91,13 +96,14 @@ export function useEntryActions() {
 
     switch (action) {
       case "download": {
-        if (entry.type !== "file") return;
         setBusy("download");
         setError(null);
         try {
           const saved = await saveDownload(
             vaze,
-            fileDownload(vaze, entry.file),
+            entry.type === "file"
+              ? fileDownload(vaze, entry.file)
+              : folderDownload(vaze, entry.folder),
           );
           if (saved) {
             setSheet(null);
@@ -105,7 +111,7 @@ export function useEntryActions() {
           }
         } catch (error) {
           fail(
-            "Couldn't download the file",
+            "Couldn't download it",
             error instanceof Error ? error.message : undefined,
           );
         } finally {

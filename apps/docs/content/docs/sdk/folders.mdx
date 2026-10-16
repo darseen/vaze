@@ -126,7 +126,13 @@ Pass `id` or `key`; with neither, the root folder is archived as `files.zip`.
 Subfolders are kept, empty ones included. Like `files.download`, the archive is
 read into a `Blob`, so stream [the
 endpoint](/docs/api-reference/folders#download-a-folder-as-a-zip) with `fetch`
-for archives too large to hold in memory.
+for archives too large to hold in memory. `downloadUrl` returns the URL it
+reads, to request yourself with
+[`authHeaders()`](/docs/sdk#fetching-urls-yourself):
+
+```ts
+vaze.folders.downloadUrl({ id: "folder-id" }); // what download() fetches
+```
 
 ## Delete a folder
 

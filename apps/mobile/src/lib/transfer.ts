@@ -1,5 +1,5 @@
 import type Vaze from "@darseen/vaze";
-import type { File, FileReference } from "@darseen/vaze";
+import type { File, FileReference, Folder } from "@darseen/vaze";
 import * as DocumentPicker from "expo-document-picker";
 import { fetch as streamingFetch } from "expo/fetch";
 import {
@@ -26,6 +26,14 @@ export function fileDownload(vaze: Vaze, file: File): DownloadRequest {
     url: vaze.files.downloadUrl(file.id),
     name: file.name,
     mimeType: file.mimeType,
+  };
+}
+
+export function folderDownload(vaze: Vaze, folder: Folder): DownloadRequest {
+  return {
+    url: vaze.folders.downloadUrl({ id: folder.id }),
+    name: `${folder.name}.zip`,
+    mimeType: "application/zip",
   };
 }
 

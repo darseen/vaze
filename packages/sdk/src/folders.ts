@@ -30,9 +30,12 @@ export default class Folders extends Base {
 
   /** Download a folder and everything below it as a zip; the root by default. */
   public async download(options?: { id?: string; key?: string }) {
-    return await this.requestBlob(
-      this.apiUrl("/api/folders/download", options),
-    );
+    return await this.requestBlob(this.downloadUrl(options));
+  }
+
+  /** Where `download` reads from; fetch it yourself with `authHeaders()`. */
+  public downloadUrl(options?: { id?: string; key?: string }) {
+    return this.apiUrl("/api/folders/download", options);
   }
 
   public async create(folder: string) {
