@@ -8,23 +8,31 @@ import {
 import { Pressable, Text, View } from "react-native";
 import { formatBytes, timeAgo } from "@/lib/format";
 import { Icon } from "../icon";
-import type { Entry } from "./entry-row";
+import { SelectMark, type Entry } from "./entry-row";
 import { FilePreview } from "./file-preview";
 
 type EntryCardProps = {
   entry: Entry;
   width: number;
   onPress: () => void;
+  onLongPress: () => void;
   onOptions: () => void;
+  /** Files are being selected, so files show a check and folders dim. */
+  selecting?: boolean;
+  selected?: boolean;
 };
 
 export function EntryCard({
   entry,
   width,
   onPress,
+  onLongPress,
   onOptions,
+  selecting = false,
+  selected = false,
 }: EntryCardProps) {
   const isFile = entry.type === "file";
+  const checkable = selecting && isFile;
   const name = isFile ? entry.file.name : entry.folder.name;
   const createdAt = isFile ? entry.file.createdAt : entry.folder.createdAt;
   const previewHeight = Math.round(width * 0.72);
@@ -34,12 +42,13 @@ export function EntryCard({
       onPress={onPress}
       onLongPress={() => {
         Haptics.selectionAsync();
-        onOptions();
+        onLongPress();
       }}
-      style={{ width }}
+      style={{ width, opacity: selecting && !checkable ? 0.4 : 1 }}
       className="overflow-hidden rounded-3xl border border-border bg-surface active:opacity-80"
       accessibilityRole="button"
       accessibilityLabel={name}
+      accessibilityState={checkable ? { selected } : undefined}
     >
       <View
         style={{ height: previewHeight }}
@@ -61,14 +70,22 @@ export function EntryCard({
           </View>
         ) : null}
 
-        <Pressable
-          onPress={onOptions}
-          hitSlop={8}
-          className="absolute top-2 right-2 size-8 items-center justify-center rounded-xl border border-border bg-background/80 active:bg-default"
-          accessibilityLabel={`${name} options`}
-        >
-          <Icon icon={EllipsisVertical} size={16} />
-        </Pressable>
+        {checkable ? (
+          <View pointerEvents="none" className="absolute top-2.5 left-2.5">
+            <SelectMark selected={selected} />
+          </View>
+        ) : null}
+
+        {selecting ? null : (
+          <Pressable
+            onPress={onOptions}
+            hitSlop={8}
+            className="absolute top-2 right-2 size-8 items-center justify-center rounded-xl border border-border bg-background/80 active:bg-default"
+            accessibilityLabel={`${name} options`}
+          >
+            <Icon icon={EllipsisVertical} size={16} />
+          </Pressable>
+        )}
       </View>
 
       <View className="gap-1 px-3 py-2.5">
@@ -90,6 +107,13 @@ export function EntryCard({
           </Text>
         </View>
       </View>
+
+      {selected ? (
+        <View
+          pointerEvents="none"
+          className="absolute inset-0 rounded-3xl border-2 border-accent"
+        />
+      ) : null}
     </Pressable>
   );
 }

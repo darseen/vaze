@@ -27,10 +27,12 @@ import {
   Plus,
   Search,
   TriangleAlert,
+  X,
   type LucideIcon,
 } from "lucide-react-native";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
+  BackHandler,
   FlatList,
   Pressable,
   RefreshControl,
@@ -54,6 +56,7 @@ import { Breadcrumb } from "./breadcrumb";
 import { EntryCard } from "./entry-card";
 import { NO_SLASH, useEntryActions } from "./entry-actions";
 import { EntryRow, type Entry } from "./entry-row";
+import { SelectionBar } from "./selection-bar";
 import { SortSheet } from "./sort-sheet";
 import { TypeSheet } from "./type-sheet";
 
@@ -89,6 +92,9 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   const [pulling, setPulling] = useState(false);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<FileKind | null>(null);
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
   const muted = useThemeColor("muted");
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
@@ -121,6 +127,40 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
       // a card's song stops when the folder is left or the viewer opens
       return () => useCardAudio.getState().stop();
     }, [refresh]),
+  );
+
+  // only files the search and filter show are ever selected, like the web
+  const visibleFiles = entries.flatMap((entry) =>
+    entry.type === "file" ? [entry.file] : [],
+  );
+  const selectedFiles = visibleFiles.filter((file) => selectedIds.has(file.id));
+  const selecting = selectedFiles.length > 0;
+  const allSelected = selectedFiles.length === visibleFiles.length;
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+  const toggleSelected = (id: string) =>
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  useEffect(clearSelection, [query, kind, clearSelection]);
+
+  // back ends selecting before it leaves the folder
+  useFocusEffect(
+    useCallback(() => {
+      if (!selecting) return;
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          clearSelection();
+          return true;
+        },
+      );
+      return () => subscription.remove();
+    }, [selecting, clearSelection]),
   );
 
   const closer = (name: SheetName) => (open: boolean) => {
@@ -189,6 +229,10 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   }
 
   function openEntry(entry: Entry) {
+    if (selecting) {
+      if (entry.type === "file") toggleSelected(entry.file.id);
+      return;
+    }
     if (entry.type === "folder") {
       router.push(folderHref(entry.folder.key));
     } else {
@@ -203,6 +247,12 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
         },
       });
     }
+  }
+
+  // a file's long press starts selecting; a folder's opens its details
+  function longPress(entry: Entry) {
+    if (entry.type === "file") toggleSelected(entry.file.id);
+    else if (!selecting) actions.open(entry);
   }
 
   const canWrite = can("files:write");
@@ -222,22 +272,61 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   return (
     <>
       <Stack.Screen
-        options={{
-          title,
-          headerLargeTitle: !folderKey,
-          headerRight: canWrite
-            ? () => (
-                <Pressable
-                  onPress={() => setSheet("add")}
-                  hitSlop={10}
-                  className="px-1"
-                  accessibilityLabel="Add"
-                >
-                  <Icon icon={Plus} size={24} />
-                </Pressable>
-              )
-            : undefined,
-        }}
+        options={
+          selecting
+            ? {
+                title: `${selectedFiles.length} selected`,
+                headerLargeTitle: false,
+                headerBackVisible: false,
+                gestureEnabled: false,
+                headerLeft: () => (
+                  <Pressable
+                    onPress={clearSelection}
+                    hitSlop={10}
+                    className="pr-4"
+                    accessibilityLabel="Stop selecting"
+                  >
+                    <Icon icon={X} size={24} />
+                  </Pressable>
+                ),
+                headerRight: () => (
+                  <Pressable
+                    onPress={() =>
+                      setSelectedIds(
+                        allSelected
+                          ? new Set()
+                          : new Set(visibleFiles.map((file) => file.id)),
+                      )
+                    }
+                    hitSlop={10}
+                    accessibilityRole="button"
+                  >
+                    <Text className="text-base font-medium text-foreground">
+                      {allSelected ? "Deselect all" : "Select all"}
+                    </Text>
+                  </Pressable>
+                ),
+              }
+            : {
+                title,
+                headerLargeTitle: !folderKey,
+                headerBackVisible: true,
+                gestureEnabled: true,
+                headerLeft: undefined,
+                headerRight: canWrite
+                  ? () => (
+                      <Pressable
+                        onPress={() => setSheet("add")}
+                        hitSlop={10}
+                        className="px-1"
+                        accessibilityLabel="Add"
+                      >
+                        <Icon icon={Plus} size={24} />
+                      </Pressable>
+                    )
+                  : undefined,
+              }
+        }
       />
 
       {folderKey ? (
@@ -248,6 +337,7 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
         // a column count change needs a fresh list
         key={fileView}
         data={entries}
+        extraData={selectedIds}
         numColumns={grid ? 2 : 1}
         columnWrapperStyle={
           grid ? { gap: GAP, paddingHorizontal: GUTTER } : undefined
@@ -262,20 +352,28 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
             <EntryCard
               entry={item}
               width={cardWidth}
+              selecting={selecting}
+              selected={item.type === "file" && selectedIds.has(item.file.id)}
               onPress={() => openEntry(item)}
+              onLongPress={() => longPress(item)}
               onOptions={() => actions.open(item)}
             />
           ) : (
             <EntryRow
               entry={item}
+              selecting={selecting}
+              selected={item.type === "file" && selectedIds.has(item.file.id)}
               onPress={() => openEntry(item)}
-              onLongPress={() => actions.open(item)}
+              onLongPress={() => longPress(item)}
+              onOptions={() => actions.open(item)}
             />
           )
         }
         ItemSeparatorComponent={grid ? GridGap : RowSeparator}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerClassName="grow pb-6"
+        // room for the selection bar over the last row
+        contentContainerStyle={{ paddingBottom: selecting ? 104 : 24 }}
+        contentContainerClassName="grow"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         refreshControl={
@@ -381,6 +479,11 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
         }
       />
 
+      <SelectionBar
+        files={selectedFiles}
+        folderKey={folderKey}
+        onDone={clearSelection}
+      />
       {actions.element}
       <AddSheet
         isOpen={sheet === "add"}

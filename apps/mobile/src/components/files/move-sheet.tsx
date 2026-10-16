@@ -16,7 +16,8 @@ import { Sheet } from "../sheet";
 import type { Entry } from "./entry-row";
 
 type MoveSheetProps = {
-  entry: Entry | null;
+  /** What's moving, all from one folder. */
+  entries: Entry[];
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   /** Resolves to an error message, or null once moved. */
@@ -24,7 +25,7 @@ type MoveSheetProps = {
 };
 
 export function MoveSheet({
-  entry,
+  entries,
   isOpen,
   onOpenChange,
   onMove,
@@ -39,12 +40,13 @@ export function MoveSheet({
   );
   const loadFolder = useLibrary((state) => state.loadFolder);
 
-  const entryKey = entry
-    ? entry.type === "file"
-      ? entry.file.key
-      : entry.folder.key
+  const first = entries[0];
+  const source = first
+    ? parentKey(first.type === "file" ? first.file.key : first.folder.key)
     : "";
-  const source = parentKey(entryKey);
+  const movingFolders = entries.flatMap((entry) =>
+    entry.type === "folder" ? [entry.folder] : [],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -56,23 +58,24 @@ export function MoveSheet({
     if (isOpen) loadFolder(server.id, vaze, browseKey);
   }, [isOpen, browseKey, server.id, vaze, loadFolder]);
 
-  const isFolder = entry?.type === "folder";
-  const insideItself =
-    isFolder &&
-    (browseKey === entryKey || browseKey.startsWith(`${entryKey}/`));
+  const insideItself = movingFolders.some(
+    (folder) =>
+      browseKey === folder.key || browseKey.startsWith(`${folder.key}/`),
+  );
   const canMoveHere = browseKey !== source && !insideItself && !busy;
 
   const folders = (contents?.data?.folders ?? [])
     .filter(
-      (folder) => !(entry?.type === "folder" && folder.id === entry.folder.id),
+      (folder) => !movingFolders.some((moving) => moving.id === folder.id),
     )
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const name = entry
-    ? entry.type === "file"
-      ? entry.file.name
-      : entry.folder.name
-    : "";
+  const name =
+    entries.length === 1
+      ? first.type === "file"
+        ? first.file.name
+        : first.folder.name
+      : `${entries.length} files`;
   const location = browseKey ? browseKey.split("/").pop() : "All files";
 
   async function move() {

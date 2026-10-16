@@ -232,7 +232,7 @@ export function useEntryActions() {
         onSubmit={rename}
       />
       <MoveSheet
-        entry={entry}
+        entries={entry ? [entry] : []}
         isOpen={sheet === "move"}
         onOpenChange={closer("move")}
         onMove={move}
