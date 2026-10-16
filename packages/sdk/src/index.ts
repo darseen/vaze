@@ -38,6 +38,14 @@ export default class Vaze extends Base implements IVaze {
     );
   }
 
+  /** Whether the instance still needs its first account, which becomes the admin. */
+  public async setupStatus() {
+    return await this.request<{ needed: boolean }>(
+      "GET",
+      this.apiUrl("/api/setup"),
+    );
+  }
+
   /** The caller's account and the scopes it may use. */
   public async me() {
     return await this.request<Me>("GET", this.apiUrl("/api/me"));

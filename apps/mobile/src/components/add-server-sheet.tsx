@@ -9,15 +9,17 @@ import {
 import { ArrowLeft } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { forgetServer, probeServer } from "@/lib/clients";
+import { forgetServer, needsSetup, probeServer } from "@/lib/clients";
 import { candidateUrls, hostOf } from "@/lib/server-url";
 import { newServerId, useServers, type Server } from "@/stores/servers";
 import { Icon } from "./icon";
+import { RegisterForm } from "./register-form";
 import { Sheet } from "./sheet";
 import { SheetInput } from "./sheet-input";
 import { SignInForm } from "./sign-in-form";
 
-type Draft = { id: string; url: string; name: string };
+/** A server that answered, before its account is set up; `setup` when it has none yet. */
+type Draft = { id: string; url: string; name: string; setup: boolean };
 
 type AddServerSheetProps = {
   isOpen: boolean;
@@ -64,7 +66,13 @@ export function AddServerSheet({
     for (const url of candidates) {
       if (await probeServer(url).catch(() => false)) {
         const existing = servers.find((server) => server.url === url);
-        setDraft({ id: existing?.id ?? newServerId(), url, name: name.trim() });
+        const setup = await needsSetup(url).catch(() => false);
+        setDraft({
+          id: existing?.id ?? newServerId(),
+          url,
+          name: name.trim(),
+          setup,
+        });
         setBusy(false);
         return;
       }
@@ -110,16 +118,28 @@ export function AddServerSheet({
     <Sheet
       isOpen={isOpen}
       onOpenChange={close}
-      title={draft ? "Sign in" : "Add a server"}
+      title={
+        draft
+          ? draft.setup
+            ? "Create the admin account"
+            : "Sign in"
+          : "Add a server"
+      }
       description={
         draft
-          ? hostOf(draft.url)
+          ? draft.setup
+            ? `${hostOf(draft.url)} has no accounts yet. The first one is its admin.`
+            : hostOf(draft.url)
           : "Enter the address you open Vaze on in your browser."
       }
     >
       {draft ? (
         <View className="gap-5">
-          <SignInForm server={draft} onSignedIn={finish} />
+          {draft.setup ? (
+            <RegisterForm server={draft} onSignedIn={finish} />
+          ) : (
+            <SignInForm server={draft} onSignedIn={finish} />
+          )}
           <Pressable
             onPress={() => setDraft(null)}
             className="flex-row items-center justify-center gap-2 py-1"

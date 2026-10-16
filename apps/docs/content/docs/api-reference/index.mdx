@@ -43,8 +43,8 @@ scope on both the key and its owner's current role; otherwise it receives a
 
 <Callout>
   The only endpoints that skip authentication are the [health
-  check](#health-check) and the public [file hosting
-  endpoint](/docs/api-reference/files#serve-a-file-publicly).
+  check](#health-check), the [setup check](#setup-check) and the public [file
+  hosting endpoint](/docs/api-reference/files#serve-a-file-publicly).
 </Callout>
 
 ### Signed-in sessions
@@ -163,6 +163,17 @@ and container health checks:
 
 ```json
 { "data": { "message": "Vaze is running!" }, "error": null }
+```
+
+## Setup check
+
+`GET /api/setup` needs no authentication either. A new instance has no
+accounts, and the first one to register becomes the admin; after that,
+registration is closed and the admin adds everyone else. Clients use this to
+offer the right form:
+
+```json
+{ "data": { "needed": true }, "error": null }
 ```
 
 ## Endpoints

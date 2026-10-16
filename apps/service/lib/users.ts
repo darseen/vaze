@@ -28,6 +28,11 @@ function toSummary(user: User, keyCount: number): UserSummary {
 }
 
 /** Every account, oldest first. */
+/** Whether anyone has registered; until then the instance is waiting for its admin. */
+export function hasAccounts() {
+  return Boolean(db.select({ id: users.id }).from(users).limit(1).get());
+}
+
 export function listUsers(): UserSummary[] {
   const keyCounts = new Map(
     db

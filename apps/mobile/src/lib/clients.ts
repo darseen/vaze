@@ -77,8 +77,8 @@ export async function forgetServer(server: ServerRef) {
 
 const PROBE_TIMEOUT_MS = 8000;
 
-/** Whether a Vaze instance answers at this URL. */
-export async function probeServer(url: string) {
+/** Asks an unauthenticated question of a URL, giving up after a few seconds. */
+async function askPublicly<T>(url: string, ask: (vaze: Vaze) => Promise<T>) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
 
@@ -89,9 +89,23 @@ export async function probeServer(url: string) {
       fetch: (input, init) =>
         omitCredentials(input, { ...init, signal: controller.signal }),
     });
-    const { data } = await vaze.health();
-    return Boolean(data?.message);
+    return await ask(vaze);
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Whether a Vaze instance answers at this URL. */
+export function probeServer(url: string) {
+  return askPublicly(url, async (vaze) =>
+    Boolean((await vaze.health()).data?.message),
+  );
+}
+
+/** Whether the instance still needs its admin account; older servers never say so. */
+export function needsSetup(url: string) {
+  return askPublicly(
+    url,
+    async (vaze) => (await vaze.setupStatus()).data?.needed ?? false,
+  );
 }

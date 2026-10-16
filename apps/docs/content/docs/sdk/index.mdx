@@ -125,6 +125,16 @@ const { data, error } = await vaze.health();
 // data => { message: "Vaze is running!" }
 ```
 
+## Setup check
+
+A new instance has no accounts until someone registers, and that first account
+becomes the admin. `setupStatus()` tells a client which screen to show:
+
+```ts
+const { data } = await vaze.setupStatus();
+// data => { needed: true } until the admin account exists
+```
+
 ## Current account
 
 `me()` returns the account behind the client and the

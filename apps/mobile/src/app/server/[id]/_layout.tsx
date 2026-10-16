@@ -17,7 +17,8 @@ import {
 } from "@/components/server-context";
 import { SignInForm } from "@/components/sign-in-form";
 import { VIEWER_BACKGROUND } from "@/components/viewer/theme";
-import { getClients } from "@/lib/clients";
+import { RegisterForm } from "@/components/register-form";
+import { getClients, needsSetup } from "@/lib/clients";
 import { hostOf } from "@/lib/server-url";
 import { useLibrary } from "@/stores/library";
 import { useServers, type Server } from "@/stores/servers";
@@ -178,6 +179,14 @@ function SignInScreen({
   expired: boolean;
   onSignedIn: () => void;
 }) {
+  // a server reset to no accounts asks for its admin again, like the web
+  const [setup, setSetup] = useState(false);
+  useEffect(() => {
+    needsSetup(server.url)
+      .then(setSetup)
+      .catch(() => undefined);
+  }, [server.url]);
+
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-background"
@@ -189,21 +198,31 @@ function SignInScreen({
       >
         <View className="gap-1">
           <Text className="text-2xl font-semibold text-foreground">
-            Sign in to {server.name}
+            {setup ? `Set up ${server.name}` : `Sign in to ${server.name}`}
           </Text>
           <Text className="font-normal text-sm text-muted">
-            {expired
-              ? "Your session ended. Sign in again to continue."
-              : server.name === hostOf(server.url)
-                ? "Use your Vaze account."
-                : hostOf(server.url)}
+            {setup
+              ? "It has no accounts yet. The first one is its admin."
+              : expired
+                ? "Your session ended. Sign in again to continue."
+                : server.name === hostOf(server.url)
+                  ? "Use your Vaze account."
+                  : hostOf(server.url)}
           </Text>
         </View>
-        <SignInForm
-          server={server}
-          onSignedIn={onSignedIn}
-          inputVariant="primary"
-        />
+        {setup ? (
+          <RegisterForm
+            server={server}
+            onSignedIn={onSignedIn}
+            inputVariant="primary"
+          />
+        ) : (
+          <SignInForm
+            server={server}
+            onSignedIn={onSignedIn}
+            inputVariant="primary"
+          />
+        )}
         <Button variant="ghost" onPress={() => router.dismissTo("/")}>
           Back to servers
         </Button>
