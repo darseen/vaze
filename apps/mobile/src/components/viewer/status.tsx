@@ -1,11 +1,11 @@
 import type { File } from "@darseen/vaze";
 import { Button, Spinner } from "heroui-native";
-import { Share2 } from "lucide-react-native";
-import { useState } from "react";
-import { Text, View } from "react-native";
+import { Download, Share2 } from "lucide-react-native";
+import { Platform, Text, View } from "react-native";
+import { useDownload } from "@/hooks/use-download";
 import { fileKind, KIND_INFO } from "@/lib/file-kind";
 import { formatBytes } from "@/lib/format";
-import { shareFile } from "@/lib/transfer";
+import { fileDownload } from "@/lib/transfer";
 import { Icon } from "../icon";
 import { useServer } from "../server-context";
 
@@ -36,20 +36,8 @@ export function TypeTile({ file }: { file: File }) {
 
 export function NoPreview({ file, message }: { file: File; message: string }) {
   const { vaze } = useServer();
-  const [sharing, setSharing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function share() {
-    setSharing(true);
-    setError(null);
-    try {
-      await shareFile(vaze, file);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Couldn't share it");
-    } finally {
-      setSharing(false);
-    }
-  }
+  const { download, busy } = useDownload();
+  const android = Platform.OS === "android";
 
   return (
     <View className="flex-1 items-center justify-center gap-5 p-6">
@@ -62,15 +50,18 @@ export function NoPreview({ file, message }: { file: File; message: string }) {
           {formatBytes(file.size)}
         </Text>
       </View>
-      <Button variant="secondary" onPress={share} isDisabled={sharing}>
-        {sharing ? <Spinner size="sm" /> : <Icon icon={Share2} size={18} />}
-        <Button.Label>Share</Button.Label>
+      <Button
+        variant="secondary"
+        onPress={() => download(fileDownload(vaze, file))}
+        isDisabled={busy}
+      >
+        {busy ? (
+          <Spinner size="sm" />
+        ) : (
+          <Icon icon={android ? Download : Share2} size={18} />
+        )}
+        <Button.Label>{android ? "Download" : "Share"}</Button.Label>
       </Button>
-      {error ? (
-        <Text className="font-normal text-center text-sm text-danger">
-          {error}
-        </Text>
-      ) : null}
     </View>
   );
 }

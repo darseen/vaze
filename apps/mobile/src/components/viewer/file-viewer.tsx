@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Spinner, useToast } from "heroui-native";
 import {
+  Download,
   EllipsisVertical,
   Lock,
   Share2,
@@ -10,14 +11,15 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScopedTheme } from "uniwind";
+import { useDownload } from "@/hooks/use-download";
 import { useFolderEntries } from "@/hooks/use-folder-entries";
 import { previewKind, type FileKind } from "@/lib/file-kind";
 import { formatBytes } from "@/lib/format";
-import { shareFile } from "@/lib/transfer";
+import { fileDownload, shareFile } from "@/lib/transfer";
 import { useLibrary } from "@/stores/library";
 import { useEntryActions } from "../files/entry-actions";
 import { FilePreview } from "../files/file-preview";
@@ -226,6 +228,7 @@ export function FileViewer({
   const [page, setPage] = useState<Size | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const saver = useDownload();
   const pager = useRef<FlatList<File>>(null);
   const shown = useRef(-1);
   const lastIndex = useRef(0);
@@ -321,6 +324,15 @@ export function FileViewer({
             </View>
             {file ? (
               <>
+                {/* on iOS the share sheet is where files are saved */}
+                {Platform.OS === "android" ? (
+                  <HeaderButton
+                    icon={Download}
+                    label="Download"
+                    busy={saver.busy}
+                    onPress={() => saver.download(fileDownload(vaze, file))}
+                  />
+                ) : null}
                 <HeaderButton
                   icon={Share2}
                   label="Share"

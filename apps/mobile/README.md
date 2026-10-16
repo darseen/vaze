@@ -39,6 +39,10 @@ app. Plain `http://` works for LAN servers on both platforms.
   (`PdfRenderer` / PDFKit) for thumbnails and the viewer. Changing it needs a
   native rebuild. `src/lib/previews.ts` queues and caches its output under the
   app's cache directory.
+- `modules/downloads`: a local Android module that copies a finished download
+  into the shared Downloads folder through MediaStore, like a browser, with
+  no permission. `src/lib/transfer.ts` falls back to the share sheet on iOS
+  and Android 9 or older.
 - `src/lib/clients.ts`: one Better Auth client and one SDK client per server.
   The session cookie lives in SecureStore under a prefix per server, and the
   SDK sends it with every request.

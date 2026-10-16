@@ -1,5 +1,6 @@
 import { Chip } from "heroui-native";
 import {
+  Download,
   FolderInput,
   Globe,
   Link,
@@ -18,6 +19,7 @@ import type { Entry } from "./entry-row";
 import { FileThumb } from "./file-thumb";
 
 export type EntryAction =
+  | "download"
   | "share"
   | "copy-link"
   | "rename"
@@ -78,6 +80,13 @@ function EntryActions({
 
       <ActionGroup
         actions={[
+          {
+            label: "Download",
+            icon: Download,
+            hidden: !isFile,
+            busy: busy === "download",
+            onPress: () => onAction("download"),
+          },
           {
             label: "Share",
             icon: Share2,

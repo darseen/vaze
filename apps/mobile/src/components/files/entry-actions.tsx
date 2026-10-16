@@ -2,7 +2,7 @@ import type { Visibility } from "@darseen/vaze";
 import * as Clipboard from "expo-clipboard";
 import { useToast } from "heroui-native";
 import { useState } from "react";
-import { shareFile } from "@/lib/transfer";
+import { fileDownload, saveDownload, shareFile } from "@/lib/transfer";
 import { parentKey, useLibrary } from "@/stores/library";
 import { ConfirmSheet } from "../confirm-sheet";
 import { NameSheet } from "../name-sheet";
@@ -90,6 +90,30 @@ export function useEntryActions() {
     if (!entry) return;
 
     switch (action) {
+      case "download": {
+        if (entry.type !== "file") return;
+        setBusy("download");
+        setError(null);
+        try {
+          const saved = await saveDownload(
+            vaze,
+            fileDownload(vaze, entry.file),
+          );
+          if (saved) {
+            setSheet(null);
+            notifyAfterClose("success", "Saved to Downloads", saved);
+          }
+        } catch (error) {
+          fail(
+            "Couldn't download the file",
+            error instanceof Error ? error.message : undefined,
+          );
+        } finally {
+          setBusy(null);
+        }
+        return;
+      }
+
       case "share": {
         if (entry.type !== "file") return;
         setBusy("share");
