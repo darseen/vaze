@@ -1,6 +1,6 @@
 import "../global.css";
 
-import { Stack } from "expo-router";
+import { Stack, type ErrorBoundaryProps } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
@@ -9,10 +9,20 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaListener } from "react-native-safe-area-context";
 import { Uniwind, useUniwind } from "uniwind";
+import { CrashScreen } from "@/components/crash-screen";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { usePreferences } from "@/stores/preferences";
 
 SplashScreen.preventAutoHideAsync();
+
+// the last resort, for a crash outside a server's screens
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  // a crash before hydration would otherwise stay behind the splash screen
+  useEffect(() => {
+    SplashScreen.hideAsync();
+  }, []);
+  return <CrashScreen {...props} />;
+}
 
 export default function RootLayout() {
   const hydrated = useHydrated();

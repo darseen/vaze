@@ -1,5 +1,11 @@
 import type { Me } from "@darseen/vaze";
-import { Redirect, router, Stack, useLocalSearchParams } from "expo-router";
+import {
+  Redirect,
+  router,
+  Stack,
+  useLocalSearchParams,
+  type ErrorBoundaryProps,
+} from "expo-router";
 import { Button, Spinner } from "heroui-native";
 import { CloudOff } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -10,6 +16,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { CrashScreen } from "@/components/crash-screen";
 import { Icon } from "@/components/icon";
 import {
   ServerContext,
@@ -22,6 +29,16 @@ import { getClients, needsSetup, onUnauthorized } from "@/lib/clients";
 import { hostOf } from "@/lib/server-url";
 import { useLibrary } from "@/stores/library";
 import { useServers, type Server } from "@/stores/servers";
+
+// a crash in any of a server's screens keeps the app open, with a way back
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return (
+    <CrashScreen
+      {...props}
+      leave={{ label: "Servers", onPress: () => router.dismissTo("/") }}
+    />
+  );
+}
 
 export default function ServerLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
