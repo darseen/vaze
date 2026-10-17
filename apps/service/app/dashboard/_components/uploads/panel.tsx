@@ -35,10 +35,15 @@ const UploadRow = memo(function UploadRow({ upload }: { upload: Upload }) {
   const { cancel } = useUploadActions();
   const isRunning = upload.status === "queued" || upload.status === "uploading";
   // the request body is sent well before the server has committed the file
-  const label =
-    upload.status === "uploading" && upload.progress === 100
-      ? "Finishing"
-      : STATUS_LABELS[upload.status];
+  const isFinishing = upload.status === "uploading" && upload.progress === 100;
+  const label = isFinishing ? "Finishing" : STATUS_LABELS[upload.status];
+
+  const details = [label, formatBytes(upload.size)];
+  if (upload.status === "uploading") {
+    details.push(`${upload.progress}%`);
+    if (!isFinishing && upload.speed !== undefined)
+      details.push(`${formatBytes(upload.speed)}/s`);
+  }
 
   return (
     <li className="space-y-1.5 px-3 py-2.5">
@@ -76,10 +81,8 @@ const UploadRow = memo(function UploadRow({ upload }: { upload: Upload }) {
       {upload.status === "error" && upload.error ? (
         <p className="text-destructive line-clamp-2 text-xs">{upload.error}</p>
       ) : (
-        <p className="text-muted-foreground truncate text-xs">
-          {`${label} · ${formatBytes(upload.size)}${
-            upload.status === "uploading" ? ` · ${upload.progress}%` : ""
-          }`}
+        <p className="text-muted-foreground truncate text-xs tabular-nums">
+          {details.join(" · ")}
         </p>
       )}
     </li>

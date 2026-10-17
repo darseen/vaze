@@ -34,13 +34,21 @@ export function UploadProgress({ value }: { value: number }) {
   );
 }
 
+/** How far an upload has got and how fast it's going. */
+function progressText(upload: Upload) {
+  // the body is all sent before the server has stored the file
+  if (upload.progress === 100) return "Finishing";
+  return upload.speed === undefined
+    ? `${upload.progress}%`
+    : `${upload.progress}% · ${formatBytes(upload.speed)}/s`;
+}
+
 function statusText(upload: Upload) {
   switch (upload.status) {
     case "queued":
       return "Waiting";
     case "uploading":
-      // the body is all sent before the server has stored the file
-      return upload.progress === 100 ? "Finishing" : `${upload.progress}%`;
+      return progressText(upload);
     case "done":
       return "Uploaded";
     case "canceled":
@@ -80,7 +88,7 @@ function UploadRow({ upload }: { upload: Upload }) {
             className={
               upload.status === "failed"
                 ? "font-normal text-xs text-danger"
-                : "font-normal text-xs text-muted"
+                : "font-normal text-xs text-muted tabular-nums"
             }
           >
             {statusText(upload)} · {formatBytes(upload.size)}
@@ -134,9 +142,19 @@ export function UploadBanner({
             <Text className="text-sm font-medium text-foreground">
               Uploading {finished + 1} of {uploads.length}
             </Text>
-            <Text numberOfLines={1} className="font-normal text-xs text-muted">
-              {current.name}
-            </Text>
+            <View className="flex-row gap-2">
+              <Text
+                numberOfLines={1}
+                className="flex-1 font-normal text-xs text-muted"
+              >
+                {current.name}
+              </Text>
+              {current.status === "uploading" ? (
+                <Text className="font-normal text-xs text-muted tabular-nums">
+                  {progressText(current)}
+                </Text>
+              ) : null}
+            </View>
           </View>
           <Pressable
             onPress={() => cancel(current.id)}

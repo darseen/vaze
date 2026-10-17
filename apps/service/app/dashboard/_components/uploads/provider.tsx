@@ -24,6 +24,8 @@ export interface Upload {
   size: number;
   /** Percentage of the request body sent so far. */
   progress: number;
+  /** Bytes per second sent lately, once there's been time to measure it. */
+  speed?: number;
   status: UploadStatus;
   error?: string;
 }
@@ -51,6 +53,10 @@ interface QueuedUpload {
 const MAX_CONCURRENT_UPLOADS = 3;
 const SUCCESS_ROW_TTL = 5000;
 const RATE_LIMIT_FALLBACK_MS = 5000;
+// the shown speed changes once a second, slow enough to read, and is the
+// average of the last three
+const SPEED_TICK_MS = 1000;
+const SPEED_WINDOW_TICKS = 3;
 
 // a counter, not `crypto.randomUUID()`, which needs a secure context — an
 // instance served over plain HTTP on a LAN does not have one
@@ -95,6 +101,31 @@ function errorMessageOf(xhr: XMLHttpRequest): string | null {
   if (message) return message;
   if (xhr.status >= 200 && xhr.status < 300) return null;
   return `Upload failed (${xhr.status || "network error"})`;
+}
+
+/**
+ * Averages an upload's speed over the last few seconds, so a burst or a lull
+ * doesn't swing it, and reports it once a second. It ticks on its own, so a
+ * stalled upload falls to 0 instead of holding its last speed.
+ */
+function speedMeter(report: (speed: number) => void) {
+  let sent = 0;
+  const samples = [{ at: Date.now(), sent }];
+
+  const timer = setInterval(() => {
+    const at = Date.now();
+    samples.push({ at, sent });
+    if (samples.length > SPEED_WINDOW_TICKS + 1) samples.shift();
+    const [first] = samples;
+    report(Math.round(((sent - first.sent) / (at - first.at)) * 1000));
+  }, SPEED_TICK_MS);
+
+  return {
+    update: (bytes: number) => {
+      sent = bytes;
+    },
+    stop: () => clearInterval(timer),
+  };
 }
 
 /** History for uploads dropped from the queue; failing it changes nothing. */
@@ -145,7 +176,7 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
       const delay = seconds > 0 ? seconds * 1000 : RATE_LIMIT_FALLBACK_MS;
 
       queue.current.unshift(job);
-      patch(job.id, { status: "queued", progress: 0 });
+      patch(job.id, { status: "queued", progress: 0, speed: undefined });
 
       if (paused.current) return;
       paused.current = true;
@@ -165,12 +196,14 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
       body.append("folder", folder);
 
       const xhr = new XMLHttpRequest();
+      const meter = speedMeter((speed) => patch(id, { speed }));
       active.current.set(id, xhr);
       patch(id, { status: "uploading" });
 
       // `event.total` covers the multipart envelope, not just the file bytes
       xhr.upload.onprogress = (event) => {
         if (!event.lengthComputable || event.total === 0) return;
+        meter.update(event.loaded);
         patch(id, { progress: Math.round((event.loaded / event.total) * 100) });
       };
 
@@ -193,6 +226,7 @@ export default function UploadsProvider({ children }: { children: ReactNode }) {
       xhr.onabort = () => patch(id, { status: "canceled" });
 
       xhr.onloadend = () => {
+        meter.stop();
         active.current.delete(id);
         pump();
       };

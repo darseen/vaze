@@ -20,6 +20,8 @@ export type Upload = {
   size: number;
   /** Percent of the file sent so far. */
   progress: number;
+  /** Bytes per second sent lately, once there's been time to measure it. */
+  speed?: number;
   status: "queued" | "uploading" | "done" | "failed" | "canceled";
   error?: string;
 };
@@ -38,6 +40,11 @@ type UploadsState = {
   ) => Promise<{ uploaded: number; failed: Upload[]; canceled: number }>;
   cancel: (id: string) => void;
 };
+
+// the shown speed changes once a second, slow enough to read, and is the
+// average of the last three
+const SPEED_TICK_MS = 1000;
+const SPEED_WINDOW_TICKS = 3;
 
 let counter = 0;
 // the request of each upload in flight, so cancel can stop it midway
@@ -66,6 +73,31 @@ function discard(uri: string) {
   } catch {
     // already gone
   }
+}
+
+/**
+ * Averages an upload's speed over the last few seconds, so a burst or a lull
+ * doesn't swing it, and reports it once a second. It ticks on its own, so a
+ * stalled upload falls to 0 instead of holding its last speed.
+ */
+function speedMeter(report: (speed: number) => void) {
+  let sent = 0;
+  const samples = [{ at: Date.now(), sent }];
+
+  const timer = setInterval(() => {
+    const at = Date.now();
+    samples.push({ at, sent });
+    if (samples.length > SPEED_WINDOW_TICKS + 1) samples.shift();
+    const [first] = samples;
+    report(Math.round(((sent - first.sent) / (at - first.at)) * 1000));
+  }, SPEED_TICK_MS);
+
+  return {
+    update: (bytes: number) => {
+      sent = bytes;
+    },
+    stop: () => clearInterval(timer),
+  };
 }
 
 function failureOf(result: UploadResult) {
@@ -114,10 +146,12 @@ export const useUploads = create<UploadsState>()((set, get) => ({
       started.add(id);
 
       let folder: Directory | null = null;
+      let meter: ReturnType<typeof speedMeter> | null = null;
       try {
         const staging = await stage(file, id);
         folder = staging.folder;
         let shown = 0;
+        meter = speedMeter((speed) => patch(id, { speed }));
         const task = new UploadTask(staging.staged, vaze.files.uploadUrl(), {
           httpMethod: "POST",
           uploadType: UploadType.MULTIPART,
@@ -130,6 +164,7 @@ export const useUploads = create<UploadsState>()((set, get) => ({
               totalBytes > 0
                 ? Math.min(100, Math.floor((bytesSent / totalBytes) * 100))
                 : 0;
+            meter?.update(bytesSent);
             // whole percents only, so a big file doesn't re-render per chunk
             if (progress === shown) return;
             shown = progress;
@@ -157,6 +192,7 @@ export const useUploads = create<UploadsState>()((set, get) => ({
           });
         }
       } finally {
+        meter?.stop();
         tasks.get(id)?.release();
         tasks.delete(id);
         try {
