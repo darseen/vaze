@@ -32,6 +32,14 @@ export default {
     },
     predictiveBackGestureEnabled: false,
     permissions: ["android.permission.MODIFY_AUDIO_SETTINGS"],
+    // added by libraries; no overlays, biometrics or broad storage are used
+    blockedPermissions: [
+      "android.permission.SYSTEM_ALERT_WINDOW",
+      "android.permission.USE_BIOMETRIC",
+      "android.permission.USE_FINGERPRINT",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+    ],
   },
   web: {
     favicon: "./assets/favicon.png",
