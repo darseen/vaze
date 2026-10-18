@@ -27,6 +27,7 @@
 - **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps, each limited to the scopes it needs (read, write, delete).
 - **Users, roles and scopes**: The admin can add more accounts and give each one a role (Admin, Editor, Viewer) or a custom set of scopes, then change, disable or remove them later. Access is enforced on every API call and every API key.
 - **Dashboard**: See what needs attention (failed uploads, expiring or unused API keys, a filling disk), how much of the volume your files take, which files are public, what was added over the last 30 days, which hosted files are requested most and how much bandwidth they use, and how each API key is used, on the web and in the mobile app.
+- **Android app**: Browse, preview, upload and download files, manage API keys and users, and check the same dashboard from your phone, for as many servers as you add.
 - **Settings**: Change your name, email and password, sign out other devices, pick whether new files start public or private, and tune upload, signed-link, caching and retention limits without a restart.
 - **Powerful API**: Use Vaze as a backend service for any application that needs file hosting or storage, with simple RESTful endpoints.
 - **Dockerized**: Get up and running in minutes with the official Docker image.
@@ -187,24 +188,44 @@ You can use Vaze's [official NPM package](https://npmjs.com/package/@darseen/vaz
 Here are a few screenshots of the Vaze interface.
 
 <div align="center">
-  <h3> Main Dashboard View  </h3>
-  <img src="./.github/images/dashboard-1.png" alt="Main Dashboard View 1" width="100%"/>
-  <img src="./.github/images/dashboard-2.png" alt="Main Dashboard View 2" width="100%"/>
+  <h3> Dashboard </h3>
+  <img src="./.github/images/dashboard-1.png" alt="Dashboard with an expiring key alert, storage, hosting traffic and files added over 30 days" width="100%"/>
+  <img src="./.github/images/dashboard-2.png" alt="Recent files, most requested hosted files, API requests per day and storage by file type" width="100%"/>
 </div>
 
 <div align="center">
-  <h3> File Management Page </h3>
-  <img src="./.github/images/files.png" alt="File Management Dashboard" width="100%"/>
+  <h3> Files </h3>
+  <img src="./.github/images/files.jpg" alt="A folder of photos shown as a thumbnail grid" width="100%"/>
 </div>
 
 <div align="center">
-  <h3> API Keys Management Page </h3>
-  <img src="./.github/images/api-keys.png" alt="API Keys Management Interface" width="100%"/>
+  <h3> File Viewer </h3>
+  <img src="./.github/images/viewer.jpg" alt="A photo open in the full-screen viewer with a filmstrip of the folder" width="100%"/>
 </div>
 
 <div align="center">
-  <h3> Registration Page </h3>
-  <img src="./.github/images/register.png" alt="User Registration Page" width="100%"/>
+  <h3> API Keys </h3>
+  <img src="./.github/images/api-keys.png" alt="API keys with their scopes, last use and expiry" width="100%"/>
+</div>
+
+<div align="center">
+  <h3> Users </h3>
+  <img src="./.github/images/users.png" alt="Accounts with roles, custom scopes and a disabled user" width="100%"/>
+</div>
+
+<div align="center">
+  <h3> Activity </h3>
+  <img src="./.github/images/activity.png" alt="Activity history grouped by day" width="100%"/>
+</div>
+
+<div align="center">
+  <h3> Android App </h3>
+  <img src="./.github/images/mobile.png" alt="The Android app's dashboard, a photo folder, hosting traffic and activity" width="100%"/>
+</div>
+
+<div align="center">
+  <h3> Registration </h3>
+  <img src="./.github/images/register.png" alt="Creating the admin account on a new instance" width="100%"/>
 </div>
 
 ## Contributing
