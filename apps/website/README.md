@@ -1,7 +1,8 @@
-# Vaze Docs
+# Vaze Website
 
-The documentation site for [Vaze](https://github.com/darseen/vaze), built
-with [Next.js](https://nextjs.org) and [Fumadocs](https://fumadocs.dev).
+The website for [Vaze](https://github.com/darseen/vaze): the landing page,
+the privacy policy and the documentation, built with
+[Next.js](https://nextjs.org) and [Fumadocs](https://fumadocs.dev).
 
 ## Development
 
@@ -9,7 +10,7 @@ From the repository root:
 
 ```bash
 pnpm install
-pnpm dev --filter=docs
+pnpm dev --filter=website
 ```
 
 The site runs at http://localhost:3001.
@@ -23,6 +24,11 @@ components (`Callout`, `Cards`, `Tabs`, ...).
 
 Notable routes:
 
+- `/`: the landing page. Its screenshots live in
+  [`public/screenshots`](./public/screenshots), one light and one dark WebP
+  per screen, shown to match the visitor's theme.
+- `/privacy`: the privacy policy, linked from the Google Play listing of the
+  mobile app. Update its effective date whenever it changes.
 - `/docs` — the documentation pages.
 - `/api/search` — full-text search endpoint (Orama), used by the search
   dialog.

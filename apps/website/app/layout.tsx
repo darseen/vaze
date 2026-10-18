@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Schibsted_Grotesk } from "next/font/google";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import { appName, siteUrl } from "@/lib/shared";
 import "./global.css";
@@ -8,14 +8,20 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+// headlines on the landing and privacy pages
+const display = Schibsted_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display-face",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
     template: `%s | ${appName}`,
-    default: `${appName} Documentation`,
+    default: `${appName}, self-hosted file storage and hosting`,
   },
   description:
-    "Documentation for Vaze, a self-hosted local file storage and hosting service.",
+    "Vaze is a self-hosted file storage and hosting server with a web dashboard, an Android app and an SDK.",
   applicationName: appName,
   // og/twitter titles and descriptions are inherited from the fields above.
   openGraph: {
@@ -28,7 +34,11 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={inter.className} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${inter.className} ${display.variable}`}
+      suppressHydrationWarning
+    >
       <body className="flex flex-col min-h-screen">
         <RootProvider>{children}</RootProvider>
       </body>

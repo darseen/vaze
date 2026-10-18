@@ -114,7 +114,7 @@ That's it! You can now start uploading and managing your files.
 
 Registration closes after that first account. To let someone else in, open
 **Users** in the dashboard and add them with a role, or with a custom set of
-scopes. The [API reference](./apps/docs/content/docs/api-reference/index.mdx#scopes)
+scopes. The [API reference](./apps/website/content/docs/api-reference/index.mdx#scopes)
 lists what each scope grants.
 
 ## Managing your instance

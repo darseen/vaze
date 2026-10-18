@@ -1,5 +1,6 @@
 export const appName = "Vaze";
 export const docsRoute = "/docs";
+export const privacyRoute = "/privacy";
 export const docsImageRoute = "/og/docs";
 export const docsContentRoute = "/llms.mdx/docs";
 
@@ -16,3 +17,9 @@ export const gitConfig = {
   repo: "vaze",
   branch: "main",
 };
+
+export const repoUrl = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
+
+export const installCommand = `curl -fsSL https://raw.githubusercontent.com/${gitConfig.user}/${gitConfig.repo}/${gitConfig.branch}/scripts/install.sh | sh`;
+
+export const contactEmail = "darseen.dev@gmail.com";
