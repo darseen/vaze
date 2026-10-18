@@ -165,11 +165,19 @@ export default function PrivacyPage() {
 
         <h2>This website</h2>
         <p>
-          This website doesn&apos;t use cookies, analytics or advertising.
+          This website doesn&apos;t use cookies or advertising. It counts
+          visits with Cloudflare Web Analytics, which doesn&apos;t use cookies
+          or follow you across other sites. For each visit it records the
+          page you opened, the page that linked you there, your browser,
+          operating system, device type and country, and how quickly the
+          page loaded.
+        </p>
+        <p>
           If you pick a light or dark theme, that choice is saved in your
-          browser&apos;s local storage. The company hosting the site may keep
-          standard server logs, such as IP addresses and the pages
-          requested, to keep the site running and secure.
+          browser&apos;s local storage. The site is hosted by Netlify and
+          served through Cloudflare, and both may keep standard server logs,
+          such as IP addresses and the pages requested, to keep the site
+          running and secure.
         </p>
 
         <h2>Children</h2>

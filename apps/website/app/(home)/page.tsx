@@ -29,11 +29,14 @@ import {
   Screenshot,
 } from "@/components/landing/screenshots";
 import {
+  absoluteUrl,
   appName,
   docsRoute,
   installCommand,
+  npmUrl,
   privacyRoute,
   repoUrl,
+  siteDescription,
 } from "@/lib/shared";
 import logo from "@/public/vaze.png";
 
@@ -42,6 +45,29 @@ export const metadata: Metadata = {
     canonical: "/",
   },
 };
+
+// lets search engines show the site name and read Vaze as free software
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: appName,
+    url: absoluteUrl("/"),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: appName,
+    description: siteDescription,
+    url: absoluteUrl("/"),
+    image: absoluteUrl("/opengraph-image"),
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Docker, Android",
+    license: "https://opensource.org/licenses/MIT",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    sameAs: [repoUrl, npmUrl],
+  },
+];
 
 // the address the screenshots were taken on, a server on a home network
 const serverAddress = "192.168.1.104:3000";
@@ -232,6 +258,12 @@ export default async function HomePage() {
 
   return (
     <main className="flex flex-1 flex-col overflow-x-clip">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       <section className="mx-auto grid w-full max-w-6xl items-center gap-14 px-4 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-2 lg:gap-12 lg:pt-20">
         <div className="min-w-0">
           <h1 className="font-display text-[2.6rem] leading-[1.05] font-bold tracking-[-0.035em] text-balance sm:text-6xl lg:text-5xl xl:text-[3.5rem]">
@@ -475,10 +507,7 @@ export default async function HomePage() {
             <a href={repoUrl} className="hover:text-fd-foreground">
               GitHub
             </a>
-            <a
-              href="https://www.npmjs.com/package/@darseen/vaze"
-              className="hover:text-fd-foreground"
-            >
+            <a href={npmUrl} className="hover:text-fd-foreground">
               npm
             </a>
           </nav>

@@ -1,4 +1,6 @@
 export const appName = "Vaze";
+export const siteDescription =
+  "Vaze is a self-hosted file storage and hosting server with a web dashboard, an Android app and an SDK.";
 export const docsRoute = "/docs";
 export const privacyRoute = "/privacy";
 export const docsImageRoute = "/og/docs";
@@ -19,6 +21,8 @@ export const gitConfig = {
 };
 
 export const repoUrl = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
+
+export const npmUrl = "https://www.npmjs.com/package/@darseen/vaze";
 
 export const installCommand = `curl -fsSL https://raw.githubusercontent.com/${gitConfig.user}/${gitConfig.repo}/${gitConfig.branch}/scripts/install.sh | sh`;
 

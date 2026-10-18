@@ -1,18 +1,10 @@
-import { generate as DefaultImage } from "fumadocs-ui/og";
-import { ImageResponse } from "next/og";
-import { appName } from "@/lib/shared";
+import { homeCard, ogSize } from "@/components/og-card";
 
-export const alt = "Vaze, self-hosted local file storage and hosting";
-export const size = { width: 1200, height: 630 };
+export const alt =
+  "Vaze: store and host your files on a server you own, shown on the web dashboard and the Android app";
+export const size = ogSize;
 export const contentType = "image/png";
 
 export default function Image() {
-  return new ImageResponse(
-    <DefaultImage
-      title="File storage you host yourself"
-      description="Vaze is a self-hosted, local-first file storage and hosting service with a web interface and an SDK."
-      site={appName}
-    />,
-    size,
-  );
+  return homeCard();
 }

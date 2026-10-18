@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Schibsted_Grotesk } from "next/font/google";
 import { RootProvider } from "fumadocs-ui/provider/next";
-import { appName, siteUrl } from "@/lib/shared";
+import { appName, siteDescription, siteUrl } from "@/lib/shared";
 import "./global.css";
 
 const inter = Inter({
@@ -20,8 +20,7 @@ export const metadata: Metadata = {
     template: `%s | ${appName}`,
     default: `${appName}, self-hosted file storage and hosting`,
   },
-  description:
-    "Vaze is a self-hosted file storage and hosting server with a web dashboard, an Android app and an SDK.",
+  description: siteDescription,
   applicationName: appName,
   // og/twitter titles and descriptions are inherited from the fields above.
   openGraph: {
