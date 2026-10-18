@@ -13,6 +13,8 @@
 
 **Vaze** is a self-hosted, local-first file storage and hosting service built with Next.js. Run it easily as a Docker container on your own server or home network. It provides a clean web interface for managing your files and a powerful API to use as a backend for your other applications.
 
+**[Website](https://vaze.darseen.dev)** &nbsp;|&nbsp; **[Documentation](https://vaze.darseen.dev/docs)**
+
 ## </div>
 
 ## Features
@@ -115,7 +117,7 @@ That's it! You can now start uploading and managing your files.
 
 Registration closes after that first account. To let someone else in, open
 **Users** in the dashboard and add them with a role, or with a custom set of
-scopes. The [API reference](./apps/website/content/docs/api-reference/index.mdx#scopes)
+scopes. The [API reference](https://vaze.darseen.dev/docs/api-reference#scopes)
 lists what each scope grants.
 
 ## Managing your instance
@@ -181,7 +183,7 @@ start without one anyway.
 ## API Usage
 
 Vaze can be used as a file-hosting backend for your other projects.
-You can use Vaze's [official NPM package](https://npmjs.com/package/@darseen/vaze) to interact with the API.
+You can use Vaze's [official NPM package](https://npmjs.com/package/@darseen/vaze) to interact with the API. See the [SDK guide](https://vaze.darseen.dev/docs/sdk) and the [API reference](https://vaze.darseen.dev/docs/api-reference).
 
 ## Screenshots
 

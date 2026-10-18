@@ -10,6 +10,8 @@
 
 **@darseen/vaze** The official JavaScript/TypeScript SDK for Vaze, a self-hosted, local-first file storage and hosting service. This SDK provides a simple and type-safe way to interact with your Vaze instance's API from your Node.js backend or frontend applications.
 
+**[Website](https://vaze.darseen.dev)** &nbsp;|&nbsp; **[SDK documentation](https://vaze.darseen.dev/docs/sdk)**
+
 ## </div>
 
 # Installation
