@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import { useCan } from "@/app/dashboard/_components/permissions";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import FileCard from "./file-card";
 import FileViewer from "./file-viewer";
@@ -53,6 +53,8 @@ import MoveDialog from "./move-dialog";
 interface Props {
   files: FileWithUrl[];
   folders: Folder[];
+  /** A file to open in the viewer, from a dashboard link's `?file=`. */
+  openFileId?: string | null;
 }
 
 type SortField = "name" | "size" | "createdAt";
@@ -66,7 +68,7 @@ const SORT_LABELS: Record<SortField, string> = {
 
 const fileWord = (count: number) => (count === 1 ? "file" : "files");
 
-export default function FilesList({ files, folders }: Props) {
+export default function FilesList({ files, folders, openFileId }: Props) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<FileCategory | "all">("all");
   const [sortField, setSortField] = useState<SortField>("createdAt");
@@ -75,12 +77,20 @@ export default function FilesList({ files, folders }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [movingSelected, setMovingSelected] = useState(false);
-  const [viewingId, setViewingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(openFileId ?? null);
   // index of the last checkbox clicked, anchoring shift-click ranges
   const lastToggledIndex = useRef<number | null>(null);
 
   const router = useRouter();
   const can = useCan();
+
+  // the link opens the file once; a refresh or a later visit shouldn't
+  useEffect(() => {
+    if (!openFileId) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("file");
+    window.history.replaceState(null, "", url);
+  }, [openFileId]);
   const query = search.trim().toLowerCase();
 
   const visibleFolders = useMemo(() => {

@@ -1,4 +1,4 @@
-import type { Me, Stats } from "@repo/types";
+import type { ApiResponse, FileWithUrl, Me, Stats } from "@repo/types";
 import Account from "./account.js";
 import Activity from "./activity.js";
 import Base from "./base.js";
@@ -52,33 +52,44 @@ export default class Vaze extends Base implements IVaze {
   }
 
   /** Dashboard numbers, with each section limited to the caller's scopes. */
-  public async stats() {
-    const { data, error } = await this.request<Stats>(
+  public async stats(): Promise<ApiResponse<Stats>> {
+    const response = await this.request<Stats>(
       "GET",
       this.apiUrl("/api/stats"),
     );
-    const files = data?.files;
+    if (response.data === null) return response;
+
+    const { files, hosting } = response.data;
+    const vazeUrl = this.vazeUrl;
+    const withUrl = (file: FileWithUrl) => ({
+      ...file,
+      url: constructFileUrls({ vazeUrl, files: [file] })[0]!.url,
+    });
 
     return {
-      error,
-      data: data
-        ? {
-            ...data,
-            files: files
-              ? {
-                  ...files,
-                  largest: constructFileUrls({
-                    vazeUrl: this.vazeUrl,
-                    files: files.largest,
-                  }),
-                  recent: constructFileUrls({
-                    vazeUrl: this.vazeUrl,
-                    files: files.recent,
-                  }),
-                }
-              : null,
-          }
-        : null,
+      error: null,
+      data: {
+        ...response.data,
+        files: files
+          ? {
+              ...files,
+              largest: constructFileUrls({ vazeUrl, files: files.largest }),
+              recent: constructFileUrls({ vazeUrl, files: files.recent }),
+            }
+          : null,
+        // servers that predate traffic leave `hosting` out, so keep it out
+        ...(hosting
+          ? {
+              hosting: {
+                ...hosting,
+                top: hosting.top.map((entry) => ({
+                  ...entry,
+                  file: withUrl(entry.file),
+                })),
+              },
+            }
+          : {}),
+      },
     };
   }
 }
@@ -87,6 +98,7 @@ export type {
   ActivityEntry as Activity,
   ActivityType,
   ApiKeySummary as ApiKey,
+  ApiKeyUsage,
   ApiResponse,
   CreatedApiKey,
   FileWithUrl as File,
@@ -98,6 +110,8 @@ export type {
   Scope,
   SessionSummary as Session,
   Stats,
+  StatsAlert,
+  TrafficDay,
   UserSummary as User,
   Visibility,
 } from "@repo/types";

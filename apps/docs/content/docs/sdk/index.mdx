@@ -153,9 +153,10 @@ To change the profile, password or signed-in devices, see
 
 ## Stats
 
-`stats()` returns the numbers behind the dashboard's home page. Each section
-is `null` when the caller can't see it; see the [API
-reference](/docs/api-reference/account#stats) for the full shape.
+`stats()` returns the numbers behind the dashboard's home page: storage, files
+added per day, public hosting traffic, API key usage, accounts, and alerts for
+what needs attention. Each section is `null` when the caller can't see it; see
+the [API reference](/docs/api-reference/account#stats) for the full shape.
 
 ```ts
 const { data } = await vaze.stats();
@@ -163,6 +164,15 @@ const { data } = await vaze.stats();
 if (data?.files) {
   console.log(data.files.total, data.files.storage.used);
   console.log(data.files.recent); // File[] with absolute URLs
+}
+
+// these fields are absent on servers that predate them
+for (const { file, requests } of data?.hosting?.top ?? []) {
+  console.log(file.url, requests); // absolute URLs here too
+}
+
+for (const alert of data?.alerts ?? []) {
+  if (alert.type === "keys-expiring") console.log(`${alert.count} keys expire soon`);
 }
 ```
 

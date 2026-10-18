@@ -301,7 +301,7 @@ if (data) {
 
 # Account and Stats
 
-`vaze.me()` returns the caller's account and the scopes it may use. `vaze.stats()` returns the dashboard's numbers, with each section `null` when the caller lacks its scope.
+`vaze.me()` returns the caller's account and the scopes it may use. `vaze.stats()` returns the dashboard's numbers: storage, files added per day, public hosting traffic, API key usage, accounts and alerts, with each section `null` when the caller lacks its scope. Fields added in later server versions, such as `hosting` and `alerts`, are absent on older servers.
 
 ```ts
 const { data } = await vaze.me();
@@ -312,4 +312,4 @@ Failed requests carry the HTTP status in `error.status`, such as `401` once a se
 
 # Types
 
-This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `File`, `Folder`, `ApiKey`, `Activity`, `User`, `Session`, `InstanceSettings`, `ApiResponse`, `ListOptions`, and `VazeOptions`.
+This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `File`, `Folder`, `ApiKey`, `Activity`, `User`, `Session`, `InstanceSettings`, `Stats`, `StatsAlert`, `TrafficDay`, `ApiKeyUsage`, `ApiResponse`, `ListOptions`, and `VazeOptions`.

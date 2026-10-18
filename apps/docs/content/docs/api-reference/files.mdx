@@ -398,6 +398,10 @@ Hosted responses are sent with `Content-Security-Policy: sandbox` and
 SVG render without executing scripts, so hosted content can never act against
 your instance with your session.
 
+Each day's requests, bytes sent and misses are counted for the dashboard's
+hosting traffic, leaving out requests made from a signed-in dashboard or app
+session. See [Stats](/docs/api-reference/account#hosting-traffic).
+
 <Callout type="warn">
   Public hosting URLs are exactly that — anyone who knows a file's key can fetch
   it. Upload with `visibility: private`, or make new files private by default

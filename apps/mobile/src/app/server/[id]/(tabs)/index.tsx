@@ -18,15 +18,22 @@ import {
 import { useEntryActions } from "@/components/files/entry-actions";
 import { Icon } from "@/components/icon";
 import {
+  AlertsCard,
   FileListCard,
+  FilesAddedCard,
+  folderOf,
   RequestsChart,
   StatTile,
   StorageCard,
+  TrafficCard,
   TypeBreakdown,
+  UsersCard,
+  VisibilityCard,
+  type AlertTarget,
 } from "@/components/overview-cards";
 import { useServer } from "@/components/server-context";
 import { ServerSwitcherSheet } from "@/components/server-switcher-sheet";
-import { initials } from "@/lib/format";
+import { formatBytes, initials, plural, timeAgo } from "@/lib/format";
 import { hostOf } from "@/lib/server-url";
 import { useLibrary } from "@/stores/library";
 
@@ -58,6 +65,26 @@ export default function OverviewScreen() {
 
   const data = stats?.data;
   const firstName = me.user.name.split(" ")[0];
+
+  const keysHref = {
+    pathname: "/server/[id]/settings/keys",
+    params: { id: server.id },
+  } as const;
+
+  const openAlert = (target: AlertTarget) => {
+    if (target === "files") router.navigate(filesHref);
+    else if (target === "activity") {
+      router.navigate({
+        pathname: "/server/[id]/activity",
+        params: { id: server.id },
+      });
+    } else router.push(keysHref);
+  };
+
+  const largest = Math.max(
+    ...(data?.files?.largest ?? []).map((file) => file.size),
+    1,
+  );
 
   return (
     <View className="flex-1 bg-background">
@@ -143,6 +170,10 @@ export default function OverviewScreen() {
           </View>
         ) : (
           <>
+            {data.alerts ? (
+              <AlertsCard alerts={data.alerts} onOpen={openAlert} />
+            ) : null}
+
             {data.files ? <StorageCard storage={data.files.storage} /> : null}
 
             <View className="flex-row gap-3">
@@ -157,7 +188,8 @@ export default function OverviewScreen() {
                   <StatTile
                     icon={Folder}
                     label="Folders"
-                    value={data.files.folders}
+                    // the root folder always exists, so it isn't one anybody made
+                    value={Math.max(data.files.folders - 1, 0)}
                     onPress={() => router.navigate(filesHref)}
                   />
                 </>
@@ -167,37 +199,75 @@ export default function OverviewScreen() {
                   icon={KeyRound}
                   label="API keys"
                   value={data.apiKeys.total}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/server/[id]/settings/keys",
-                      params: { id: server.id },
-                    })
-                  }
+                  onPress={() => router.push(keysHref)}
                 />
               ) : null}
             </View>
 
             {data.files ? (
+              <FileListCard
+                title="Recent files"
+                description="Latest uploaded files"
+                rows={data.files.recent.map((file) => ({
+                  file,
+                  meta: folderOf(file),
+                  aside: timeAgo(file.createdAt),
+                }))}
+                onOpen={(file) => actions.open({ type: "file", file })}
+              />
+            ) : null}
+
+            {data.hosting ? (
               <>
+                <TrafficCard hosting={data.hosting} />
                 <FileListCard
-                  title="Recent files"
-                  description="Latest uploaded files"
-                  files={data.files.recent}
-                  detail="time"
+                  title="Most requested files"
+                  description="Hosted files fetched the most, last 30 days"
+                  rows={data.hosting.top.map(({ file, requests, bytes }) => ({
+                    file,
+                    meta: `${formatBytes(bytes)} served`,
+                    aside: plural(requests, "request"),
+                  }))}
                   onOpen={(file) => actions.open({ type: "file", file })}
                 />
+              </>
+            ) : null}
+
+            {data.files ? (
+              <>
+                {data.files.added ? (
+                  <FilesAddedCard added={data.files.added} />
+                ) : null}
                 <TypeBreakdown types={data.files.types} />
+                {data.files.visibility ? (
+                  <VisibilityCard visibility={data.files.visibility} />
+                ) : null}
                 <FileListCard
                   title="Largest files"
                   description="Files using the most space"
-                  files={data.files.largest}
-                  detail="size"
+                  rows={data.files.largest.map((file) => ({
+                    file,
+                    share: file.size / largest,
+                    aside: formatBytes(file.size),
+                  }))}
                   onOpen={(file) => actions.open({ type: "file", file })}
                 />
               </>
             ) : null}
 
             {data.apiKeys ? <RequestsChart apiKeys={data.apiKeys} /> : null}
+
+            {data.users ? (
+              <UsersCard
+                users={data.users}
+                onPress={() =>
+                  router.push({
+                    pathname: "/server/[id]/settings/users",
+                    params: { id: server.id },
+                  })
+                }
+              />
+            ) : null}
           </>
         )}
       </ScrollView>

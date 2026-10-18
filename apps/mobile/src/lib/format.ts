@@ -77,6 +77,31 @@ export function formatIpAddress(ip: string): string {
   return `${groups.slice(0, start).join(":")}::${groups.slice(start + length).join(":")}`;
 }
 
+export function plural(count: number, one: string, many = `${one}s`) {
+  return `${count.toLocaleString()} ${count === 1 ? one : many}`;
+}
+
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/** A UTC `YYYY-MM-DD` day like "Oct 18", read in UTC so it never shifts. */
+export function formatDay(date: string) {
+  const day = new Date(`${date}T00:00:00Z`);
+  return `${MONTHS[day.getUTCMonth()]} ${day.getUTCDate()}`;
+}
+
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const letters =

@@ -26,6 +26,7 @@
 - **Range requests & caching**: Byte-range support means audio and video seek properly, and `ETag`/`Last-Modified` revalidation keeps repeat embeds down to a bodiless `304`.
 - **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps, each limited to the scopes it needs (read, write, delete).
 - **Users, roles and scopes**: The admin can add more accounts and give each one a role (Admin, Editor, Viewer) or a custom set of scopes, then change, disable or remove them later. Access is enforced on every API call and every API key.
+- **Dashboard**: See what needs attention (failed uploads, expiring or unused API keys, a filling disk), how much of the volume your files take, which files are public, what was added over the last 30 days, which hosted files are requested most and how much bandwidth they use, and how each API key is used, on the web and in the mobile app.
 - **Settings**: Change your name, email and password, sign out other devices, pick whether new files start public or private, and tune upload, signed-link, caching and retention limits without a restart.
 - **Powerful API**: Use Vaze as a backend service for any application that needs file hosting or storage, with simple RESTful endpoints.
 - **Dockerized**: Get up and running in minutes with the official Docker image.

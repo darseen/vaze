@@ -77,6 +77,21 @@ export function getFileCategory(name: string): FileCategory {
   return EXTENSION_MAP[ext] ?? "other";
 }
 
+/**
+ * Classify a MIME type alone, for totals grouped by type where no name is at
+ * hand. Matches the mobile app's breakdown.
+ */
+export function getMimeCategory(mimeType: string): FileCategory {
+  if (mimeType.startsWith("image/")) return "images";
+  if (mimeType.startsWith("video/")) return "video";
+  if (mimeType.startsWith("audio/")) return "audio";
+  if (/zip|compressed|tar/.test(mimeType)) return "archives";
+  if (mimeType.startsWith("text/") || mimeType === "application/pdf") {
+    return "documents";
+  }
+  return "other";
+}
+
 export const CATEGORY_LABELS: Record<FileCategory, string> = {
   images: "Images",
   documents: "Documents",

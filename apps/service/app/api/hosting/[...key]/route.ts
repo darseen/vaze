@@ -1,9 +1,11 @@
 import { db } from "@/db";
+import { countBytes, countNotFound, countServed } from "@/lib/hosting-traffic";
 import { streamFileResponse } from "@/lib/http-cache";
 import { verifySignature } from "@/lib/presign";
 import { getLimits } from "@/lib/settings";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { files as filesTable } from "@repo/db";
+import { getSessionCookie } from "better-auth/cookies";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import type { Stats } from "node:fs";
@@ -27,6 +29,14 @@ function notFound() {
     { data: null, error: { message: "File not found" } },
     { status: 404 },
   );
+}
+
+/**
+ * Traffic counts what visitors and other apps pull. A request carrying a
+ * dashboard or app session is the owner browsing, and HEAD sends no body.
+ */
+function isTracked(request: NextRequest): boolean {
+  return request.method === "GET" && !getSessionCookie(request);
 }
 
 /**
@@ -63,6 +73,12 @@ export async function GET(
       );
     }
 
+    const tracked = isTracked(request);
+    const missing = () => {
+      if (tracked) countNotFound();
+      return notFound();
+    };
+
     const { key: segments } = await params;
 
     // route params arrive percent-encoded (hosting URLs encode each segment);
@@ -71,10 +87,10 @@ export async function GET(
     try {
       key = segments.map((segment) => decodeURIComponent(segment)).join("/");
     } catch {
-      return notFound();
+      return missing();
     }
 
-    if (!isValidKey(key) || key === "") return notFound();
+    if (!isValidKey(key) || key === "") return missing();
 
     const file = db
       .select()
@@ -82,13 +98,13 @@ export async function GET(
       .where(eq(filesTable.key, key))
       .get();
 
-    if (!file) return notFound();
+    if (!file) return missing();
 
     // A private file that the caller cannot read is reported as missing, not
     // forbidden — a 403 would confirm the key exists and turn this into an
     // enumeration oracle.
     if (file.visibility === "private" && !(await canReadPrivate(request, key))) {
-      return notFound();
+      return missing();
     }
 
     const storagePath = toStoragePath(file.key);
@@ -99,6 +115,7 @@ export async function GET(
     try {
       stats = await stat(storagePath);
     } catch {
+      if (tracked) countNotFound();
       return NextResponse.json(
         { data: null, error: { message: "File missing from local storage" } },
         { status: 404 },
@@ -112,10 +129,11 @@ export async function GET(
 
     const isPrivate = file.visibility === "private";
 
-    return streamFileResponse({
+    const response = streamFileResponse({
       request,
       path: storagePath,
       stats,
+      onBytes: tracked ? (bytes) => countBytes(file.id, bytes) : undefined,
       // a private object must not be retained by a proxy or CDN in front of
       // Vaze and handed to the next caller
       cacheable: !isPrivate,
@@ -128,6 +146,13 @@ export async function GET(
           : `public, max-age=${getLimits().hostingCacheMaxAge}, must-revalidate`,
       },
     });
+
+    // a 416 served nothing, so only 200, 206 and 304 count
+    if (tracked && [200, 206, 304].includes(response.status)) {
+      countServed(file.id);
+    }
+
+    return response;
   } catch (error) {
     console.error("Error serving file:", error);
     return NextResponse.json(

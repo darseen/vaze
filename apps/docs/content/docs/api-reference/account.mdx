@@ -53,11 +53,19 @@ The numbers on the dashboard's home page. Each section is `null` when the
 caller lacks its scope:
 
 - `files` needs `files:read`. It covers the whole instance: totals, used and
-  free storage, usage per MIME type, and the five largest and five most recent
-  files.
+  free storage and the size of the volume, usage per MIME type, files and bytes
+  per visibility, files added per day over the last 30 UTC days, and the five
+  largest and five most recent files.
 - `apiKeys` needs `api-keys:manage` and a signed-in session, since an API key
-  never carries that scope. It counts the user's own keys and their requests
-  over the last seven UTC days, oldest first.
+  never carries that scope. It counts the user's own keys, their requests over
+  the last seven UTC days, oldest first, and each key's share of that week.
+- `hosting` needs `files:read`. It is the public hosting traffic over the last
+  30 UTC days and the five files requested most in that time.
+- `users` needs `users:manage`, so only admins get it: how many accounts
+  exist, how many are disabled, and how many devices are signed in across all
+  of them.
+
+`alerts` is always present and lists what needs attention, or nothing.
 
 ```json
 {
@@ -65,27 +73,117 @@ caller lacks its scope:
     "files": {
       "total": 128,
       "folders": 12,
-      "storage": { "used": 734003200, "available": 96636764160 },
+      "storage": {
+        "used": 734003200,
+        "available": 96636764160,
+        "capacity": 107374182400
+      },
       "types": [{ "mimeType": "image/png", "size": 524288000, "count": 96 }],
       "largest": [ ... ],
-      "recent": [ ... ]
+      "recent": [ ... ],
+      "visibility": {
+        "public": { "count": 120, "size": 712003200 },
+        "private": { "count": 8, "size": 22000000 }
+      },
+      "added": [
+        { "date": "2026-09-19", "count": 0, "size": 0 },
+        ...
+        { "date": "2026-10-18", "count": 4, "size": 2352400 }
+      ]
     },
     "apiKeys": {
       "total": 2,
       "requests": [
-        { "date": "2026-10-06", "count": 14 },
-        { "date": "2026-10-07", "count": 0 },
+        { "date": "2026-10-12", "count": 14 },
+        { "date": "2026-10-13", "count": 0 },
         ...
+      ],
+      "keys": [
+        {
+          "id": "bcc37b14-15f5-4934-8076-408484a87147",
+          "name": "website",
+          "requests": 14,
+          "lastUsed": "2026-10-18T13:39:23.980Z",
+          "expiresAt": null
+        }
       ]
-    }
+    },
+    "hosting": {
+      "days": [
+        { "date": "2026-09-19", "requests": 0, "bytes": 0, "notFound": 0 },
+        ...
+        { "date": "2026-10-18", "requests": 212, "bytes": 48203776, "notFound": 3 }
+      ],
+      "top": [{ "file": { ... }, "requests": 96, "bytes": 31457280 }]
+    },
+    "users": { "total": 3, "disabled": 1, "sessions": 4 },
+    "alerts": [
+      { "type": "uploads-failed", "count": 2, "latest": "2026-10-18 13:39:08" },
+      { "type": "keys-expiring", "count": 1 }
+    ]
   },
   "error": null
 }
 ```
 
-`largest` and `recent` are file objects, the same shape the
-[files endpoints](/docs/api-reference/files) return. `folders` includes the
-root folder.
+`largest`, `recent` and each `file` in `hosting.top` are file objects, the same
+shape the [files endpoints](/docs/api-reference/files) return. `folders`
+includes the root folder. `added` only counts files that are still stored, so
+deleting a file takes it off its day. Every daily list holds one entry per day,
+zeros included, oldest first.
+
+`storage.capacity` is the usable size of the volume that holds Vaze's data,
+which other data on the same disk may share, so `capacity - available - used`
+is roughly what everything else takes up.
+
+In `apiKeys.keys`, keys are ordered by requests, busiest first. Requests made
+with a key that has since been deleted still count in `requests`, but belong to
+no key in `keys`.
+
+### Hosting traffic
+
+Vaze keeps a count per UTC day of what the
+[public hosting endpoint](/docs/api-reference/files#serve-a-file) serves:
+
+- `requests` counts responses that served a file: `200`, `206` for a byte
+  range, and `304` when the caller's cached copy is still current. A video that
+  seeks sends several range requests, so each one counts.
+- `bytes` counts body bytes as they are sent. A download cut short counts what
+  was sent before it stopped, which can include data already buffered on the
+  way to the client.
+- `notFound` counts requests that found nothing, such as a broken link or a
+  private file asked for without a signed link or a key.
+
+Requests that carry a dashboard or mobile app session aren't counted, so
+browsing your own files doesn't look like traffic. `HEAD` requests aren't
+counted either. Requests made with an API key or a signed link are. Counts are
+gathered in memory and saved every minute, and before each read of this
+endpoint. Per-file counts are kept for 30 days and daily totals for a year.
+
+### Alerts
+
+Each alert has a `type`, plus the fields below. New types may be added, so
+skip any you don't recognize.
+
+| Type             | Fields                   | When                                                                                         |
+| ---------------- | ------------------------ | -------------------------------------------------------------------------------------------- |
+| `storage-low`    | `available`, `capacity`  | Less than a tenth of the volume is free. Needs `files:read`.                                 |
+| `uploads-failed` | `count`, `latest`        | Your own uploads failed in the last seven days. Signed-in sessions only.                     |
+| `deletes-failed` | `count`, `latest`        | Your own file or folder deletes failed in the last seven days. Signed-in sessions only.      |
+| `keys-expired`   | `count`                  | Your keys are past their expiry date. Needs `api-keys:manage`.                               |
+| `keys-expiring`  | `count`                  | Your keys expire within seven days. Needs `api-keys:manage`.                                 |
+| `keys-unused`    | `count`                  | Your keys haven't been used for 30 days, counting from when they were made if never used.    |
+
+`latest` is when the most recent failure happened, as stored in
+[activity](/docs/api-reference/activity). Clearing those entries from your
+activity clears the alert.
+
+<Callout>
+  `capacity`, `visibility`, `added`, `keys`, `hosting`, `users` and `alerts`
+  were added after this endpoint first shipped. Servers that predate them leave
+  them out, so a client that talks to several servers should check before
+  reading them.
+</Callout>
 
 ## Update your profile
 

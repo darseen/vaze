@@ -78,6 +78,12 @@ export const ACTIVITY_RETENTION_DAYS = parseCount(
   90,
 );
 
+/** Days of per-file hosting traffic kept; the dashboard ranks over this window. */
+export const FILE_TRAFFIC_RETENTION_DAYS = 30;
+
+/** Days of instance-wide hosting traffic totals kept, one small row per day. */
+export const DAILY_TRAFFIC_RETENTION_DAYS = 365;
+
 /** Most recent activity rows the dashboard renders at once. */
 export const ACTIVITY_PAGE_LIMIT = 200;
 

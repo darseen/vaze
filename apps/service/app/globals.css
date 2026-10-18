@@ -41,6 +41,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* dashboard charts and file types, shared with the mobile app */
+  --color-usage: oklch(0.8 0.15 85);
+  --color-kind-images: oklch(0.7 0.15 220);
+  --color-kind-documents: oklch(0.7 0.15 160);
+  --color-kind-archives: oklch(0.75 0.15 45);
+  --color-kind-video: oklch(0.65 0.2 280);
+  --color-kind-audio: oklch(0.6 0.2 25);
+  --color-kind-code: oklch(0.75 0.15 90);
 }
 
 :root {

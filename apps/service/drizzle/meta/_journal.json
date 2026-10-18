@@ -50,6 +50,13 @@
       "when": 1791806172204,
       "tag": "0006_api_key_scopes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1792329975654,
+      "tag": "0007_hosting_traffic",
+      "breakpoints": true
     }
   ]
 }

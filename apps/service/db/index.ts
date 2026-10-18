@@ -4,8 +4,10 @@ import {
   BASE_DB_PATH,
   BASE_TMP_PATH,
   BASE_UPLOADS_PATH,
+  DAILY_TRAFFIC_RETENTION_DAYS,
   DEFAULT_FILE_VISIBILITY,
   DEFAULT_PRESIGN_TTL_SECONDS,
+  FILE_TRAFFIC_RETENTION_DAYS,
   HOSTING_CACHE_MAX_AGE,
   MAX_PRESIGN_TTL_SECONDS,
   MAX_UPLOAD_SIZE,
@@ -142,9 +144,24 @@ function pruneActivities() {
   }
 }
 
+// Traffic is already rolled up per day, so a fixed window keeps it small.
+function pruneHostingTraffic() {
+  try {
+    db.run(
+      sql`DELETE FROM hosting_file_days WHERE date < date('now', ${`-${FILE_TRAFFIC_RETENTION_DAYS} days`})`,
+    );
+    db.run(
+      sql`DELETE FROM hosting_days WHERE date < date('now', ${`-${DAILY_TRAFFIC_RETENTION_DAYS} days`})`,
+    );
+  } catch (error) {
+    console.error("failed to prune hosting traffic", error);
+  }
+}
+
 export function pruneHistory() {
   pruneApiRequests();
   pruneActivities();
+  pruneHostingTraffic();
 }
 
 clearUploadStaging();

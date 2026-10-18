@@ -14,8 +14,10 @@ export const metadata: Metadata = {
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ folder: string[] }>;
+  searchParams: Promise<{ file?: string | string[] }>;
 }) {
   const { error: authError } = await authorize("files:read");
   if (authError) redirect("/dashboard");
@@ -35,10 +37,15 @@ export default async function Page({
   if (error || !data) notFound();
 
   const { files, folders } = data;
+  const { file } = await searchParams;
   return (
     <DropZone>
       <ActionBar />
-      <FilesList files={files} folders={folders} />
+      <FilesList
+        files={files}
+        folders={folders}
+        openFileId={typeof file === "string" ? file : null}
+      />
     </DropZone>
   );
 }

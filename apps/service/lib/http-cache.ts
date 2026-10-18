@@ -117,6 +117,8 @@ export function parseRange(header: string | null, size: number): Range {
  *
  * `cacheable` is false for private objects: they are sent `no-store`, so
  * offering them a revalidation path would contradict it. Ranges still work.
+ *
+ * `onBytes` sees each chunk of the body as it is pulled by the client.
  */
 export function streamFileResponse({
   request,
@@ -124,12 +126,14 @@ export function streamFileResponse({
   stats,
   headers,
   cacheable,
+  onBytes,
 }: {
   request: NextRequest;
   path: string;
   stats: Stats;
   headers: Record<string, string>;
   cacheable: boolean;
+  onBytes?: (bytes: number) => void;
 }): NextResponse {
   const validators = fileValidators(stats);
 
@@ -180,8 +184,22 @@ export function streamFileResponse({
     responseHeaders["Content-Length"] = String(stats.size);
   }
 
-  return new NextResponse(Readable.toWeb(nodeStream) as ReadableStream, {
-    status: partial ? 206 : 200,
-    headers: responseHeaders,
-  });
+  const body = Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
+
+  return new NextResponse(
+    onBytes
+      ? body.pipeThrough(
+          new TransformStream<Uint8Array, Uint8Array>({
+            transform(chunk, controller) {
+              onBytes(chunk.byteLength);
+              controller.enqueue(chunk);
+            },
+          }),
+        )
+      : body,
+    {
+      status: partial ? 206 : 200,
+      headers: responseHeaders,
+    },
+  );
 }
