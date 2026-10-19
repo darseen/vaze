@@ -10,3 +10,5 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@darseen/vaze'
+  - fumadocs-core@16.17.6
+  - fumadocs-ui@16.17.6
