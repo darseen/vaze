@@ -11,183 +11,24 @@
 <br/>
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/vaze?referralCode=InkF11&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
-**Vaze** is a self-hosted, local-first file storage and hosting service built with Next.js. Run it easily as a Docker container on your own server or home network. It provides a clean web interface for managing your files and a powerful API to use as a backend for your other applications.
-
 **[Website](https://vaze.darseen.dev)** &nbsp;|&nbsp; **[Documentation](https://vaze.darseen.dev/docs)**
 
-## </div>
+</div>
+
+**Vaze** is a self-hosted file storage and hosting service that runs as a single Docker container on your own server or home network. Manage your files from the web dashboard or the Android app, host them at URLs you choose, and use its API as a file backend for your other apps. Installation, configuration, the API reference and the SDK guide are all in the **[documentation](https://vaze.darseen.dev/docs)**, starting with **[installation](https://vaze.darseen.dev/docs/getting-started/installation)**.
 
 ## Features
 
-- **File & Folder Management**: Create, rename, move, and delete files and folders directly from the web UI, including multi-select for downloading, moving or deleting many files at once.
-- **Folder uploads**: Pick or drag in a whole folder and Vaze recreates it, subfolders and all, uploading each file with its own progress and cancel.
-- **Path-addressed storage**: Files keep the name you upload them with, so you choose the public URL — `https://your-vaze/api/hosting/projects/demo/photo.png`.
-- **Streaming uploads**: Upload bodies go straight to disk, so file size is bounded by your volume rather than by memory.
-- **Download & Public Hosting**: Download files directly, grab a whole folder or a multi-file selection as one streamed zip, or embed files from a public hosting URL that serves untrusted content sandboxed.
-- **Private files & signed URLs**: Mark any file (or a whole folder) private so it stops being world-readable, then hand out time-limited signed links that work without an API key.
-- **Range requests & caching**: Byte-range support means audio and video seek properly, and `ETag`/`Last-Modified` revalidation keeps repeat embeds down to a bodiless `304`.
-- **API Key Management**: Generate and manage API keys from a dedicated dashboard to securely interact with your storage from other apps, each limited to the scopes it needs (read, write, delete).
-- **Users, roles and scopes**: The admin can add more accounts and give each one a role (Admin, Editor, Viewer) or a custom set of scopes, then change, disable or remove them later. Access is enforced on every API call and every API key.
-- **Dashboard**: See what needs attention (failed uploads, expiring or unused API keys, a filling disk), how much of the volume your files take, which files are public, what was added over the last 30 days, which hosted files are requested most and how much bandwidth they use, and how each API key is used, on the web and in the mobile app.
-- **Android app**: Browse, preview, upload and download files, manage API keys and users, and check the same dashboard from your phone, for as many servers as you add.
-- **Settings**: Change your name, email and password, sign out other devices, pick whether new files start public or private, and tune upload, signed-link, caching and retention limits without a restart.
-- **Powerful API**: Use Vaze as a backend service for any application that needs file hosting or storage, with simple RESTful endpoints.
-- **Dockerized**: Get up and running in minutes with the official Docker image.
-
----
-
-## Getting Started
-
-All you need is [Docker](https://docs.docker.com/get-docker/) with the Compose plugin.
-
-### Quick Install
-
-One command sets up everything — it checks Docker, downloads `compose.prod.yaml`,
-generates your `AUTH_SECRET` into a `.env`, and starts the container:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh | sh
-```
-
-It asks which folder to install into (Enter for `./vaze`, or e.g. `apps` for
-`./apps/vaze`, creating any missing folders) and the URL you'll open Vaze on,
-which defaults to this machine's LAN address. Pass the URL in to skip that prompt:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/darseen/vaze/main/scripts/install.sh \
-  | BASE_URL=https://files.example.com sh
-```
-
-**Re-run it from any folder to upgrade**: it finds the existing install through
-its container (so it never sets up a second copy), refreshes the compose file,
-pulls the newer image, and recreates the container, while never overwriting a
-value already in your `.env` and never touching the volume your uploads and
-database live in. Skip to [Initial setup](#initial-setup-admin-registration) once
-it finishes.
-
-Options: `--dir=PATH` to set the exact install directory and skip the folder
-prompt, and `--no-start` to write the config without starting. `BASE_URL`,
-`VAZE_PORT`, `VAZE_VERSION`, `VAZE_BIND_ADDR` and `TZ` can all be set in the
-environment or edited in `.env` afterwards.
-
-Prefer to read a script before piping it to a shell? Download it first, or follow
-the manual steps below.
-
-### Manual install with Docker Compose
-
-Grab [`compose.prod.yaml`](./compose.prod.yaml), put a `.env` next to it:
-
-```ini
-AUTH_SECRET=generate-with-openssl-rand-base64-32
-BASE_URL=http://your-server-ip-or-domain:3000
-VAZE_PORT=3000
-VAZE_VERSION=latest
-```
-
-then start it:
-
-```bash
-docker compose -f compose.prod.yaml up -d
-```
-
-### Manual install with `docker run`
-
-```bash
-docker run -d \
-  -p 3000:3000 \
-  -v vaze_data:/var/lib/vaze \
-  -e BASE_URL="http://your-server-ip-or-domain:3000" \
-  -e AUTH_SECRET="$(openssl rand -base64 32)" \
-  --restart unless-stopped \
-  --name vaze \
-  ghcr.io/darseen/vaze:latest
-```
-
-- `-p 3000:3000` maps port 3000 on your host to the container's port 3000.
-- `-v vaze_data:/var/lib/vaze` persists uploads and the SQLite database outside the
-  container, so they survive updates and removals.
-
-### Initial setup (admin registration)
-
-1. Open `http://<your-server-ip>:3000` in your browser.
-2. You will be prompted to register — **the first user to register becomes the admin**.
-3. Log in with your new credentials.
-
-That's it! You can now start uploading and managing your files.
-
-Registration closes after that first account. To let someone else in, open
-**Users** in the dashboard and add them with a role, or with a custom set of
-scopes. The [API reference](https://vaze.darseen.dev/docs/api-reference#scopes)
-lists what each scope grants.
-
-## Managing your instance
-
-Run these from your install directory (`./vaze` by default):
-
-```bash
-docker compose -f compose.prod.yaml logs -f   # follow logs
-docker compose -f compose.prod.yaml ps        # status and health
-docker compose -f compose.prod.yaml restart   # restart
-docker compose -f compose.prod.yaml down      # stop (keeps your data)
-```
-
-To upgrade, re-run the installer from that directory — or do it by hand:
-
-```bash
-docker compose -f compose.prod.yaml pull && docker compose -f compose.prod.yaml up -d
-```
-
-> [!WARNING]
-> `docker compose -f compose.prod.yaml down -v` also deletes the `vaze_vaze_data`
-> volume — every uploaded file and account goes with it.
-
-## Environment Variables
-
-Everything lives in the `.env` the installer writes next to `compose.prod.yaml`.
-Edit it and apply with `docker compose -f compose.prod.yaml up -d`.
-
-| Variable          | Required       | Description                                                                    |
-| ----------------- | -------------- | ------------------------------------------------------------------------------ |
-| `BASE_URL`        | Yes            | Public base URL of your instance, e.g. `https://files.example.com`. Public file links are built from it. |
-| `AUTH_SECRET`     | Yes            | Long random string signing session tokens and signed URLs. Replacing it logs everyone out and invalidates every outstanding signed link. |
-| `VAZE_PORT`       | No (`3000`)    | Host port published by the container.                                            |
-| `VAZE_BIND_ADDR`  | No (`0.0.0.0`) | Host address to bind to. Set `127.0.0.1` when a reverse proxy fronts Vaze.        |
-| `VAZE_VERSION`    | No (`latest`)  | Image tag to run — pin it for reproducible deploys.                              |
-| `TZ`              | No (`UTC`)     | Container timezone.                                                              |
-| `MAX_UPLOAD_SIZE` | No (`5gb`)     | Largest single file accepted by an upload, e.g. `500mb`.                          |
-| `MAX_FILES_PER_REQUEST` | No (`100`) | Cap on files in one multipart request.                                        |
-| `API_REQUEST_RETENTION_DAYS` | No (`90`) | How long API request-log rows are kept.                                  |
-| `ACTIVITY_RETENTION_DAYS` | No (`90`) | How long activity history is kept.                                          |
-| `DEFAULT_FILE_VISIBILITY` | No (`public`) | Visibility for uploads that don't specify one. Set `private` for a private-first instance. |
-| `DEFAULT_PRESIGN_TTL_SECONDS` | No (`3600`) | Lifetime of a signed URL when the caller doesn't specify one.          |
-| `MAX_PRESIGN_TTL_SECONDS` | No (`604800`) | Longest lifetime a signed URL may be minted with.                        |
-| `HOSTING_CACHE_MAX_AGE` | No (`0`) | `max-age` for public hosted responses. Zero revalidates every time via `ETag`. |
-
-`MAX_UPLOAD_SIZE`, the two retention variables, `DEFAULT_FILE_VISIBILITY`, the two
-`*_PRESIGN_TTL_SECONDS` variables and `HOSTING_CACHE_MAX_AGE` only set starting
-values. They are copied into **Settings** in the dashboard the first time Vaze
-starts (or first starts after an upgrade that adds them); change them there
-afterwards, no restart needed. Editing the variable later has no effect.
-
-The installer generates `AUTH_SECRET` for you. To make one by hand:
-
-```bash
-openssl rand -base64 32
-```
-
-All data lives at `/var/lib/vaze` inside the container, backed by the `vaze_data`
-volume. The container refuses to start without a volume there, since every file
-and account would be lost when it is removed. Set `ALLOW_EPHEMERAL_DATA=true` to
-start without one anyway.
-
-## API Usage
-
-Vaze can be used as a file-hosting backend for your other projects.
-You can use Vaze's [official NPM package](https://npmjs.com/package/@darseen/vaze) to interact with the API. See the [SDK guide](https://vaze.darseen.dev/docs/sdk) and the [API reference](https://vaze.darseen.dev/docs/api-reference).
+- **Files and folders**: Upload whole folders, browse with thumbnails and a viewer, and download, move or delete many files at once. Uploads stream straight to disk, so size is limited only by your volume.
+- **Hosting at URLs you choose**: Files keep the names you upload them with, so a link like `/api/hosting/projects/demo/photo.png` stays the same. Audio and video seek properly, and repeat requests are cached.
+- **Private files and signed links**: Make any file or folder private, then share it with a link that expires.
+- **Users, roles and API keys**: Add accounts as Admin, Editor or Viewer, or with a custom set of scopes, and give each API key only the access it needs.
+- **Dashboard**: See what needs attention, how your storage is used, hosting traffic, the most requested files and how each API key is used.
+- **Android app**: The same files, dashboard, keys and users on your phone, for as many servers as you add.
+- **API and SDK**: A REST API and the [`@darseen/vaze`](https://npmjs.com/package/@darseen/vaze) TypeScript SDK for using Vaze from your own apps.
+- **Docker**: One container and one data volume. A single command installs it and later upgrades it.
 
 ## Screenshots
-
-Here are a few screenshots of the Vaze interface.
 
 <div align="center">
   <h3> Dashboard </h3>
@@ -230,10 +71,6 @@ Here are a few screenshots of the Vaze interface.
   <img src="./.github/images/register.png" alt="Creating the admin account on a new instance" width="100%"/>
 </div>
 
-## Contributing
-
-Contributions are welcome! If you'd like to help improve Vaze, please feel free to fork the repository, make changes, and submit a pull request.
-
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+Vaze is released under the [MIT License](./LICENSE). Contributions are welcome: fork the repository and open a pull request.
