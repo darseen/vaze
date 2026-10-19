@@ -2,7 +2,11 @@
 
 The Vaze app for Android and iOS, built with Expo. Add your Vaze servers,
 sign in with your account, and browse, upload and manage files from your
-phone. Every request to a server goes through [`@darseen/vaze`](../../packages/sdk).
+phone. Every request to a server goes through the published
+[`@darseen/vaze`](https://npmjs.com/package/@darseen/vaze) SDK from npm, not
+the copy in [`packages/sdk`](../../packages/sdk). To use an SDK change in the
+app, release the SDK first (bump its version and push, and CI publishes it),
+then raise the version the app depends on.
 
 ## Requirements
 
@@ -15,10 +19,9 @@ phone. Every request to a server goes through [`@darseen/vaze`](../../packages/s
 
 ## Running
 
-Build the SDK once (the app imports its `dist`), then start a dev build:
+Start a dev build:
 
 ```bash
-pnpm --filter @darseen/vaze build
 cd apps/mobile
 JAVA_HOME=/path/to/jdk-17 pnpm android   # or: pnpm ios
 ```
