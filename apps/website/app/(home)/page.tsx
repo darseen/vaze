@@ -415,7 +415,6 @@ export default async function HomePage() {
                     name="viewer"
                     alt="A photo open in the app's viewer"
                     sizes="(min-width: 1024px) 200px, 30vw"
-                    themed={false}
                   />
                 </PhoneFrame>
               </div>

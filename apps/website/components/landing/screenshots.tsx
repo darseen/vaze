@@ -11,52 +11,24 @@ const SIZES: Record<Kind, { width: number; height: number }> = {
 
 interface ScreenshotProps {
   kind: Kind;
-  /** File name under public/screenshots/<kind>, without the theme suffix. */
+  /** File name under public/screenshots/<kind>, without the extension. */
   name: string;
   alt: string;
   sizes: string;
   eager?: boolean;
-  /** Only false for screens that look the same in both themes. */
-  themed?: boolean;
 }
 
-/** A product screenshot that follows the site's light or dark theme. */
-export function Screenshot({
-  kind,
-  name,
-  alt,
-  sizes,
-  eager,
-  themed = true,
-}: ScreenshotProps) {
-  const shared = {
-    ...SIZES[kind],
-    sizes,
-    loading: eager ? ("eager" as const) : undefined,
-    className: "block h-auto w-full",
-  };
-
-  if (!themed) {
-    return (
-      <Image src={`/screenshots/${kind}/${name}.webp`} alt={alt} {...shared} />
-    );
-  }
-
+/** A product screenshot, always taken in dark mode. */
+export function Screenshot({ kind, name, alt, sizes, eager }: ScreenshotProps) {
   return (
-    <>
-      <Image
-        src={`/screenshots/${kind}/${name}-light.webp`}
-        alt={alt}
-        {...shared}
-        className={`${shared.className} dark:hidden`}
-      />
-      <Image
-        src={`/screenshots/${kind}/${name}-dark.webp`}
-        alt={alt}
-        {...shared}
-        className={`${shared.className} hidden dark:block`}
-      />
-    </>
+    <Image
+      src={`/screenshots/${kind}/${name}.webp`}
+      alt={alt}
+      {...SIZES[kind]}
+      sizes={sizes}
+      loading={eager ? "eager" : undefined}
+      className="block h-auto w-full"
+    />
   );
 }
 
