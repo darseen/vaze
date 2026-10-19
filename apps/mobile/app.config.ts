@@ -50,6 +50,7 @@ export default {
     "expo-web-browser",
     "expo-image",
     "expo-sharing",
+    "expo-asset",
     [
       "expo-build-properties",
       {
