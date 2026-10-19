@@ -106,7 +106,8 @@ export function parseMultipartToDisk(
         async () => {
           if (truncated) throw new UploadTooLargeError(maxFileSize);
           const { size } = await fs.stat(stagedPath);
-          files.push({ originalName: info.filename, stagedPath, size });
+          // an octet-stream part without a filename has no name; the route rejects it
+          files.push({ originalName: info.filename ?? "", stagedPath, size });
         },
       );
 
