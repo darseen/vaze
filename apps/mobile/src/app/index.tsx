@@ -1,7 +1,8 @@
 import { router } from "expo-router";
 import { Image } from "expo-image";
+import * as WebBrowser from "expo-web-browser";
 import { Avatar, Button, ListGroup, Separator } from "heroui-native";
-import { Ellipsis, Plus } from "lucide-react-native";
+import { BookOpen, Ellipsis, Globe, Plus } from "lucide-react-native";
 import { Fragment, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { AddServerSheet } from "@/components/add-server-sheet";
@@ -12,6 +13,11 @@ import { hostOf } from "@/lib/server-url";
 import { useServers, type Server } from "@/stores/servers";
 
 const logo = require("../../assets/logo.png");
+
+const LINKS = [
+  { label: "Website", icon: Globe, url: "https://vaze.darseen.dev" },
+  { label: "Docs", icon: BookOpen, url: "https://vaze.darseen.dev/docs" },
+];
 
 function openServer(server: Server) {
   router.push({ pathname: "/server/[id]", params: { id: server.id } });
@@ -46,6 +52,7 @@ export default function ServersScreen() {
             <Icon icon={Plus} size={18} className="text-accent-foreground" />
             <Button.Label>Add a server</Button.Label>
           </Button>
+          <ProjectLinks />
         </View>
       ) : (
         <>
@@ -115,7 +122,7 @@ export default function ServersScreen() {
             </View>
           </ScrollView>
 
-          <View className="px-5 pt-2 pb-safe-offset-4">
+          <View className="gap-2 px-5 pt-2 pb-safe-offset-4">
             <Button variant="secondary" onPress={() => setAdding(true)}>
               <Icon
                 icon={Plus}
@@ -124,6 +131,7 @@ export default function ServersScreen() {
               />
               <Button.Label>Add a server</Button.Label>
             </Button>
+            <ProjectLinks />
           </View>
         </>
       )}
@@ -139,6 +147,28 @@ export default function ServersScreen() {
         onOpenChange={setActionsOpen}
         onOpen={openServer}
       />
+    </View>
+  );
+}
+
+function ProjectLinks() {
+  return (
+    <View className="flex-row justify-center gap-2">
+      {LINKS.map((link) => (
+        <Button
+          key={link.url}
+          size="sm"
+          variant="ghost"
+          onPress={() => WebBrowser.openBrowserAsync(link.url)}
+        >
+          <Icon
+            icon={link.icon}
+            size={16}
+            className="text-default-foreground"
+          />
+          <Button.Label>{link.label}</Button.Label>
+        </Button>
+      ))}
     </View>
   );
 }
