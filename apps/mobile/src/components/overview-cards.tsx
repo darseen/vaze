@@ -253,10 +253,12 @@ export function AlertsCard({
 }
 
 export function StorageCard({ storage }: { storage: FileStats["storage"] }) {
-  const { used, available, capacity } = storage;
+  const { used, available, capacity, deleted = 0 } = storage;
   // servers that predate `capacity` only say how much is free
-  const total = capacity && capacity > 0 ? capacity : used + available;
-  const other = capacity ? Math.max(capacity - available - used, 0) : 0;
+  const total = capacity && capacity > 0 ? capacity : used + deleted + available;
+  const other = capacity
+    ? Math.max(capacity - available - used - deleted, 0)
+    : 0;
   const share = (bytes: number) => (total > 0 ? (bytes / total) * 100 : 0);
 
   return (
@@ -271,6 +273,12 @@ export function StorageCard({ storage }: { storage: FileStats["storage"] }) {
           style={{ width: `${used > 0 ? Math.max(share(used), 1) : 0}%` }}
         />
         <View
+          className="h-full bg-chart/40"
+          style={{
+            width: `${deleted > 0 ? Math.max(share(deleted), 1) : 0}%`,
+          }}
+        />
+        <View
           className="h-full bg-muted"
           style={{ width: `${share(other)}%` }}
         />
@@ -278,6 +286,9 @@ export function StorageCard({ storage }: { storage: FileStats["storage"] }) {
       {capacity ? (
         <View className="flex-row flex-wrap gap-x-3 gap-y-1">
           <LegendDot className="bg-chart" label="Files" />
+          {deleted > 0 ? (
+            <LegendDot className="bg-chart/40" label="Recently deleted" />
+          ) : null}
           {other > 0 ? (
             <LegendDot className="bg-muted" label="Other data" />
           ) : null}

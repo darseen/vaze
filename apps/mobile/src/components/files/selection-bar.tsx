@@ -9,9 +9,11 @@ import {
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useDownload } from "@/hooks/use-download";
+import { useRestore } from "@/hooks/use-restore";
 import { fileDownload } from "@/lib/transfer";
 import { useLibrary } from "@/stores/library";
 import { ConfirmSheet } from "../confirm-sheet";
+import { keepsDeleted } from "./entry-actions";
 import { Icon } from "../icon";
 import { useServer } from "../server-context";
 import { SHEET_CLOSE_MS } from "../sheet";
@@ -19,7 +21,7 @@ import { MoveSheet } from "./move-sheet";
 
 const fileWord = (count: number) => (count === 1 ? "file" : "files");
 
-function BarButton({
+export function BarButton({
   icon,
   label,
   busy = false,
@@ -77,10 +79,12 @@ export function SelectionBar({ files, folderKey, onDone }: SelectionBarProps) {
   const { download, busy } = useDownload();
   const loadFolder = useLibrary((state) => state.loadFolder);
   const loadStats = useLibrary((state) => state.loadStats);
+  const { undo } = useRestore();
   const [sheet, setSheet] = useState<"move" | "delete" | null>(null);
 
   const count = files.length;
   const ids = files.map((file) => file.id);
+  const recoverable = files.length > 0 && keepsDeleted(files[0]);
 
   const refresh = (...keys: string[]) => {
     for (const key of new Set(keys)) loadFolder(server.id, vaze, key);
@@ -91,9 +95,10 @@ export function SelectionBar({ files, folderKey, onDone }: SelectionBarProps) {
     variant: "success" | "warning" | "danger",
     label: string,
     description?: string,
+    extra?: ReturnType<typeof undo>,
   ) => {
     setTimeout(
-      () => toast.show({ variant, label, description }),
+      () => toast.show({ variant, label, description, ...extra }),
       SHEET_CLOSE_MS,
     );
   };
@@ -142,16 +147,27 @@ export function SelectionBar({ files, folderKey, onDone }: SelectionBarProps) {
     }
 
     refresh(folderKey);
+    const gone = files.filter((file) => data.deleted.includes(file.id));
+    const undoable =
+      recoverable && gone.length > 0
+        ? undo(gone.map((file) => ({ id: file.id, key: file.key })))
+        : undefined;
+
     if (data.failed.length > 0) {
       notifyAfterClose(
         "warning",
         `Deleted ${data.deleted.length} of ${count} ${fileWord(count)}`,
         `${data.failed.length} couldn't be deleted`,
+        undoable,
       );
     } else {
       notifyAfterClose(
         "success",
-        `Deleted ${data.deleted.length} ${fileWord(data.deleted.length)}`,
+        recoverable
+          ? `Moved ${gone.length} ${fileWord(gone.length)} to Recently deleted`
+          : `Deleted ${data.deleted.length} ${fileWord(data.deleted.length)}`,
+        undefined,
+        undoable,
       );
     }
     setTimeout(onDone, SHEET_CLOSE_MS);
@@ -201,7 +217,11 @@ export function SelectionBar({ files, folderKey, onDone }: SelectionBarProps) {
         isOpen={sheet === "delete"}
         onOpenChange={(open) => !open && setSheet(null)}
         title={`Delete ${count} ${fileWord(count)}?`}
-        description="They're removed from the server for good. This can't be undone."
+        description={
+          recoverable
+            ? `${count === 1 ? "It moves" : "They move"} to Recently deleted, where you can restore ${count === 1 ? "it" : "them"} until ${count === 1 ? "it's" : "they're"} removed for good.`
+            : "They're removed from the server for good. This can't be undone."
+        }
         confirmLabel="Delete"
         onConfirm={remove}
       />

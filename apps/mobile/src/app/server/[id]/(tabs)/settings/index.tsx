@@ -1,6 +1,7 @@
 import { router, Stack } from "expo-router";
 import { Avatar, Chip, Tabs } from "heroui-native";
 import {
+  ArchiveRestore,
   ArrowLeftRight,
   ChevronRight,
   Gauge,
@@ -12,7 +13,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Icon } from "@/components/icon";
 import { ListSection } from "@/components/list-section";
@@ -21,6 +22,7 @@ import { ServerSwitcherSheet } from "@/components/server-switcher-sheet";
 import { initials } from "@/lib/format";
 import { roleLabel } from "@/lib/scopes";
 import { hostOf } from "@/lib/server-url";
+import { useLibrary } from "@/stores/library";
 import { usePreferences, type ThemePreference } from "@/stores/preferences";
 
 const THEMES: { value: ThemePreference; label: string }[] = [
@@ -37,13 +39,22 @@ const PAGES = {
   users: "/server/[id]/settings/users",
   visibility: "/server/[id]/settings/visibility",
   limits: "/server/[id]/settings/limits",
+  deleted: "/server/[id]/deleted",
 } as const;
 
 export default function SettingsScreen() {
-  const { server, me, can, signOut } = useServer();
+  const { server, vaze, me, can, signOut } = useServer();
+  const deleted = useLibrary((state) => state.deleted[server.id]);
+  const loadDeleted = useLibrary((state) => state.loadDeleted);
   const theme = usePreferences((state) => state.theme);
   const setTheme = usePreferences((state) => state.setTheme);
   const [switching, setSwitching] = useState(false);
+
+  // whether the server keeps deleted files decides if its row shows
+  const known = deleted?.supported !== undefined;
+  useEffect(() => {
+    if (!known && can("files:read")) loadDeleted(server.id, vaze);
+  }, [known, can, loadDeleted, server.id, vaze]);
 
   const open = (page: keyof typeof PAGES) => () =>
     router.push({ pathname: PAGES[page], params: { id: server.id } });
@@ -111,6 +122,15 @@ export default function SettingsScreen() {
           title="Manage"
           rows={[
             {
+              label: "Recently deleted",
+              icon: ArchiveRestore,
+              description: deleted?.data?.items.length
+                ? `${deleted.data.items.length} ${deleted.data.items.length === 1 ? "item" : "items"} you can restore`
+                : "Restore deleted files and folders",
+              hidden: !can("files:read") || deleted?.supported !== true,
+              onPress: open("deleted"),
+            },
+            {
               label: "API keys",
               icon: KeyRound,
               description: "Keys for your own apps and scripts",
@@ -141,7 +161,7 @@ export default function SettingsScreen() {
             {
               label: "Limits",
               icon: Gauge,
-              description: "Uploads, signed links and history",
+              description: "Uploads, signed links and how long things are kept",
               hidden: !can("settings:manage"),
               onPress: open("limits"),
             },

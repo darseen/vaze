@@ -17,6 +17,7 @@ import {
   useToast,
 } from "heroui-native";
 import {
+  ArchiveRestore,
   ArrowUpDown,
   File as FileIcon,
   Folder as FolderIcon,
@@ -114,6 +115,10 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
   });
   const loadFolder = useLibrary((state) => state.loadFolder);
   const loadStats = useLibrary((state) => state.loadStats);
+  const loadDeleted = useLibrary((state) => state.loadDeleted);
+  const keepsDeleted = useLibrary(
+    (state) => state.deleted[server.id]?.supported === true,
+  );
   const fileView = usePreferences((state) => state.fileView);
   const startUploads = useUploads((state) => state.start);
 
@@ -129,6 +134,11 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
       return () => useCardAudio.getState().stop();
     }, [refresh]),
   );
+
+  // the root asks whether the server keeps deleted files, for its header button
+  useEffect(() => {
+    if (!folderKey) loadDeleted(server.id, vaze);
+  }, [folderKey, loadDeleted, server.id, vaze]);
 
   // only files the search and filter show are ever selected, like the web
   const visibleFiles = entries.flatMap((entry) =>
@@ -322,18 +332,38 @@ export function FolderBrowser({ folderKey }: { folderKey: string }) {
                 headerBackVisible: true,
                 gestureEnabled: true,
                 headerLeft: undefined,
-                headerRight: canWrite
-                  ? () => (
-                      <Pressable
-                        onPress={() => setSheet("add")}
-                        hitSlop={10}
-                        className="px-1"
-                        accessibilityLabel="Add"
-                      >
-                        <Icon icon={Plus} size={24} />
-                      </Pressable>
-                    )
-                  : undefined,
+                headerRight:
+                  canWrite || (!folderKey && keepsDeleted)
+                    ? () => (
+                        <View className="flex-row items-center gap-4">
+                          {!folderKey && keepsDeleted ? (
+                            <Pressable
+                              onPress={() =>
+                                router.push({
+                                  pathname: "/server/[id]/deleted",
+                                  params: { id: server.id },
+                                })
+                              }
+                              hitSlop={10}
+                              className="px-1"
+                              accessibilityLabel="Recently deleted"
+                            >
+                              <Icon icon={ArchiveRestore} size={22} />
+                            </Pressable>
+                          ) : null}
+                          {canWrite ? (
+                            <Pressable
+                              onPress={() => setSheet("add")}
+                              hitSlop={10}
+                              className="px-1"
+                              accessibilityLabel="Add"
+                            >
+                              <Icon icon={Plus} size={24} />
+                            </Pressable>
+                          ) : null}
+                        </View>
+                      )
+                    : undefined,
               }
         }
       />

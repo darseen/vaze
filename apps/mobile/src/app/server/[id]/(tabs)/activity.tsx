@@ -29,7 +29,7 @@ import { useServer } from "@/components/server-context";
 import { Sheet, SHEET_CLOSE_MS } from "@/components/sheet";
 import {
   ACTIVITY_FILTERS,
-  ACTIVITY_META,
+  activityMeta,
   dayLabel,
   matchesFilter,
   type ActivityFilter,
@@ -419,7 +419,7 @@ function ActivityRow({
   onToggle: () => void;
   onLongPress: () => void;
 }) {
-  const meta = ACTIVITY_META[activity.type];
+  const meta = activityMeta(activity.type);
   const secondary = [activity.target ? meta.label : null, activity.detail]
     .filter(Boolean)
     .join(" · ");

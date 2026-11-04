@@ -108,3 +108,12 @@ export function initials(name: string) {
     parts.length > 1 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
   return letters.toUpperCase();
 }
+
+/** How long until a timestamp, like "3 days", or null once it has passed. */
+export function timeUntil(value: string) {
+  const hours = (parseTimestamp(value).getTime() - Date.now()) / 3_600_000;
+  if (hours <= 0) return null;
+  if (hours < 1) return "less than an hour";
+  if (hours < 24) return plural(Math.round(hours), "hour");
+  return plural(Math.round(hours / 24), "day");
+}

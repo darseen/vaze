@@ -27,6 +27,7 @@ import { VIEWER_BACKGROUND } from "@/components/viewer/theme";
 import { RegisterForm } from "@/components/register-form";
 import { getClients, needsSetup, onUnauthorized } from "@/lib/clients";
 import { hostOf } from "@/lib/server-url";
+import { useStackOptions } from "@/hooks/use-stack-options";
 import { useLibrary } from "@/stores/library";
 import { useServers, type Server } from "@/stores/servers";
 
@@ -190,11 +191,17 @@ function ServerGate({ server }: { server: Server }) {
   );
 }
 
-// the file viewer opens above the tabs, so it covers the tab bar
+// the file viewer and Recently deleted open above the tabs, so they cover the tab bar
 function ServerStack() {
+  const stackOptions = useStackOptions();
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen
+        name="deleted"
+        options={{ ...stackOptions, headerShown: true }}
+      />
       <Stack.Screen
         name="view"
         options={{

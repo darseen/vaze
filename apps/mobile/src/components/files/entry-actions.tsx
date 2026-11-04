@@ -2,6 +2,7 @@ import type { Visibility } from "@darseen/vaze";
 import * as Clipboard from "expo-clipboard";
 import { useToast } from "heroui-native";
 import { useState } from "react";
+import { useRestore } from "@/hooks/use-restore";
 import {
   fileDownload,
   folderDownload,
@@ -25,6 +26,11 @@ const keyOf = (entry: Entry) =>
   entry.type === "file" ? entry.file.key : entry.folder.key;
 const nameOf = (entry: Entry) =>
   entry.type === "file" ? entry.file.name : entry.folder.name;
+const idOf = (entry: Entry) =>
+  entry.type === "file" ? entry.file.id : entry.folder.id;
+
+/** Servers with Recently deleted send `deletedAt` on every file and folder. */
+export const keepsDeleted = (item: object) => "deletedAt" in item;
 
 /** The details sheet for a file or folder, plus every action it leads to. */
 export function useEntryActions() {
@@ -32,6 +38,7 @@ export function useEntryActions() {
   const { toast } = useToast();
   const loadFolder = useLibrary((state) => state.loadFolder);
   const loadStats = useLibrary((state) => state.loadStats);
+  const { undo } = useRestore();
 
   const [entry, setEntry] = useState<Entry | null>(null);
   const [sheet, setSheet] = useState<SheetName | null>(null);
@@ -51,9 +58,10 @@ export function useEntryActions() {
     variant: "success" | "danger",
     label: string,
     description?: string,
+    extra?: ReturnType<typeof undo>,
   ) => {
     setTimeout(
-      () => toast.show({ variant, label, description }),
+      () => toast.show({ variant, label, description, ...extra }),
       SHEET_CLOSE_MS,
     );
   };
@@ -210,8 +218,21 @@ export function useEntryActions() {
       return notifyAfterClose("danger", "Couldn't delete", error.message);
 
     refresh(parentKey(keyOf(entry)));
-    notifyAfterClose("success", `Deleted ${nameOf(entry)}`);
+    if (keepsDeleted(entry.type === "file" ? entry.file : entry.folder)) {
+      notifyAfterClose(
+        "success",
+        `Moved ${nameOf(entry)} to Recently deleted`,
+        undefined,
+        undo([{ id: idOf(entry), key: keyOf(entry) }]),
+      );
+    } else {
+      notifyAfterClose("success", `Deleted ${nameOf(entry)}`);
+    }
   }
+
+  const recoverable =
+    entry !== null &&
+    keepsDeleted(entry.type === "file" ? entry.file : entry.folder);
 
   const element = (
     <>
@@ -242,9 +263,13 @@ export function useEntryActions() {
         onOpenChange={closer("delete")}
         title={entry ? `Delete ${nameOf(entry)}?` : "Delete?"}
         description={
-          entry?.type === "folder"
-            ? "Everything inside it is deleted too. This can't be undone."
-            : "This can't be undone."
+          recoverable
+            ? entry?.type === "folder"
+              ? "It moves to Recently deleted with everything inside it, where you can restore it until it's removed for good."
+              : "It moves to Recently deleted, where you can restore it until it's removed for good."
+            : entry?.type === "folder"
+              ? "Everything inside it is deleted too. This can't be undone."
+              : "This can't be undone."
         }
         confirmLabel="Delete"
         onConfirm={remove}

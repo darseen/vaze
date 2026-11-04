@@ -4,6 +4,7 @@ import {
   CircleSlash,
   CircleX,
   FolderX,
+  History,
   KeyRound,
   LockKeyhole,
   PencilLine,
@@ -100,6 +101,20 @@ export const ACTIVITY_META: Record<
     tone: TONES.danger,
   },
 };
+
+/** A newer server may send a type this app doesn't know, e.g. "file.restored" reads "File restored". */
+export function activityMeta(type: ActivityType) {
+  const known = ACTIVITY_META[type] as
+    (typeof ACTIVITY_META)[ActivityType] | undefined;
+  if (known) return known;
+
+  const words = String(type).replace(/[.-]/g, " ");
+  return {
+    label: words.charAt(0).toUpperCase() + words.slice(1),
+    icon: History,
+    tone: TONES.neutral,
+  };
+}
 
 export const ACTIVITY_FILTERS = [
   { value: "all", label: "All" },

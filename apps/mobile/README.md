@@ -36,7 +36,8 @@ app. Plain `http://` works for LAN servers on both platforms.
 
 - `src/app`: routes. `index.tsx` is the server list; `server/[id]/(tabs)`
   holds the dashboard and file browser for one server, and `server/[id]/view`
-  is the full-screen file viewer above the tabs.
+  is the full-screen file viewer above the tabs, like `server/[id]/deleted`
+  for Recently deleted.
 - `modules/file-previews`: a local Expo module that grabs video frames
   (`MediaMetadataRetriever` / AVFoundation) and renders PDF pages
   (`PdfRenderer` / PDFKit) for thumbnails and the viewer. Changing it needs a

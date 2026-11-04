@@ -72,6 +72,13 @@ const FIELDS: {
     units: DURATION_UNITS,
   },
   {
+    key: "deletedRetentionDays",
+    label: "Recently deleted",
+    description:
+      "Deleted files and folders can be restored this long, then they are removed for good.",
+    units: DAY_UNITS,
+  },
+  {
     key: "activityRetentionDays",
     label: "Activity history",
     description: "Activity entries older than this are deleted.",
@@ -87,7 +94,11 @@ const FIELDS: {
 ];
 
 type Field = { amount: string; unit: number };
-type Fields = Record<keyof Limits, Field>;
+type Fields = Partial<Record<keyof Limits, Field>>;
+
+// a server older than a limit doesn't send it, so its field stays hidden
+const fieldsOf = (limits: Limits) =>
+  FIELDS.filter(({ key }) => typeof limits[key] === "number");
 
 // show a value in the largest unit that divides it evenly
 function split(value: number, units: Unit[]): Field {
@@ -99,7 +110,7 @@ function split(value: number, units: Unit[]): Field {
 
 function toFields(limits: Limits) {
   return Object.fromEntries(
-    FIELDS.map(({ key, units }) => [key, split(limits[key], units)]),
+    fieldsOf(limits).map(({ key, units }) => [key, split(limits[key], units)]),
   ) as Fields;
 }
 
@@ -133,24 +144,27 @@ export default function LimitsScreen() {
     load();
   }, [load]);
 
+  const shown = saved ? fieldsOf(saved) : [];
   const dirty =
     saved !== null &&
     fields !== null &&
-    FIELDS.some(({ key }) => toValue(fields[key]) !== saved[key]);
+    shown.some(({ key }) => toValue(fields[key]!) !== saved[key]);
 
   function setField(key: keyof Limits, change: Partial<Field>) {
     setError(null);
     setFields((current) =>
-      current ? { ...current, [key]: { ...current[key], ...change } } : current,
+      current
+        ? { ...current, [key]: { ...current[key]!, ...change } }
+        : current,
     );
   }
 
   async function save() {
     if (!fields || busy) return;
 
-    const limits = {} as Limits;
-    for (const { key, label } of FIELDS) {
-      const value = toValue(fields[key]);
+    const limits: Partial<Limits> = {};
+    for (const { key, label } of shown) {
+      const value = toValue(fields[key]!);
       if (!Number.isFinite(value))
         return setError(`Enter a number for ${label}.`);
       limits[key] = value;
@@ -189,7 +203,7 @@ export default function LimitsScreen() {
           <LoadState error={loadError} onRetry={load} />
         ) : (
           <>
-            {FIELDS.map(({ key, label, description, units }) => (
+            {shown.map(({ key, label, description, units }) => (
               <View
                 key={key}
                 className="gap-3 rounded-3xl border border-border bg-surface p-4"
@@ -197,7 +211,7 @@ export default function LimitsScreen() {
                 <Label>{label}</Label>
                 <View className="flex-row items-center gap-3">
                   <Input
-                    value={fields[key].amount}
+                    value={fields[key]!.amount}
                     onChangeText={(amount) => setField(key, { amount })}
                     keyboardType="decimal-pad"
                     className="flex-1"
@@ -211,7 +225,7 @@ export default function LimitsScreen() {
                 </View>
                 {units.length > 1 ? (
                   <Tabs
-                    value={String(fields[key].unit)}
+                    value={String(fields[key]!.unit)}
                     onValueChange={(value) =>
                       setField(key, { unit: Number(value) })
                     }
