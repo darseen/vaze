@@ -1,6 +1,7 @@
 import type { FileWithUrl, Limits, Role, Scope, Visibility } from "@repo/types";
 import type Account from "../account.js";
 import type Activity from "../activity.js";
+import type Deleted from "../deleted.js";
 import type Files from "../files.js";
 import type Folders from "../folders.js";
 import type Keys from "../keys.js";
@@ -10,6 +11,7 @@ import type Users from "../users.js";
 export interface IVaze {
   files: Files;
   folders: Folders;
+  deleted: Deleted;
   keys: Keys;
   account: Account;
   activity: Activity;
@@ -116,4 +118,14 @@ export type SettingsChanges = {
 export type BulkDeleteResult = {
   deleted: string[];
   failed: { id: string; message: string }[];
+};
+
+export type BulkRestoreResult = {
+  restored: string[];
+  failed: { id: string; message: string }[];
+};
+
+export type DeleteOptions = {
+  /** Skip Recently deleted and remove it from storage right away. */
+  permanent?: boolean;
 };

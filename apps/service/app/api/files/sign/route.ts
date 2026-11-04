@@ -3,7 +3,7 @@ import authorizeRequest from "@/app/api/_utils/authorize-request";
 import { db } from "@/db";
 import { buildSignedUrl } from "@/lib/presign";
 import { files as filesTable } from "@repo/db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -34,7 +34,12 @@ export async function POST(request: NextRequest) {
     const file = db
       .select()
       .from(filesTable)
-      .where(id ? eq(filesTable.id, id) : eq(filesTable.key, normalizeKey(key)))
+      .where(
+        and(
+          id ? eq(filesTable.id, id) : eq(filesTable.key, normalizeKey(key)),
+          isNull(filesTable.deletedAt),
+        ),
+      )
       .get();
 
     if (!file) {

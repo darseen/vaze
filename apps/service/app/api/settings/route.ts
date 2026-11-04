@@ -2,6 +2,7 @@ import { parseVisibility } from "@/app/api/_utils";
 import authorizeRequest from "@/app/api/_utils/authorize-request";
 import { fail } from "@/app/api/_utils/responses";
 import { pruneHistory } from "@/db";
+import { purgeExpired } from "@/lib/deleted";
 import {
   getInstanceSettings,
   getLimits,
@@ -19,6 +20,7 @@ const MINIMUMS: Record<keyof Limits, number> = {
   hostingCacheMaxAge: 0,
   activityRetentionDays: 1,
   apiRequestRetentionDays: 1,
+  deletedRetentionDays: 1,
 };
 
 const LABELS: Record<keyof Limits, string> = {
@@ -28,6 +30,7 @@ const LABELS: Record<keyof Limits, string> = {
   hostingCacheMaxAge: "Public cache lifetime",
   activityRetentionDays: "Activity history retention",
   apiRequestRetentionDays: "API request log retention",
+  deletedRetentionDays: "Recently deleted retention",
 };
 
 // API keys never carry this scope, so only a signed-in admin gets through
@@ -123,6 +126,10 @@ export async function PUT(request: NextRequest) {
       setLimits(parsed.limits);
       // apply a shorter retention right away instead of at the next daily prune
       pruneHistory();
+      // removing what expired can take a while, so the response doesn't wait
+      purgeExpired().catch((error) =>
+        console.error("failed to purge deleted items", error),
+      );
     }
 
     return NextResponse.json({ data: getInstanceSettings(), error: null });

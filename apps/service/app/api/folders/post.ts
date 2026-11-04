@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { folders as foldersTable } from "@repo/db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import {
   accessPath,
@@ -45,7 +45,7 @@ export default async function POST(request: NextRequest) {
     const existsInDb = db
       .select({ id: foldersTable.id })
       .from(foldersTable)
-      .where(eq(foldersTable.key, key))
+      .where(and(eq(foldersTable.key, key), isNull(foldersTable.deletedAt)))
       .get();
 
     if (existsInDb || (await accessPath(toStoragePath(key)))) {

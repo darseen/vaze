@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { parseTimestamp } from "@/utils";
+import { undoDelete } from "@/utils/deleted";
 import { downloadFiles } from "@/utils/download";
 import {
   CATEGORY_LABELS,
@@ -216,14 +217,23 @@ export default function FilesList({ files, folders, openFileId }: Props) {
 
       if (error) return toast.error(error.message);
 
+      const undo =
+        data.deleted.length > 0
+          ? undoDelete(data.deleted, () => router.refresh())
+          : undefined;
+
       if (data.failed.length > 0) {
         toast.warning(
           `Deleted ${data.deleted.length} of ${ids.length} ${fileWord(ids.length)}`,
-          { description: `${data.failed.length} could not be deleted` },
+          {
+            description: `${data.failed.length} could not be deleted`,
+            action: undo,
+          },
         );
       } else {
         toast.success(
-          `Deleted ${data.deleted.length} ${fileWord(data.deleted.length)}`,
+          `Moved ${data.deleted.length} ${fileWord(data.deleted.length)} to Recently deleted`,
+          { action: undo },
         );
       }
 
@@ -469,9 +479,11 @@ export default function FilesList({ files, folders, openFileId }: Props) {
               Delete {selectedFiles.length} {fileWord(selectedFiles.length)}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The selected{" "}
-              {fileWord(selectedFiles.length)} will be permanently removed from
-              your storage.
+              {selectedFiles.length === 1 ? "It moves" : "They move"} to
+              Recently deleted, where you can restore{" "}
+              {selectedFiles.length === 1 ? "it" : "them"} until{" "}
+              {selectedFiles.length === 1 ? "it is" : "they are"} removed for
+              good.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

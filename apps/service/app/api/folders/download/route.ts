@@ -3,7 +3,7 @@ import { archiveName, streamZipResponse, type ZipEntry } from "@/lib/zip";
 import { parseTimestamp } from "@/utils";
 import { files as filesTable, folders as foldersTable } from "@repo/db";
 import type { Folder } from "@repo/types";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { stat } from "node:fs/promises";
 import { ensureRootFolder, normalizeKey, toStoragePath } from "../../_utils";
@@ -30,13 +30,18 @@ export async function GET(request: NextRequest) {
       folder = db
         .select()
         .from(foldersTable)
-        .where(eq(foldersTable.id, id))
+        .where(and(eq(foldersTable.id, id), isNull(foldersTable.deletedAt)))
         .get();
     } else if (key !== null) {
       folder = db
         .select()
         .from(foldersTable)
-        .where(eq(foldersTable.key, normalizeKey(key)))
+        .where(
+          and(
+            eq(foldersTable.key, normalizeKey(key)),
+            isNull(foldersTable.deletedAt),
+          ),
+        )
         .get();
     } else {
       folder = await ensureRootFolder();
@@ -77,7 +82,9 @@ async function collectEntries(
   const files = db
     .select()
     .from(filesTable)
-    .where(eq(filesTable.folderId, folder.id))
+    .where(
+      and(eq(filesTable.folderId, folder.id), isNull(filesTable.deletedAt)),
+    )
     .orderBy(asc(filesTable.name))
     .all();
 
@@ -102,7 +109,9 @@ async function collectEntries(
   const subfolders = db
     .select()
     .from(foldersTable)
-    .where(eq(foldersTable.parentId, folder.id))
+    .where(
+      and(eq(foldersTable.parentId, folder.id), isNull(foldersTable.deletedAt)),
+    )
     .orderBy(asc(foldersTable.name))
     .all();
 

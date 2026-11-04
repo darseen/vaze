@@ -23,7 +23,18 @@ import type {
 } from "@repo/types";
 import { parseTimestamp } from "@/utils";
 import { getVolumeUsage } from "@/utils/storage";
-import { and, count, desc, eq, gt, gte, inArray, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  sql,
+} from "drizzle-orm";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -48,21 +59,33 @@ function lastUtcDays(days: number): string[] {
 // the first UTC day of a window ending today; SQLite and the JS above agree on UTC
 const windowStart = (days: number) => sql`date('now', ${`-${days - 1} days`})`;
 
+// files in Recently deleted are counted apart, as space they still hold
+const stored = isNull(files.deletedAt);
+
 async function fileStats(): Promise<NonNullable<Stats["files"]>> {
   const usage = db
     .select({ total: count(), used: sql<number | null>`sum(${files.size})` })
     .from(files)
+    .where(stored)
+    .get();
+
+  const deleted = db
+    .select({ size: sql<number | null>`sum(${files.size})` })
+    .from(files)
+    .where(isNotNull(files.deletedAt))
     .get();
 
   const [{ value: folderCount }] = db
     .select({ value: count() })
     .from(folders)
+    .where(isNull(folders.deletedAt))
     .all();
 
   const typeSize = sql<number>`sum(${files.size})`;
   const types = db
     .select({ mimeType: files.mimeType, size: typeSize, count: count() })
     .from(files)
+    .where(stored)
     .groupBy(files.mimeType)
     .orderBy(desc(typeSize))
     .all();
@@ -70,6 +93,7 @@ async function fileStats(): Promise<NonNullable<Stats["files"]>> {
   const largest = db
     .select()
     .from(files)
+    .where(stored)
     .orderBy(desc(files.size))
     .limit(LIST_LIMIT)
     .all();
@@ -77,6 +101,7 @@ async function fileStats(): Promise<NonNullable<Stats["files"]>> {
   const recent = db
     .select()
     .from(files)
+    .where(stored)
     .orderBy(desc(files.createdAt))
     .limit(LIST_LIMIT)
     .all();
@@ -92,6 +117,7 @@ async function fileStats(): Promise<NonNullable<Stats["files"]>> {
       size: sql<number>`sum(${files.size})`,
     })
     .from(files)
+    .where(stored)
     .groupBy(files.visibility)
     .all();
   for (const row of byVisibility) {
@@ -102,7 +128,7 @@ async function fileStats(): Promise<NonNullable<Stats["files"]>> {
   const addedRows = db
     .select({ day, count: count(), size: sql<number>`sum(${files.size})` })
     .from(files)
-    .where(gte(files.createdAt, windowStart(TREND_DAYS)))
+    .where(and(stored, gte(files.createdAt, windowStart(TREND_DAYS))))
     .groupBy(day)
     .all();
   const addedByDay = new Map(addedRows.map((row) => [row.day, row]));
@@ -117,7 +143,12 @@ async function fileStats(): Promise<NonNullable<Stats["files"]>> {
   return {
     total: usage?.total ?? 0,
     folders: folderCount,
-    storage: { used: usage?.used ?? 0, available, capacity },
+    storage: {
+      used: usage?.used ?? 0,
+      available,
+      capacity,
+      deleted: deleted?.size ?? 0,
+    },
     types,
     largest: getFilesWithUrls(largest),
     recent: getFilesWithUrls(recent),
@@ -215,7 +246,9 @@ function hostingStats(): NonNullable<Stats["hosting"]> {
   const ranked = db
     .select({ fileId: hostingFileDays.fileId, requests, bytes })
     .from(hostingFileDays)
-    .where(gte(hostingFileDays.date, start))
+    // a deleted file would otherwise take a place in the ranking
+    .innerJoin(files, eq(files.id, hostingFileDays.fileId))
+    .where(and(stored, gte(hostingFileDays.date, start)))
     .groupBy(hostingFileDays.fileId)
     .orderBy(desc(requests), desc(bytes))
     .limit(LIST_LIMIT)

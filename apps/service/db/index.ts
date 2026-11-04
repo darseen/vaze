@@ -2,11 +2,13 @@ import {
   ACTIVITY_RETENTION_DAYS,
   API_REQUEST_RETENTION_DAYS,
   BASE_DB_PATH,
+  BASE_DELETED_PATH,
   BASE_TMP_PATH,
   BASE_UPLOADS_PATH,
   DAILY_TRAFFIC_RETENTION_DAYS,
   DEFAULT_FILE_VISIBILITY,
   DEFAULT_PRESIGN_TTL_SECONDS,
+  DELETED_RETENTION_DAYS,
   FILE_TRAFFIC_RETENTION_DAYS,
   HOSTING_CACHE_MAX_AGE,
   MAX_PRESIGN_TTL_SECONDS,
@@ -33,8 +35,13 @@ const dbPath =
     ? ":memory:"
     : path.join(BASE_DB_PATH, "vaze.db");
 
-// Ensure the directories for the database file, uploads and upload staging exist.
-for (const dir of [BASE_DB_PATH, BASE_UPLOADS_PATH, BASE_TMP_PATH]) {
+// Ensure the directories for the database, uploads, staging and deleted items exist.
+for (const dir of [
+  BASE_DB_PATH,
+  BASE_UPLOADS_PATH,
+  BASE_TMP_PATH,
+  BASE_DELETED_PATH,
+]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
@@ -71,6 +78,7 @@ const settingsSeed = {
   hostingCacheMaxAge: HOSTING_CACHE_MAX_AGE,
   activityRetentionDays: ACTIVITY_RETENTION_DAYS,
   apiRequestRetentionDays: API_REQUEST_RETENTION_DAYS,
+  deletedRetentionDays: DELETED_RETENTION_DAYS,
 };
 
 db.insert(schema.settings)
@@ -164,8 +172,18 @@ export function pruneHistory() {
   pruneHostingTraffic();
 }
 
+// lib/deleted imports this module, so it is loaded only once this one is done
+function purgeDeleted() {
+  import("@/lib/deleted")
+    .then(({ purgeExpired }) => purgeExpired())
+    .catch((error) => console.error("failed to purge deleted items", error));
+}
+
 clearUploadStaging();
 pruneHistory();
+purgeDeleted();
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-setInterval(pruneHistory, DAY_MS).unref();
+const HOUR_MS = 60 * 60 * 1000;
+setInterval(pruneHistory, 24 * HOUR_MS).unref();
+// hourly, so an item goes close to when the Recently deleted page says it will
+setInterval(purgeDeleted, HOUR_MS).unref();

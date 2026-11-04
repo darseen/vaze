@@ -1,11 +1,10 @@
 import { db } from "@/db";
 import { recordActivity } from "@/lib/activity";
-import { removeThumbnails } from "@/lib/thumbnails";
-import { files as filesTable, folders as foldersTable } from "@repo/db";
-import { eq, sql } from "drizzle-orm";
+import { deleteFolder } from "@/lib/deleted";
+import { folders as foldersTable } from "@repo/db";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import fs from "node:fs/promises";
-import { isRootFolder, revalidateDashboard, toStoragePath } from "../_utils";
+import { isRootFolder, revalidateDashboard } from "../_utils";
 import authorizeRequest from "../_utils/authorize-request";
 
 export default async function DELETE(request: NextRequest) {
@@ -21,12 +20,13 @@ export default async function DELETE(request: NextRequest) {
       );
     }
 
-    const { id }: { id: string } = await request.json();
+    const { id, permanent }: { id: string; permanent?: unknown } =
+      await request.json();
 
     const folder = db
       .select()
       .from(foldersTable)
-      .where(eq(foldersTable.id, id))
+      .where(and(eq(foldersTable.id, id), isNull(foldersTable.deletedAt)))
       .get();
 
     if (!folder) {
@@ -48,21 +48,8 @@ export default async function DELETE(request: NextRequest) {
     // a nested folder is worth showing by path, a top-level one names itself
     const path = folder.key === folder.name ? null : folder.key;
 
-    // the file rows cascade with the folder, so their ids are needed up front
-    const prefix = `${folder.key}/`;
-    const fileIds = db
-      .select({ id: filesTable.id })
-      .from(filesTable)
-      .where(sql`substr(${filesTable.key}, 1, length(${prefix})) = ${prefix}`)
-      .all()
-      .map((file) => file.id);
-
-    // `force` makes an already-missing directory a no-op, so a row orphaned by
-    // an out-of-band delete still gets cleaned up instead of 404ing forever.
     try {
-      await fs.rm(toStoragePath(folder.key), { recursive: true, force: true });
-      db.delete(foldersTable).where(eq(foldersTable.id, id)).run();
-      await removeThumbnails(fileIds);
+      await deleteFolder(folder, { permanent: permanent === true });
     } catch (error) {
       console.error("delete folder error", error);
       recordActivity({

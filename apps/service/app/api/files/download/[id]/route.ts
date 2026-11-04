@@ -2,7 +2,7 @@ import { contentDisposition, toStoragePath } from "@/app/api/_utils";
 import { db } from "@/db";
 import { streamFileResponse } from "@/lib/http-cache";
 import { files as filesTable } from "@repo/db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import type { Stats } from "node:fs";
 import { stat } from "node:fs/promises";
@@ -32,7 +32,11 @@ export async function GET(
       );
     }
 
-    const file = db.select().from(filesTable).where(eq(filesTable.id, id)).get();
+    const file = db
+      .select()
+      .from(filesTable)
+      .where(and(eq(filesTable.id, id), isNull(filesTable.deletedAt)))
+      .get();
 
     if (!file) {
       return NextResponse.json(

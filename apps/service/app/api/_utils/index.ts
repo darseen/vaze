@@ -2,7 +2,7 @@ import { BASE_UPLOADS_PATH } from "@/constants";
 import { db } from "@/db";
 import { files as filesTable, folders as foldersTable } from "@repo/db";
 import type { File, Folder, Visibility } from "@repo/types";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { revalidatePath } from "next/cache";
 import crypto from "node:crypto";
@@ -109,6 +109,16 @@ export function isRootFolder(folder: Pick<Folder, "parentId">): boolean {
   return folder.parentId === null;
 }
 
+/** A deduplicated list of ids from a request body, or null if it isn't one. */
+export function parseIds(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  return [
+    ...new Set(
+      value.filter((id): id is string => typeof id === "string" && id !== ""),
+    ),
+  ];
+}
+
 /**
  * Parse an integer query param, falling back when it is missing or not a
  * finite number (so `?limit=abc` yields the default instead of a 500).
@@ -150,7 +160,7 @@ export async function ensureRootFolder(): Promise<Folder> {
   const existing = db
     .select()
     .from(foldersTable)
-    .where(eq(foldersTable.key, ""))
+    .where(and(eq(foldersTable.key, ""), isNull(foldersTable.deletedAt)))
     .get();
 
   if (existing) return existing;
@@ -170,7 +180,7 @@ export async function ensureRootFolder(): Promise<Folder> {
   const root = db
     .select()
     .from(foldersTable)
-    .where(eq(foldersTable.key, ""))
+    .where(and(eq(foldersTable.key, ""), isNull(foldersTable.deletedAt)))
     .get();
 
   if (!root) throw new Error("Failed to create the root folder");
@@ -201,7 +211,9 @@ export async function createNestedFolders(folderKey: string): Promise<Folder> {
     const existing = db
       .select()
       .from(foldersTable)
-      .where(eq(foldersTable.key, currentKey))
+      .where(
+        and(eq(foldersTable.key, currentKey), isNull(foldersTable.deletedAt)),
+      )
       .get();
 
     if (existing) {
@@ -225,7 +237,9 @@ export async function createNestedFolders(folderKey: string): Promise<Folder> {
     const created = db
       .select()
       .from(foldersTable)
-      .where(eq(foldersTable.key, currentKey))
+      .where(
+        and(eq(foldersTable.key, currentKey), isNull(foldersTable.deletedAt)),
+      )
       .get();
 
     if (!created) throw new Error(`Failed to create folder "${currentKey}"`);
@@ -256,7 +270,7 @@ export function fetchFolderContents(
   const files = db
     .select()
     .from(filesTable)
-    .where(eq(filesTable.folderId, folderId))
+    .where(and(eq(filesTable.folderId, folderId), isNull(filesTable.deletedAt)))
     .orderBy(fileOrderBy(safeOrderBy, safeOrderDirection))
     .limit(limit)
     .offset(offset)
@@ -267,7 +281,9 @@ export function fetchFolderContents(
   const folders = db
     .select()
     .from(foldersTable)
-    .where(eq(foldersTable.parentId, folderId))
+    .where(
+      and(eq(foldersTable.parentId, folderId), isNull(foldersTable.deletedAt)),
+    )
     .all();
 
   return { files, folders };
@@ -291,7 +307,7 @@ export async function fetchFolderByKey(
   const folder = db
     .select()
     .from(foldersTable)
-    .where(eq(foldersTable.key, key))
+    .where(and(eq(foldersTable.key, key), isNull(foldersTable.deletedAt)))
     .get();
 
   if (!folder) {

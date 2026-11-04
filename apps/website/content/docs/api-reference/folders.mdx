@@ -15,6 +15,7 @@ Folder objects in responses have this shape:
   "name": "demo",
   "key": "projects/demo",
   "parentId": "3e2d1c0b-...",
+  "deletedAt": null,
   "createdAt": "2026-07-15 12:00:00",
   "updatedAt": "2026-07-15 12:00:00"
 }
@@ -172,9 +173,13 @@ JSON body:
 { "id": "<folder-id>" }
 ```
 
+Moves the folder, with all files and subfolders inside it, to [Recently
+deleted](/docs/api-reference/deleted), where it can be restored as one item.
+Files deleted from inside it earlier stay separate items there.
+
 <Callout type="warn">
-  Deletes the folder **recursively**, including all files and subfolders
-  inside it. This cannot be undone.
+  With `"permanent": true` the folder and everything inside it is removed from
+  disk right away. This cannot be undone.
 </Callout>
 
 The root folder cannot be renamed or deleted — both respond `400`. Removing

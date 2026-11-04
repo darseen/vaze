@@ -73,6 +73,13 @@ const FIELDS: {
     units: DURATION_UNITS,
   },
   {
+    key: "deletedRetentionDays",
+    label: "Recently deleted",
+    description:
+      "Deleted files and folders can be restored this long, then they are removed for good.",
+    units: DAY_UNITS,
+  },
+  {
     key: "activityRetentionDays",
     label: "Activity history",
     description: "Activity entries older than this are deleted.",

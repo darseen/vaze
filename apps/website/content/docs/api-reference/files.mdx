@@ -18,6 +18,7 @@ File objects in responses have this shape:
   "size": 102400,
   "folderId": "9c8b7a6d-...",
   "visibility": "public",
+  "deletedAt": null,
   "url": "api/hosting/projects/demo/photo.png",
   "createdAt": "2026-07-15 12:00:00",
   "updatedAt": "2026-07-15 12:00:00"
@@ -273,13 +274,25 @@ JSON body:
 { "id": "<file-id>" }
 ```
 
-Removes the file from disk and the database. Responds `404` if no such file
-exists; a file already missing from disk still has its record cleaned up and
-reports success.
+Moves the file to [Recently deleted](/docs/api-reference/deleted): it stops
+being served and listed right away, and can be restored until it is purged
+after the instance's `deletedRetentionDays`. Its name is free again, so a new
+upload may take it.
+
+Add `"permanent": true` to skip Recently deleted and remove the file from disk
+and the database right away, for example when you need the space back:
+
+```json
+{ "id": "<file-id>", "permanent": true }
+```
+
+Responds `404` if no such file exists, or it is already deleted. A file
+already missing from disk has its record removed and reports success.
 
 ## Delete several files
 
-Send `ids` instead of `id` to delete a batch in one request:
+Send `ids` instead of `id` to delete a batch in one request. `permanent`
+works the same way here:
 
 ```json
 { "ids": ["<file-id>", "<file-id>"] }

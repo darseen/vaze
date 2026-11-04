@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/utils";
+import { undoDelete } from "@/utils/deleted";
 import type { ApiResponse, Folder, Visibility } from "@repo/types";
 import {
   Download,
@@ -72,7 +73,9 @@ export default function FolderCard({ folder }: Props) {
 
       if (error) return toast.error(error.message);
 
-      toast.success("Folder deleted successfully");
+      toast.success(`Moved "${folder.name}" to Recently deleted`, {
+        action: undoDelete([id], () => router.refresh()),
+      });
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -235,8 +238,9 @@ export default function FolderCard({ folder }: Props) {
                               Delete {folder.name}?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              {`This action cannot be undone. This will permanently
-                                delete "${folder.name}" and all its contents from your storage.`}
+                              It moves to Recently deleted with everything
+                              inside it, where you can restore it until it is
+                              removed for good.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

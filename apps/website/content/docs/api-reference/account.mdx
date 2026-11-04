@@ -76,7 +76,8 @@ caller lacks its scope:
       "storage": {
         "used": 734003200,
         "available": 96636764160,
-        "capacity": 107374182400
+        "capacity": 107374182400,
+        "deleted": 52428800
       },
       "types": [{ "mimeType": "image/png", "size": 524288000, "count": 96 }],
       "largest": [ ... ],
@@ -133,8 +134,10 @@ deleting a file takes it off its day. Every daily list holds one entry per day,
 zeros included, oldest first.
 
 `storage.capacity` is the usable size of the volume that holds Vaze's data,
-which other data on the same disk may share, so `capacity - available - used`
-is roughly what everything else takes up.
+which other data on the same disk may share. `storage.deleted` is what files
+in [Recently deleted](/docs/api-reference/deleted) still take up, so
+`capacity - available - used - deleted` is roughly what everything else takes
+up. Files in Recently deleted aren't counted anywhere else in `files`.
 
 In `apiKeys.keys`, keys are ordered by requests, busiest first. Requests made
 with a key that has since been deleted still count in `requests`, but belong to

@@ -1,0 +1,102 @@
+---
+title: Recently deleted
+description: Restore deleted files and folders, or delete them for good
+icon: ArchiveRestore
+---
+
+Deleting a [file](/docs/api-reference/files#delete-a-file) or a
+[folder](/docs/api-reference/folders#delete-a-folder) moves it here instead of
+removing it. It stops being served, listed and counted right away, but stays on
+disk in a `.deleted` area of the data volume until it is restored or purged.
+Items are purged on their own once they are older than `deletedRetentionDays`
+under [instance settings](/docs/api-reference/settings), 30 days unless changed.
+
+A deleted folder is one item that holds everything that was inside it. Files
+deleted from inside it before the folder was are items of their own.
+
+Listing needs the `files:read` scope; restoring and purging need
+`files:delete`. They work with an [`API-Key`
+header](/docs/api-reference#authentication) or a signed-in session.
+
+An item looks like this:
+
+```json
+{
+  "id": "5f2d4a1e-...",
+  "type": "folder",
+  "name": "demo",
+  "key": "projects/demo",
+  "size": 1048576,
+  "files": 12,
+  "deletedAt": "2026-11-04 09:12:44",
+  "purgeAt": "2026-12-04 09:12:44"
+}
+```
+
+`key` is where the item was, and where a restore puts it back. `size` is the
+item's bytes, everything inside it for a folder. A folder has `files`, the
+number of files anywhere inside it, and a file has `mimeType` instead.
+`deletedAt` and `purgeAt` are UTC timestamps without a zone marker. The `id` is
+the file's or folder's own id.
+
+## List items
+
+```
+GET /api/deleted
+```
+
+Returns every item, most recently deleted first, with the retention in days:
+
+```json
+{ "data": { "items": [ ... ], "retentionDays": 30 }, "error": null }
+```
+
+## Restore items
+
+```
+POST /api/deleted/restore
+```
+
+```json
+{ "ids": ["<id>", "<id>"] }
+```
+
+Puts each item back at its `key`, with its visibility as it was. Folders on
+the way that no longer exist are created again. A folder is restored before
+anything that was deleted from inside it, so both land together. A move or
+rename of the folder an item was in while it waited here is followed.
+
+Each id is handled on its own:
+
+```json
+{
+  "data": {
+    "restored": ["<id>"],
+    "failed": [{ "id": "<id>", "message": "\"photo.png\" already exists in \"projects/demo\"" }]
+  },
+  "error": null
+}
+```
+
+An item fails when a file or folder with its name now takes its place. Rename
+or move that one first, then restore again. Responds `400` for an empty list or
+more than `MAX_DELETE_BATCH` (default 500) ids.
+
+## Delete items for good
+
+```
+DELETE /api/deleted
+```
+
+```json
+// some items
+{ "ids": ["<id>", "<id>"] }
+
+// every item
+{ "all": true }
+```
+
+Removes the items from disk and the database right away, instead of when
+their time is up. The response has the same shape as a [batch file
+delete](/docs/api-reference/files#delete-several-files):
+`{ "deleted": [...], "failed": [...] }`. This cannot be undone.

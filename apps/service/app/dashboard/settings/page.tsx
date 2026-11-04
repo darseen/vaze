@@ -89,7 +89,7 @@ export default async function Page() {
 
             <Section
               title="Limits"
-              description="Upload size, signed links, caching and how long history is kept."
+              description="Upload size, signed links, caching and how long deleted files and history are kept."
             >
               <LimitsForm limits={instance.limits} />
             </Section>

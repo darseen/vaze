@@ -15,6 +15,8 @@ export const BASE_UPLOADS_PATH = path.join(BASE_DATA_PATH, "uploads");
 export const BASE_TMP_PATH = path.join(BASE_DATA_PATH, "tmp");
 // Dashboard previews of images, one per file id, rendered on first view.
 export const BASE_THUMBNAILS_PATH = path.join(BASE_DATA_PATH, "thumbnails");
+// Deleted items wait here until purged, on the uploads filesystem so moves are renames.
+export const BASE_DELETED_PATH = path.join(BASE_DATA_PATH, ".deleted");
 
 const BYTE_UNITS: Record<string, number> = {
   b: 1,
@@ -76,6 +78,12 @@ export const API_REQUEST_RETENTION_DAYS = parseCount(
 export const ACTIVITY_RETENTION_DAYS = parseCount(
   process.env.ACTIVITY_RETENTION_DAYS,
   90,
+);
+
+/** Initial days a deleted file or folder can be restored, seeded into settings. */
+export const DELETED_RETENTION_DAYS = parseCount(
+  process.env.DELETED_RETENTION_DAYS,
+  30,
 );
 
 /** Days of per-file hosting traffic kept; the dashboard ranks over this window. */

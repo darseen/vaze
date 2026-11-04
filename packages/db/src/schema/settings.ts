@@ -16,6 +16,7 @@ export const settings = sqliteTable("settings", {
   hostingCacheMaxAge: integer("hosting_cache_max_age"),
   activityRetentionDays: integer("activity_retention_days"),
   apiRequestRetentionDays: integer("api_request_retention_days"),
+  deletedRetentionDays: integer("deleted_retention_days"),
   ...timestamps,
 });
 

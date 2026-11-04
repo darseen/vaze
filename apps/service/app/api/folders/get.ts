@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { folders as foldersTable } from "@repo/db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import {
   ensureRootFolder,
@@ -53,7 +53,7 @@ export default async function GET(request: NextRequest) {
       const folder = db
         .select()
         .from(foldersTable)
-        .where(eq(foldersTable.id, id))
+        .where(and(eq(foldersTable.id, id), isNull(foldersTable.deletedAt)))
         .get();
 
       if (!folder) {

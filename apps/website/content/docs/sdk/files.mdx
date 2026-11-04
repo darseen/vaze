@@ -289,12 +289,19 @@ default signed link lifetime and is capped at its maximum, both set under
 const { error } = await vaze.files.delete("file-id");
 ```
 
-Removes the file from both disk and the database.
+Moves the file to [Recently deleted](/docs/sdk/deleted), where it can be
+restored until it is purged. Pass `{ permanent: true }` to remove it from disk
+and the database right away instead:
+
+```ts
+await vaze.files.delete("file-id", { permanent: true });
+```
 
 ## Delete several files
 
 ```ts
 const { data, error } = await vaze.files.deleteMany(["file-id", "other-id"]);
+// or vaze.files.deleteMany(ids, { permanent: true })
 
 console.log(data.deleted); // ids that were removed
 console.log(data.failed); // [{ id, message }] for the ones that were not

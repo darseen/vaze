@@ -4,7 +4,7 @@ import { streamFileResponse } from "@/lib/http-cache";
 import { getThumbnail } from "@/lib/thumbnails";
 import { getPreviewKind } from "@/utils/file-type";
 import { files as filesTable } from "@repo/db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import authorizeRequest from "../../../_utils/authorize-request";
 
@@ -35,7 +35,7 @@ export async function GET(
     const file = db
       .select()
       .from(filesTable)
-      .where(eq(filesTable.id, id))
+      .where(and(eq(filesTable.id, id), isNull(filesTable.deletedAt)))
       .get();
     if (!file) return notFound("File not found");
 

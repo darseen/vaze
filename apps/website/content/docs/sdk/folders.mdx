@@ -140,9 +140,12 @@ vaze.folders.downloadUrl({ id: "folder-id" }); // what download() fetches
 const { error } = await vaze.folders.delete("folder-id");
 ```
 
+The folder moves to [Recently deleted](/docs/sdk/deleted) with all files and
+subfolders inside it, and can be restored as one item.
+
 <Callout type="warn">
-  Deleting a folder removes the folder **and all files and subfolders inside
-  it** from disk and the database. This cannot be undone.
+  `vaze.folders.delete("folder-id", { permanent: true })` removes the folder
+  **and everything inside it** from disk right away. This cannot be undone.
 </Callout>
 
 The root folder cannot be deleted (`400`) — it holds the entire storage tree.

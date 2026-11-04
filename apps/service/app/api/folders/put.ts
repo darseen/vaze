@@ -1,7 +1,8 @@
 import { db } from "@/db";
+import { deleteFolder } from "@/lib/deleted";
 import { files as filesTable, folders as foldersTable } from "@repo/db";
 import type { Visibility } from "@repo/types";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs/promises";
 import {
@@ -61,7 +62,7 @@ export default async function PUT(request: NextRequest) {
     const folder = db
       .select()
       .from(foldersTable)
-      .where(eq(foldersTable.id, id))
+      .where(and(eq(foldersTable.id, id), isNull(foldersTable.deletedAt)))
       .get();
 
     if (!folder) {
@@ -82,7 +83,9 @@ export default async function PUT(request: NextRequest) {
 
     // a cascade on its own never touches the filesystem
     if (visibility && name === undefined) {
-      db.transaction((tx) => setDescendantVisibility(tx, folder.id, visibility));
+      db.transaction((tx) =>
+        setDescendantVisibility(tx, folder.id, visibility),
+      );
 
       revalidateDashboard();
       return NextResponse.json({ data: null, error: null });
@@ -91,8 +94,8 @@ export default async function PUT(request: NextRequest) {
     const oldPath = toStoragePath(folder.key);
 
     if (!(await accessPath(oldPath))) {
-      // drop the orphaned row and report it as gone
-      db.delete(foldersTable).where(eq(foldersTable.id, id)).run();
+      // drop the orphaned rows and report it as gone
+      await deleteFolder(folder, { permanent: true });
       return NextResponse.json(
         { data: null, error: { message: "Folder not found" } },
         { status: 404 },
@@ -109,7 +112,7 @@ export default async function PUT(request: NextRequest) {
     const conflict = db
       .select({ id: foldersTable.id })
       .from(foldersTable)
-      .where(eq(foldersTable.key, newKey))
+      .where(and(eq(foldersTable.key, newKey), isNull(foldersTable.deletedAt)))
       .get();
 
     if (conflict) {
@@ -167,7 +170,7 @@ export default async function PUT(request: NextRequest) {
 // batches rather than one giant IN list.
 const ID_CHUNK_SIZE = 500;
 
-/** Apply a visibility to every file at or below a folder. */
+/** Apply a visibility to every file at or below a folder, leaving deleted ones as they were. */
 function setDescendantVisibility(
   tx: Tx,
   folderId: string,
@@ -183,7 +186,9 @@ function setDescendantVisibility(
     const children = tx
       .select({ id: foldersTable.id })
       .from(foldersTable)
-      .where(eq(foldersTable.parentId, current))
+      .where(
+        and(eq(foldersTable.parentId, current), isNull(foldersTable.deletedAt)),
+      )
       .all();
 
     queue.push(...children.map((child) => child.id));
@@ -192,7 +197,12 @@ function setDescendantVisibility(
   for (let i = 0; i < folderIds.length; i += ID_CHUNK_SIZE) {
     tx.update(filesTable)
       .set({ visibility, updatedAt: sql`CURRENT_TIMESTAMP` })
-      .where(inArray(filesTable.folderId, folderIds.slice(i, i + ID_CHUNK_SIZE)))
+      .where(
+        and(
+          inArray(filesTable.folderId, folderIds.slice(i, i + ID_CHUNK_SIZE)),
+          isNull(filesTable.deletedAt),
+        ),
+      )
       .run();
   }
 }

@@ -6,7 +6,7 @@ import { getLimits } from "@/lib/settings";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { files as filesTable } from "@repo/db";
 import { getSessionCookie } from "better-auth/cookies";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import type { Stats } from "node:fs";
 import { stat } from "node:fs/promises";
@@ -95,7 +95,7 @@ export async function GET(
     const file = db
       .select()
       .from(filesTable)
-      .where(eq(filesTable.key, key))
+      .where(and(eq(filesTable.key, key), isNull(filesTable.deletedAt)))
       .get();
 
     if (!file) return missing();
@@ -103,7 +103,10 @@ export async function GET(
     // A private file that the caller cannot read is reported as missing, not
     // forbidden — a 403 would confirm the key exists and turn this into an
     // enumeration oracle.
-    if (file.visibility === "private" && !(await canReadPrivate(request, key))) {
+    if (
+      file.visibility === "private" &&
+      !(await canReadPrivate(request, key))
+    ) {
       return missing();
     }
 

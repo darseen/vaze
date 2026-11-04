@@ -1,4 +1,4 @@
-import { relations, type InferSelectModel } from "drizzle-orm";
+import { relations, sql, type InferSelectModel } from "drizzle-orm";
 import {
   index,
   integer,
@@ -25,12 +25,22 @@ export const files = sqliteTable(
     visibility: text("visibility", { enum: VISIBILITIES })
       .notNull()
       .default("public"),
+    // set while the file waits in Recently deleted, under the .deleted area
+    deletedAt: text("deleted_at"),
     ...timestamps,
   },
+  // a deleted file keeps its key for the restore, so it must not block reuse
   (table) => [
-    uniqueIndex("files_key_unique").on(table.key),
-    uniqueIndex("files_folder_id_name_unique").on(table.folderId, table.name),
+    uniqueIndex("files_key_unique")
+      .on(table.key)
+      .where(sql`${table.deletedAt} IS NULL`),
+    uniqueIndex("files_folder_id_name_unique")
+      .on(table.folderId, table.name)
+      .where(sql`${table.deletedAt} IS NULL`),
     index("files_folder_id_idx").on(table.folderId),
+    index("files_deleted_at_idx")
+      .on(table.deletedAt)
+      .where(sql`${table.deletedAt} IS NOT NULL`),
   ],
 );
 

@@ -3,6 +3,7 @@ import {
   API_REQUEST_RETENTION_DAYS,
   DEFAULT_FILE_VISIBILITY,
   DEFAULT_PRESIGN_TTL_SECONDS,
+  DELETED_RETENTION_DAYS,
   HOSTING_CACHE_MAX_AGE,
   MAX_PRESIGN_TTL_SECONDS,
   MAX_UPLOAD_SIZE,
@@ -10,7 +11,7 @@ import {
 import { db, SETTINGS_ID } from "@/db";
 import { files, settings } from "@repo/db";
 import type { InstanceSettings, Limits, Visibility } from "@repo/types";
-import { count, eq, sql } from "drizzle-orm";
+import { count, eq, isNull, sql } from "drizzle-orm";
 
 function readSettings() {
   return db.select().from(settings).where(eq(settings.id, SETTINGS_ID)).get();
@@ -33,6 +34,7 @@ export function getLimits(): Limits {
       row?.activityRetentionDays ?? ACTIVITY_RETENTION_DAYS,
     apiRequestRetentionDays:
       row?.apiRequestRetentionDays ?? API_REQUEST_RETENTION_DAYS,
+    deletedRetentionDays: row?.deletedRetentionDays ?? DELETED_RETENTION_DAYS,
   };
 }
 
@@ -45,6 +47,7 @@ export function getInstanceSettings(): InstanceSettings {
   const counted = db
     .select({ visibility: files.visibility, total: count() })
     .from(files)
+    .where(isNull(files.deletedAt))
     .groupBy(files.visibility)
     .all();
   for (const row of counted) visibilityCounts[row.visibility] = row.total;

@@ -1,6 +1,10 @@
 import type { FileWithUrl, Folder, Visibility } from "@repo/types";
 import Base from "./base.js";
-import type { ListOptions, MoveDestination } from "./types/index.js";
+import type {
+  DeleteOptions,
+  ListOptions,
+  MoveDestination,
+} from "./types/index.js";
 import { constructFileUrls } from "./utils/index.js";
 
 export default class Folders extends Base {
@@ -64,9 +68,11 @@ export default class Folders extends Base {
     return await this.request<null>("PUT", this.apiUrl("/api/folders"), data);
   }
 
-  public async delete(id: string) {
+  /** Moves the folder and everything in it to Recently deleted, unless `permanent` is set. */
+  public async delete(id: string, options?: DeleteOptions) {
     return await this.request<null>("DELETE", this.apiUrl("/api/folders"), {
       id,
+      ...options,
     });
   }
 }

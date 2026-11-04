@@ -3,6 +3,7 @@ import Base from "./base.js";
 import type {
   BulkDeleteResult,
   BulkMoveResult,
+  DeleteOptions,
   FileReference,
   ListOptions,
   MoveDestination,
@@ -233,18 +234,20 @@ export default class Files extends Base {
     };
   }
 
-  public async delete(id: string) {
+  /** Moves the file to Recently deleted, unless `permanent` is set. */
+  public async delete(id: string, options?: DeleteOptions) {
     return await this.request<null>("DELETE", this.apiUrl("/api/files"), {
       id,
+      ...options,
     });
   }
 
   /** Delete several files in one request; each id reports its own outcome. */
-  public async deleteMany(ids: string[]) {
+  public async deleteMany(ids: string[], options?: DeleteOptions) {
     return await this.request<BulkDeleteResult>(
       "DELETE",
       this.apiUrl("/api/files"),
-      { ids },
+      { ids, ...options },
     );
   }
 }

@@ -3,10 +3,10 @@ import authorizeRequest from "@/app/api/_utils/authorize-request";
 import { fail } from "@/app/api/_utils/responses";
 import { db } from "@/db";
 import { files } from "@repo/db";
-import { ne, sql } from "drizzle-orm";
+import { and, isNull, ne, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
-/** Gives every existing file the visibility the admin confirmed. */
+/** Gives every existing file the visibility the admin confirmed; deleted ones stay as they were. */
 export async function POST(request: NextRequest) {
   try {
     const { error: authError } = await authorizeRequest(request, {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const { changes } = db
       .update(files)
       .set({ visibility, updatedAt: sql`CURRENT_TIMESTAMP` })
-      .where(ne(files.visibility, visibility))
+      .where(and(ne(files.visibility, visibility), isNull(files.deletedAt)))
       .run();
 
     revalidateDashboard();

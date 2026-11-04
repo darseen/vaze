@@ -2,7 +2,7 @@ import { MAX_MOVE_BATCH } from "@/constants";
 import { db } from "@/db";
 import { files as filesTable } from "@repo/db";
 import type { File, Folder } from "@repo/types";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import {
   accessPath,
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     const rows = db
       .select()
       .from(filesTable)
-      .where(inArray(filesTable.id, ids))
+      .where(and(inArray(filesTable.id, ids), isNull(filesTable.deletedAt)))
       .all();
 
     if (rows.length === 0) {

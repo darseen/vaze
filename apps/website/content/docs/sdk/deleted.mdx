@@ -1,0 +1,64 @@
+---
+title: Recently deleted
+description: Restore deleted files and folders, or delete them for good
+icon: ArchiveRestore
+---
+
+`vaze.files.delete`, `deleteMany` and `vaze.folders.delete` move what they
+delete to Recently deleted, where it stays until it is restored or purged.
+Items are purged on their own once they are older than the instance's
+`deletedRetentionDays`, 30 days unless an admin changes it. `vaze.deleted`
+manages them. Listing needs `files:read`, and restoring and purging need
+`files:delete`. Every method returns the [response
+envelope](/docs/sdk#response-shape).
+
+## The `DeletedItem` object
+
+```ts
+type DeletedItem = {
+  id: string; // the file's or folder's own id
+  name: string;
+  key: string; // where it was, and where a restore puts it back
+  size: number; // bytes, everything inside it for a folder
+  deletedAt: string; // UTC, e.g. "2026-11-04 09:12:44"
+  purgeAt: string; // when it is deleted for good
+} & (
+  | { type: "file"; mimeType: string }
+  | { type: "folder"; files: number } // files anywhere inside it
+);
+```
+
+A deleted folder is one item that holds everything that was inside it. Files
+deleted from inside it before the folder was are items of their own.
+
+## List items
+
+```ts
+const { data } = await vaze.deleted.getAll();
+// data => { items: DeletedItem[], retentionDays: number }, newest first
+```
+
+## Restore items
+
+```ts
+const { data } = await vaze.deleted.restore(["file-id", "folder-id"]);
+
+console.log(data.restored); // ids put back where they were
+console.log(data.failed); // [{ id, message }], e.g. when the name is taken now
+```
+
+Folders on the way that no longer exist are created again, and a folder is
+restored before anything that was deleted from inside it. An item fails when a
+new file or folder has taken its name; rename or move that one, then restore
+again.
+
+## Delete items for good
+
+```ts
+await vaze.deleted.purge(["file-id"]); // data => { deleted, failed }
+await vaze.deleted.empty(); // every item
+```
+
+<Callout type="warn">
+  Purged items are removed from disk right away. This cannot be undone.
+</Callout>

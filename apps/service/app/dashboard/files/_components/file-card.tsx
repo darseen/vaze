@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { formatBytes, formatDate } from "@/utils";
 import { copyToClipboard } from "@/utils/clipboard";
+import { undoDelete } from "@/utils/deleted";
 import { ApiResponse, FileWithUrl } from "@repo/types";
 import {
   Clock,
@@ -101,7 +102,9 @@ export default function FileCard({
 
       if (error) return toast.error(error.message);
 
-      toast.success("File deleted successfully");
+      toast.success(`Moved "${file.name}" to Recently deleted`, {
+        action: undoDelete([id], () => router.refresh()),
+      });
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -310,8 +313,8 @@ export default function FileCard({
                               Delete {file.name}?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              {`This action cannot be undone. This will permanently
-                                delete "${file.name}" from your storage.`}
+                              It moves to Recently deleted, where you can
+                              restore it until it is removed for good.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

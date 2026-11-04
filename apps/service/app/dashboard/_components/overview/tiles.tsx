@@ -63,9 +63,9 @@ function Tile({
 }
 
 function StorageTile({ storage }: { storage: FileStats["storage"] }) {
-  const { used, available, capacity = 0 } = storage;
+  const { used, available, capacity = 0, deleted = 0 } = storage;
   // whatever else lives on the volume: the database, thumbnails, other apps
-  const other = Math.max(capacity - available - used, 0);
+  const other = Math.max(capacity - available - used - deleted, 0);
   const share = (bytes: number) =>
     capacity > 0 ? (bytes / capacity) * 100 : 0;
 
@@ -84,13 +84,20 @@ function StorageTile({ storage }: { storage: FileStats["storage"] }) {
         <>
           <div
             role="img"
-            aria-label={`Files ${formatBytes(used)}, other data ${formatBytes(other)}, free ${formatBytes(available)}`}
+            aria-label={`Files ${formatBytes(used)}, recently deleted ${formatBytes(deleted)}, other data ${formatBytes(other)}, free ${formatBytes(available)}`}
             className="bg-muted flex h-2 overflow-hidden rounded-full"
           >
             <div
               className="bg-usage h-full"
               title={`Files: ${formatBytes(used)}`}
               style={{ width: `${used > 0 ? Math.max(share(used), 1) : 0}%` }}
+            />
+            <div
+              className="bg-usage/40 h-full"
+              title={`Recently deleted: ${formatBytes(deleted)}`}
+              style={{
+                width: `${deleted > 0 ? Math.max(share(deleted), 1) : 0}%`,
+              }}
             />
             <div
               className="bg-muted-foreground/40 h-full"
@@ -102,6 +109,15 @@ function StorageTile({ storage }: { storage: FileStats["storage"] }) {
             <span className="flex items-center gap-1.5">
               <span className="bg-usage size-2 rounded-full" /> Files
             </span>
+            {deleted > 0 && (
+              <Link
+                href="/dashboard/deleted"
+                className="hover:text-foreground flex items-center gap-1.5"
+              >
+                <span className="bg-usage/40 size-2 rounded-full" />
+                Recently deleted
+              </Link>
+            )}
             {other > 0 && (
               <span className="flex items-center gap-1.5">
                 <span className="bg-muted-foreground/40 size-2 rounded-full" />

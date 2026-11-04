@@ -16,6 +16,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
+  ArchiveRestore,
   FolderOpen,
   History,
   KeyRound,
@@ -54,6 +55,13 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         href: "/dashboard/files",
         icon: FolderOpen,
         isActive: (pathname) => pathname.startsWith("/dashboard/files"),
+        scope: "files:read",
+      },
+      {
+        title: "Recently deleted",
+        href: "/dashboard/deleted",
+        icon: ArchiveRestore,
+        isActive: (pathname) => pathname.startsWith("/dashboard/deleted"),
         scope: "files:read",
       },
       {

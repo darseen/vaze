@@ -2,6 +2,7 @@ import type { ApiResponse, FileWithUrl, Me, Stats } from "@repo/types";
 import Account from "./account.js";
 import Activity from "./activity.js";
 import Base from "./base.js";
+import Deleted from "./deleted.js";
 import Files from "./files.js";
 import Folders from "./folders.js";
 import Keys from "./keys.js";
@@ -13,6 +14,7 @@ import { constructFileUrls } from "./utils/index.js";
 export default class Vaze extends Base implements IVaze {
   public files: Files;
   public folders: Folders;
+  public deleted: Deleted;
   public keys: Keys;
   public account: Account;
   public activity: Activity;
@@ -24,6 +26,7 @@ export default class Vaze extends Base implements IVaze {
 
     this.files = new Files(options);
     this.folders = new Folders(options);
+    this.deleted = new Deleted(options);
     this.keys = new Keys(options);
     this.account = new Account(options);
     this.activity = new Activity(options);
@@ -101,6 +104,7 @@ export type {
   ApiKeyUsage,
   ApiResponse,
   CreatedApiKey,
+  DeletedItem,
   FileWithUrl as File,
   Folder,
   InstanceSettings,
@@ -118,6 +122,8 @@ export type {
 export type {
   BulkDeleteResult,
   BulkMoveResult,
+  BulkRestoreResult,
+  DeleteOptions,
   FileReference,
   ListOptions,
   MoveDestination,

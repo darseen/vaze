@@ -6,11 +6,11 @@ import {
   type UploadContext,
 } from "@/lib/activity";
 import { getDefaultVisibility, getLimits } from "@/lib/settings";
-import { removeThumbnails } from "@/lib/thumbnails";
+import { deleteFile } from "@/lib/deleted";
 import { files as filesTable } from "@repo/db";
 import type { File as FileDB, Folder } from "@repo/types";
 import { getAvailableStorage } from "@/utils/storage";
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import mime from "mime-types";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
@@ -78,7 +78,10 @@ export async function GET(request: NextRequest) {
         .select()
         .from(filesTable)
         .where(
-          id ? eq(filesTable.id, id) : eq(filesTable.key, normalizeKey(key)),
+          and(
+            id ? eq(filesTable.id, id) : eq(filesTable.key, normalizeKey(key)),
+            isNull(filesTable.deletedAt),
+          ),
         )
         .get();
 
@@ -98,7 +101,12 @@ export async function GET(request: NextRequest) {
     const files = db
       .select()
       .from(filesTable)
-      .where(name ? eq(filesTable.name, name) : undefined)
+      .where(
+        and(
+          isNull(filesTable.deletedAt),
+          name ? eq(filesTable.name, name) : undefined,
+        ),
+      )
       .orderBy(fileOrderBy(safeOrderBy, safeOrderDirection))
       .limit(limit)
       .offset(offset)
@@ -265,7 +273,7 @@ async function handleUpload(request: NextRequest, context: UploadContext) {
       const conflict = db
         .select({ id: filesTable.id })
         .from(filesTable)
-        .where(eq(filesTable.key, file.key))
+        .where(and(eq(filesTable.key, file.key), isNull(filesTable.deletedAt)))
         .get();
 
       if (conflict || (await accessPath(toStoragePath(file.key)))) {
@@ -388,7 +396,7 @@ export async function PUT(request: NextRequest) {
     const file = db
       .select()
       .from(filesTable)
-      .where(eq(filesTable.id, id))
+      .where(and(eq(filesTable.id, id), isNull(filesTable.deletedAt)))
       .get();
 
     if (!file) {
@@ -426,7 +434,13 @@ export async function PUT(request: NextRequest) {
     const existingFile = db
       .select({ id: filesTable.id })
       .from(filesTable)
-      .where(and(eq(filesTable.key, newKey), ne(filesTable.id, id)))
+      .where(
+        and(
+          eq(filesTable.key, newKey),
+          ne(filesTable.id, id),
+          isNull(filesTable.deletedAt),
+        ),
+      )
       .get();
 
     if (existingFile) {
@@ -495,7 +509,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const body: { id?: string; ids?: string[] } = await request.json();
+    const body: { id?: string; ids?: string[]; permanent?: unknown } =
+      await request.json();
+    // skips Recently deleted, for callers that need the space back right away
+    const permanent = body.permanent === true;
 
     // `ids` deletes a batch and reports per-file outcomes; `id` keeps the
     // single-file response shape.
@@ -533,7 +550,7 @@ export async function DELETE(request: NextRequest) {
     const rows = db
       .select()
       .from(filesTable)
-      .where(inArray(filesTable.id, ids))
+      .where(and(inArray(filesTable.id, ids), isNull(filesTable.deletedAt)))
       .all();
 
     if (rows.length === 0) {
@@ -552,12 +569,9 @@ export async function DELETE(request: NextRequest) {
     const deletedNames: string[] = [];
     const failedNames: string[] = [];
 
-    // `force` makes an already-missing file a no-op, so a row orphaned by an
-    // out-of-band delete still gets cleaned up instead of 404ing forever.
     for (const file of rows) {
       try {
-        await fs.rm(toStoragePath(file.key), { force: true });
-        db.delete(filesTable).where(eq(filesTable.id, file.id)).run();
+        await deleteFile(file, { permanent });
         deleted.push(file.id);
         deletedNames.push(file.name);
       } catch (error) {
@@ -566,8 +580,6 @@ export async function DELETE(request: NextRequest) {
         failedNames.push(file.name);
       }
     }
-
-    await removeThumbnails(deleted);
 
     // ids that matched no row are left out: another tab having deleted them
     // first is not worth a history entry

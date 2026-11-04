@@ -22,7 +22,8 @@ The settings object looks like this:
     "maxPresignTtl": 604800,
     "hostingCacheMaxAge": 0,
     "activityRetentionDays": 90,
-    "apiRequestRetentionDays": 90
+    "apiRequestRetentionDays": 90,
+    "deletedRetentionDays": 30
   }
 }
 ```
@@ -37,6 +38,7 @@ The settings object looks like this:
 | `hostingCacheMaxAge`      | seconds | `0`     | How long browsers and CDNs may reuse a public file; `0` checks every time |
 | `activityRetentionDays`   | days    | `1`     | Activity entries older than this are deleted                           |
 | `apiRequestRetentionDays` | days    | `1`     | API request records older than this are deleted                        |
+| `deletedRetentionDays`    | days    | `1`     | Deleted files and folders can be restored this long, then are purged   |
 
 Their [environment variables](/docs/getting-started/configuration) only set
 the starting values.
@@ -64,7 +66,8 @@ PUT /api/settings
 
 Send `defaultVisibility`, `limits` or both. Limits left out keep their current
 values, and every limit must be a whole number of at least its minimum. A
-shorter retention prunes older history right away. The response is the
+shorter retention prunes older history, and purges deleted items past it, right
+away. The response is the
 updated settings object.
 
 The default visibility applies to uploads that don't ask for one, from the

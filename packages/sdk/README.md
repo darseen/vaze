@@ -149,10 +149,11 @@ const { data, error } = await vaze.files.rename({
 });
 ```
 
-`delete(id)` Delete a file by its ID.
+`delete(id, options?)` Delete a file by its ID. It moves to Recently deleted, where it can be restored until it is purged. Pass `{ permanent: true }` to remove it from storage right away. `deleteMany(ids, options?)` does the same for several files.
 
 ```ts
 const { data, error } = await vaze.files.delete("file-id-123");
+await vaze.files.delete("file-id-456", { permanent: true });
 ```
 
 Folders API Access folder-related methods via `vaze.folders`. `get(options?)` Retrieve folders and their contents.
@@ -209,10 +210,19 @@ if (data) {
 }
 ```
 
-`delete(id)` Delete a folder by its ID.
+`delete(id, options?)` Delete a folder by its ID. It moves to Recently deleted with everything inside it, unless you pass `{ permanent: true }`.
 
 ```ts
 const { data, error } = await vaze.folders.delete("folder-id");
+```
+
+Recently Deleted API Restore or purge deleted files and folders via `vaze.deleted`. Listing needs `files:read`, and restoring and purging need `files:delete`. Items are purged on their own once they are older than the instance's `deletedRetentionDays`.
+
+```ts
+const { data } = await vaze.deleted.getAll(); // items, newest first, and retentionDays
+await vaze.deleted.restore(["file-id-123", "folder-id"]); // back where they were
+await vaze.deleted.purge(["file-id-456"]); // gone for good
+await vaze.deleted.empty();
 ```
 
 Keys API Manage the caller's API keys via `vaze.keys`. These calls need a client that acts as a signed-in user (`headers`) holding `api-keys:manage`; a client built with an API key gets a `403`.
@@ -314,4 +324,4 @@ Failed requests carry the HTTP status in `error.status`, such as `401` once a se
 
 # Types
 
-This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `File`, `Folder`, `ApiKey`, `Activity`, `User`, `Session`, `InstanceSettings`, `Stats`, `StatsAlert`, `TrafficDay`, `ApiKeyUsage`, `ApiResponse`, `ListOptions`, and `VazeOptions`.
+This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `File`, `Folder`, `DeletedItem`, `ApiKey`, `Activity`, `User`, `Session`, `InstanceSettings`, `Stats`, `StatsAlert`, `TrafficDay`, `ApiKeyUsage`, `ApiResponse`, `ListOptions`, and `VazeOptions`.

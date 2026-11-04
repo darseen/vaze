@@ -3,7 +3,7 @@ import { MAX_DOWNLOAD_BATCH } from "@/constants";
 import { db } from "@/db";
 import { archiveName, streamZipResponse, type ZipEntry } from "@/lib/zip";
 import { files as filesTable } from "@repo/db";
-import { inArray } from "drizzle-orm";
+import { and, inArray, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { stat } from "node:fs/promises";
 import authorizeRequest from "../../_utils/authorize-request";
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const files = db
       .select()
       .from(filesTable)
-      .where(inArray(filesTable.id, ids))
+      .where(and(inArray(filesTable.id, ids), isNull(filesTable.deletedAt)))
       .all()
       .sort((a, b) => (a.key < b.key ? -1 : 1));
 

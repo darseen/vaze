@@ -1,4 +1,4 @@
-import { relations, type InferSelectModel } from "drizzle-orm";
+import { relations, sql, type InferSelectModel } from "drizzle-orm";
 import {
   index,
   sqliteTable,
@@ -19,11 +19,18 @@ export const folders = sqliteTable(
     parentId: text("parent_id").references((): AnySQLiteColumn => folders.id, {
       onDelete: "cascade",
     }),
+    // set on a deleted folder and on everything that was inside it
+    deletedAt: text("deleted_at"),
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("folders_key_unique").on(table.key),
+    uniqueIndex("folders_key_unique")
+      .on(table.key)
+      .where(sql`${table.deletedAt} IS NULL`),
     index("folders_parent_id_idx").on(table.parentId),
+    index("folders_deleted_at_idx")
+      .on(table.deletedAt)
+      .where(sql`${table.deletedAt} IS NOT NULL`),
   ],
 );
 

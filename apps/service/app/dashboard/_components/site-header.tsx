@@ -26,6 +26,13 @@ function buildCrumbs(pathname: string): Crumb[] {
     return [{ label: "Dashboard", href: "/dashboard" }, { label: "API Keys" }];
   }
 
+  if (segments[0] === "deleted") {
+    return [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Recently deleted" },
+    ];
+  }
+
   if (segments[0] === "activity") {
     return [{ label: "Dashboard", href: "/dashboard" }, { label: "Activity" }];
   }

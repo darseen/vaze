@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { files as filesTable, folders as foldersTable } from "@repo/db";
 import type { Folder } from "@repo/types";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import fs from "node:fs/promises";
 import {
   accessPath,
@@ -42,7 +42,7 @@ export async function resolveDestination(
     const row = db
       .select()
       .from(foldersTable)
-      .where(eq(foldersTable.id, folderId))
+      .where(and(eq(foldersTable.id, folderId), isNull(foldersTable.deletedAt)))
       .get();
 
     if (!row) return fail("Destination folder not found", 404);
@@ -75,12 +75,12 @@ export async function keyTaken(key: string): Promise<boolean> {
   const file = db
     .select({ id: filesTable.id })
     .from(filesTable)
-    .where(eq(filesTable.key, key))
+    .where(and(eq(filesTable.key, key), isNull(filesTable.deletedAt)))
     .get();
   const folder = db
     .select({ id: foldersTable.id })
     .from(foldersTable)
-    .where(eq(foldersTable.key, key))
+    .where(and(eq(foldersTable.key, key), isNull(foldersTable.deletedAt)))
     .get();
 
   return !!file || !!folder || (await accessPath(toStoragePath(key)));
@@ -103,6 +103,7 @@ export async function renameOnDisk<T>(
 
 // Rewrite the keys of everything below a moved folder. Walking by parentId is
 // exact, unlike a LIKE prefix match which breaks on names containing `%` or `_`.
+// Deleted items inside it are rewritten too, so a restore follows the move.
 export function updateDescendantKeys(
   tx: Tx,
   parentId: string,

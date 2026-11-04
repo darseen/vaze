@@ -89,6 +89,8 @@ export type Limits = {
   hostingCacheMaxAge: number;
   activityRetentionDays: number;
   apiRequestRetentionDays: number;
+  /** Days a deleted file or folder can be restored before it is purged. */
+  deletedRetentionDays: number;
 };
 
 export type InstanceSettings = {
@@ -98,6 +100,26 @@ export type InstanceSettings = {
   visibilityCounts: Record<Visibility, number>;
   limits: Limits;
 };
+
+/** A file or folder in Recently deleted, which a restore puts back at `key`. */
+export type DeletedItem = {
+  id: string;
+  name: string;
+  /** Where it was; a restore recreates any folders on the way that are gone. */
+  key: string;
+  /** Bytes it holds, everything inside it for a folder. */
+  size: number;
+  deletedAt: string;
+  /** When it is deleted for good, unless restored first. */
+  purgeAt: string;
+} & (
+  | { type: "file"; mimeType: string }
+  | {
+      type: "folder";
+      /** Files anywhere inside it. */
+      files: number;
+    }
+);
 
 /** One API key's share of the week's requests. */
 export type ApiKeyUsage = {
@@ -140,7 +162,7 @@ export type StatsAlert =
  * Servers that predate them leave them out, so check before reading.
  */
 export type Stats = {
-  /** Present when the caller holds `files:read`. */
+  /** Present when the caller holds `files:read`. Files in Recently deleted aren't counted. */
   files: {
     total: number;
     folders: number;
@@ -151,6 +173,8 @@ export type Stats = {
       available: number;
       /** Usable size of the data volume, which other data may share. */
       capacity?: number;
+      /** Bytes held by files in Recently deleted, not counted in `used`. */
+      deleted?: number;
     };
     types: { mimeType: string; size: number; count: number }[];
     largest: FileWithUrl[];
