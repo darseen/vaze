@@ -15,6 +15,7 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+import type { Scope } from "@repo/types";
 import {
   ArchiveRestore,
   FolderOpen,
@@ -22,10 +23,10 @@ import {
   KeyRound,
   LayoutDashboard,
   type LucideIcon,
+  Recycle,
   Settings,
   Users,
 } from "lucide-react";
-import type { Scope } from "@repo/types";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -89,6 +90,17 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         href: "/dashboard/settings",
         icon: Settings,
         isActive: (pathname) => pathname.startsWith("/dashboard/settings"),
+      },
+    ],
+  },
+  {
+    label: "tools",
+    items: [
+      {
+        title: "Conversion",
+        href: "/dashboard/conversion",
+        icon: Recycle,
+        isActive: (pathname) => pathname.startsWith("/dashboard/conversion"),
       },
     ],
   },

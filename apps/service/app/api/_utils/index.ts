@@ -315,6 +315,5 @@ export async function fetchFolderByKey(
   }
 
   const { files, folders } = fetchFolderContents(folder.id, options);
-
   return { data: { files: getFilesWithUrls(files), folders }, error: null };
 }

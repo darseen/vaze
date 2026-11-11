@@ -5,11 +5,11 @@ import {
   recordUploadActivity,
   type UploadContext,
 } from "@/lib/activity";
-import { getDefaultVisibility, getLimits } from "@/lib/settings";
 import { deleteFile } from "@/lib/deleted";
+import { getDefaultVisibility, getLimits } from "@/lib/settings";
+import { getAvailableStorage } from "@/utils/storage";
 import { files as filesTable } from "@repo/db";
 import type { File as FileDB, Folder } from "@repo/types";
-import { getAvailableStorage } from "@/utils/storage";
 import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import mime from "mime-types";
 import { NextRequest, NextResponse } from "next/server";

@@ -17,6 +17,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { isRole, ROLE_INFO } from "@/lib/permissions";
 import {
   ChevronsUpDown,
   FilesIcon,
@@ -24,7 +25,6 @@ import {
   LogOut,
   SettingsIcon,
 } from "lucide-react";
-import { isRole, ROLE_INFO } from "@/lib/permissions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCan } from "./permissions";
@@ -59,7 +59,7 @@ export default function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="size-8 rounded-lg">
-                <AvatarFallback className="from-primary/15 to-primary/5 text-foreground rounded-lg bg-gradient-to-br text-xs font-semibold">
+                <AvatarFallback className="from-primary/15 to-primary/5 text-foreground rounded-lg bg-linear-to-br text-xs font-semibold">
                   {initial}
                 </AvatarFallback>
               </Avatar>
@@ -81,7 +81,7 @@ export default function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="size-8 rounded-lg">
-                  <AvatarFallback className="from-primary/15 to-primary/5 text-foreground rounded-lg bg-gradient-to-br text-xs font-semibold">
+                  <AvatarFallback className="from-primary/15 to-primary/5 text-foreground rounded-lg bg-linear-to-br text-xs font-semibold">
                     {initial}
                   </AvatarFallback>
                 </Avatar>

@@ -7,7 +7,7 @@ import { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { ReactNode } from "react";
+import Section from "../_components/section";
 import DefaultVisibility from "./_components/default-visibility";
 import LimitsForm from "./_components/limits-form";
 import PasswordForm from "./_components/password-form";
@@ -18,26 +18,6 @@ export const metadata: Metadata = {
   title: "Settings",
   description: "Vaze | Manage your account and how your instance behaves.",
 };
-
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div>
-        <h2 className="text-foreground text-xl font-semibold">{title}</h2>
-        <p className="text-muted-foreground text-sm">{description}</p>
-      </div>
-      {children}
-    </section>
-  );
-}
 
 export default async function Page() {
   await connection();
