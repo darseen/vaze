@@ -26,13 +26,19 @@ pnpm --filter service dev
 Then open [http://localhost:3000](http://localhost:3000). On first launch you'll
 be redirected to `/register` to create the admin account.
 
+Video to audio conversion runs `ffmpeg` and `ffprobe`, so install ffmpeg
+locally (e.g. `brew install ffmpeg`, `apt install ffmpeg`). The Docker image
+already includes it.
+
 ## Environment variables
 
-| Variable      | Required        | Description                                                                                 |
-| ------------- | --------------- | ------------------------------------------------------------------------------------------- |
-| `AUTH_SECRET` | Yes (prod)      | Secret used to sign session JWTs. The app refuses to sign/verify tokens if it is unset.     |
-| `BASE_URL`    | Recommended     | Public base URL. Used to decide whether the auth cookie is marked `secure` (`https://...`). |
-| `DATA_PATH`   | No              | Absolute path for the SQLite DB and uploads. Defaults to `<cwd>/data`.                       |
+| Variable       | Required    | Description                                                                                 |
+| -------------- | ----------- | ------------------------------------------------------------------------------------------- |
+| `AUTH_SECRET`  | Yes (prod)  | Secret used to sign session JWTs. The app refuses to sign/verify tokens if it is unset.     |
+| `BASE_URL`     | Recommended | Public base URL. Used to decide whether the auth cookie is marked `secure` (`https://...`). |
+| `DATA_PATH`    | No          | Absolute path for the SQLite DB and uploads. Defaults to `<cwd>/data`.                      |
+| `FFMPEG_PATH`  | No          | Path to the `ffmpeg` binary. Defaults to `ffmpeg` on `PATH`.                                |
+| `FFPROBE_PATH` | No          | Path to the `ffprobe` binary. Defaults to `ffprobe` on `PATH`.                              |
 
 ## Data & persistence
 

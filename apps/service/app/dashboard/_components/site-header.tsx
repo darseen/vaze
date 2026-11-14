@@ -41,6 +41,13 @@ function buildCrumbs(pathname: string): Crumb[] {
     return [{ label: "Dashboard", href: "/dashboard" }, { label: "Users" }];
   }
 
+  if (segments[0] === "conversion") {
+    return [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Conversion" },
+    ];
+  }
+
   if (segments[0] === "settings") {
     return [{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }];
   }

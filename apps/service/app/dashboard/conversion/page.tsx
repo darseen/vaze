@@ -1,4 +1,4 @@
-import auth from "@/utils/auth";
+import { authorize } from "@/utils/auth";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 export default async function Page() {
   await connection();
 
-  const user = await auth();
-  if (!user) redirect("/");
+  const { error } = await authorize("files:read");
+  if (error) redirect("/dashboard");
 
   return (
     <main className="mx-auto w-full max-w-4xl">

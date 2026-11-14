@@ -20,50 +20,45 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { ApiResponse, FileWithUrl, Folder } from "@repo/types";
-import {
-  Check,
-  ChevronRight,
-  FileIcon,
-  FolderIcon,
-  Loader2,
-} from "lucide-react";
-import { Fragment, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { Check, ChevronRight, FileIcon, FolderIcon } from "lucide-react";
+import { Fragment, useEffect, useState } from "react";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Hide files that don't pass, e.g. `(file) => /\.(mp4|mov|mkv|webm)$/i.test(file.name)`. */
+  onSelect: (file: FileWithUrl) => void;
+  /** Hides files that don't pass. Must be stable, e.g. defined at module level. */
   accept?: (file: FileWithUrl) => boolean;
 }
 
 type Listing =
-  | { key: string; folders: Folder[]; files: FileWithUrl[]; failed: false }
-  | { key: string; folders: null; files: null; failed: true };
+  | {
+      key: string;
+      folders: Folder[];
+      files: FileWithUrl[];
+      /** Whether `accept` hid any files. */
+      filtered: boolean;
+      failed: false;
+    }
+  | { key: string; failed: true };
 
 const byName = (a: { name: string }, b: { name: string }) =>
   a.name.localeCompare(b.name);
 
-const toMp3Name = (name: string) =>
-  `${name.replace(/\.[^./\\]+$/, "") || "audio"}.mp3`;
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  // Give the browser a moment to start the download before releasing the blob.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}
-
-export default function FileSelector({ open, onOpenChange, accept }: Props) {
+export default function FileSelector({
+  open,
+  onOpenChange,
+  onSelect,
+  accept,
+}: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
-        <Picker accept={accept} onClose={() => onOpenChange(false)} />
+        <Picker
+          accept={accept}
+          onSelect={onSelect}
+          onClose={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -71,110 +66,59 @@ export default function FileSelector({ open, onOpenChange, accept }: Props) {
 
 function Picker({
   accept,
+  onSelect,
   onClose,
 }: {
   accept?: (file: FileWithUrl) => boolean;
+  onSelect: (file: FileWithUrl) => void;
   onClose: () => void;
 }) {
   const [currentKey, setCurrentKey] = useState("");
   const [listing, setListing] = useState<Listing | null>(null);
   const [selected, setSelected] = useState<FileWithUrl | null>(null);
-  const [converting, setConverting] = useState(false);
-  const conversionRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    const { signal } = controller;
+    const params = new URLSearchParams({ key: currentKey });
 
-    async function load<T>(url: string) {
-      const response = await fetch(url, { signal });
-      const { data, error }: ApiResponse<T> = await response.json();
-      if (error) throw new Error(error.message);
-      return data;
-    }
-    const foldersParams = new URLSearchParams({ key: currentKey });
+    fetch(`/api/folders?${params}`, { signal: controller.signal })
+      .then(async (response) => {
+        const {
+          data,
+          error,
+        }: ApiResponse<{
+          files: FileWithUrl[];
+          folders: Folder[];
+        }> = await response.json();
+        if (error) throw new Error(error.message);
 
-    load<{
-      files: FileWithUrl[];
-      folders: Folder[];
-    }>(`/api/folders?${foldersParams}`)
-      .then(({ files, folders }) => {
+        const files = accept ? data.files.filter(accept) : data.files;
         setListing({
           key: currentKey,
-          folders: [...folders].sort(byName),
-          files: (accept ? files.filter(accept) : [...files]).sort(byName),
+          folders: [...data.folders].sort(byName),
+          files: [...files].sort(byName),
+          filtered: files.length < data.files.length,
           failed: false,
         });
       })
       .catch(() => {
-        if (!signal.aborted) {
-          setListing({
-            key: currentKey,
-            folders: null,
-            files: null,
-            failed: true,
-          });
+        if (!controller.signal.aborted) {
+          setListing({ key: currentKey, failed: true });
         }
       });
 
     return () => controller.abort();
   }, [currentKey, accept]);
 
-  // Closing the dialog unmounts this component. Aborting the request makes the
-  // server notice the disconnect and kill the ffmpeg process.
-  useEffect(() => {
-    return () => conversionRef.current?.abort();
-  }, []);
-
   const loading = listing?.key !== currentKey;
   const segments = currentKey ? currentKey.split("/") : [];
-
-  const pick = (file: FileWithUrl) => setSelected(file);
-
-  const handleConversion = async () => {
-    if (!selected) return toast.error("You must select a file!");
-
-    const controller = new AbortController();
-    conversionRef.current = controller;
-    setConverting(true);
-
-    try {
-      const response = await fetch("/api/conversion/video-to-audio", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileId: selected.id }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        toast.error(body?.error?.message ?? "Failed to convert file!");
-        return;
-      }
-
-      // Resolves once the server has streamed the whole MP3, i.e. when the
-      // conversion is finished. If ffmpeg dies mid-way the stream errors and
-      // this throws instead of handing back a truncated file.
-      const audio = await response.blob();
-      downloadBlob(audio, toMp3Name(selected.name));
-      toast.success("Audio ready. Your download has started.");
-      onClose();
-    } catch {
-      if (!controller.signal.aborted) toast.error("Failed to convert file!");
-    } finally {
-      if (conversionRef.current === controller) conversionRef.current = null;
-      setConverting(false);
-    }
-  };
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="truncate pr-6 text-lg">
-          Convert video to audio
-        </DialogTitle>
+        <DialogTitle className="text-lg">Choose from Vaze</DialogTitle>
         <DialogDescription>
-          Pick a video, then convert it to an MP3. Open a folder to look inside
+          Open a folder to look inside, then pick a file.
         </DialogDescription>
       </DialogHeader>
 
@@ -196,9 +140,8 @@ function Picker({
                     <BreadcrumbLink asChild>
                       <button
                         type="button"
-                        disabled={converting}
                         onClick={() => setCurrentKey(key)}
-                        className="max-w-32 cursor-pointer truncate disabled:cursor-default"
+                        className="max-w-32 cursor-pointer truncate"
                       >
                         {label}
                       </button>
@@ -211,13 +154,7 @@ function Picker({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div
-        aria-busy={converting}
-        className={cn(
-          "h-64 overflow-y-auto rounded-md border p-1 transition-opacity",
-          converting && "opacity-60",
-        )}
-      >
+      <div className="h-64 overflow-y-auto rounded-md border p-1">
         {loading ? (
           <div className="space-y-1 p-1">
             {[0, 1, 2].map((row) => (
@@ -230,7 +167,9 @@ function Picker({
           </p>
         ) : listing.folders.length === 0 && listing.files.length === 0 ? (
           <p className="text-muted-foreground p-6 text-center text-sm">
-            This folder is empty.
+            {listing.filtered
+              ? "No matching files in this folder."
+              : "This folder is empty."}
           </p>
         ) : (
           <>
@@ -238,9 +177,8 @@ function Picker({
               <button
                 key={folder.id}
                 type="button"
-                disabled={converting}
                 onClick={() => setCurrentKey(folder.key)}
-                className="hover:bg-accent focus-visible:ring-ring flex w-full cursor-pointer items-center gap-3 rounded-sm px-3 py-2 text-left text-sm outline-none focus-visible:ring-2 disabled:cursor-default disabled:hover:bg-transparent"
+                className="hover:bg-accent focus-visible:ring-ring flex w-full cursor-pointer items-center gap-3 rounded-sm px-3 py-2 text-left text-sm outline-none focus-visible:ring-2"
               >
                 <FolderIcon className="size-4 shrink-0 fill-current text-blue-500" />
                 <span className="min-w-0 flex-1 truncate">{folder.name}</span>
@@ -256,10 +194,10 @@ function Picker({
                   key={file.id}
                   type="button"
                   aria-pressed={isSelected}
-                  disabled={converting}
-                  onClick={() => pick(file)}
+                  onClick={() => setSelected(file)}
+                  onDoubleClick={() => onSelect(file)}
                   className={cn(
-                    "hover:bg-accent focus-visible:ring-ring flex w-full cursor-pointer items-center gap-3 rounded-sm px-3 py-2 text-left text-sm outline-none focus-visible:ring-2 disabled:cursor-default disabled:hover:bg-transparent",
+                    "hover:bg-accent focus-visible:ring-ring flex w-full cursor-pointer items-center gap-3 rounded-sm px-3 py-2 text-left text-sm outline-none focus-visible:ring-2",
                     isSelected && "bg-accent",
                   )}
                 >
@@ -268,8 +206,7 @@ function Picker({
                   <span
                     aria-hidden
                     className={cn(
-                      "flex size-4 shrink-0 items-center justify-center border",
-                      "rounded-full",
+                      "flex size-4 shrink-0 items-center justify-center rounded-full border",
                       isSelected &&
                         "border-primary bg-primary text-primary-foreground",
                     )}
@@ -283,31 +220,15 @@ function Picker({
         )}
       </div>
 
-      {converting && (
-        <p
-          role="status"
-          className="text-muted-foreground flex items-center gap-2 text-sm"
-        >
-          <Loader2 className="size-4 shrink-0 animate-spin" />
-          <span className="min-w-0 truncate">
-            Converting {selected?.name}. Long videos can take a while.
-          </span>
-        </p>
-      )}
-
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={handleConversion} disabled={!selected || converting}>
-          {converting ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Converting…
-            </>
-          ) : (
-            "Convert to MP3"
-          )}
+        <Button
+          onClick={() => selected && onSelect(selected)}
+          disabled={!selected}
+        >
+          Choose
         </Button>
       </DialogFooter>
     </>

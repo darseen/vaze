@@ -94,13 +94,14 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "tools",
+    label: "Tools",
     items: [
       {
         title: "Conversion",
         href: "/dashboard/conversion",
         icon: Recycle,
         isActive: (pathname) => pathname.startsWith("/dashboard/conversion"),
+        scope: "files:read",
       },
     ],
   },
@@ -154,16 +155,21 @@ export default function AppSidebar({
       <SidebarSeparator className="mx-0" />
 
       <SidebarContent>
-        {navGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel className="text-muted-foreground/70 text-[11px] font-medium tracking-wider uppercase">
-              {group.label}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items
-                  .filter((item) => !item.scope || can(item.scope))
-                  .map((item) => (
+        {navGroups.map((group) => {
+          const items = group.items.filter(
+            (item) => !item.scope || can(item.scope),
+          );
+          // a label over nothing would be noise
+          if (items.length === 0) return null;
+
+          return (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel className="text-muted-foreground/70 text-[11px] font-medium tracking-wider uppercase">
+                {group.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.map((item) => (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         asChild
@@ -178,10 +184,11 @@ export default function AppSidebar({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter>

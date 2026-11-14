@@ -141,9 +141,12 @@ export function contentDisposition(
   const asciiFallback = filename
     .replace(/[^\x20-\x7e]/g, "_")
     .replace(/["\\]/g, "_");
-  return `${type}; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(
-    filename,
-  )}`;
+  // encodeURIComponent leaves these, but RFC 5987 values may not contain them
+  const encoded = encodeURIComponent(filename).replace(
+    /['()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  return `${type}; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`;
 }
 
 /** Public hosting URL for a key, relative to the instance base URL. */

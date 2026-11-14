@@ -34,7 +34,8 @@ RUN pnpm turbo run build
 FROM base AS runner
 
 RUN apk update
-RUN apk add --no-cache openssl
+# ffmpeg and ffprobe power video to audio conversion; updated with every image rebuild
+RUN apk add --no-cache openssl ffmpeg
 
 WORKDIR /app
 

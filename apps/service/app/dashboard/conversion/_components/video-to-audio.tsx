@@ -2,11 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { formatBytes } from "@/utils";
+import { isVideo, toMp3Name } from "@/utils/conversion";
 import {
   AudioLines,
   Check,
+  CircleAlert,
   Cloud,
   Download,
   FileVideo,
@@ -17,80 +19,107 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import FileSelector from "./file-selector";
+import { requestConversion, type ConversionSource } from "./request-conversion";
+
+type Status =
+  | { phase: "idle" }
+  | { phase: "uploading"; progress: number }
+  | { phase: "converting"; progress: number | null; received: number }
+  | { phase: "done"; url: string; name: string; size: number }
+  | { phase: "error"; message: string };
+
+const IDLE: Status = { phase: "idle" };
 
 export default function VideoToAudio() {
-  const [file, setFile] = useState<{
-    name: string;
-    size: string;
-    source: string;
-  } | null>(null);
+  const [source, setSource] = useState<ConversionSource | null>(null);
+  const [status, setStatus] = useState<Status>(IDLE);
   const [isFileSelectorOpen, setIsFileSelectorOpen] = useState(false);
-  const [isConverting, setIsConverting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cancelRef = useRef<(() => void) | null>(null);
+
+  const busy = status.phase === "uploading" || status.phase === "converting";
+  const audioUrl = status.phase === "done" ? status.url : null;
+
+  // leaving the page cancels the request, which stops ffmpeg on the server
+  useEffect(() => () => cancelRef.current?.(), []);
 
   useEffect(() => {
-    if (!isConverting) return;
-    const timer = window.setInterval(() => {
-      setProgress((current) => {
-        if (current >= 100) {
-          window.clearInterval(timer);
-          setIsConverting(false);
-          setIsComplete(true);
-          return 100;
-        }
-        return Math.min(current + 5, 100);
-      });
-    }, 120);
-    return () => window.clearInterval(timer);
-  }, [isConverting]);
+    if (!audioUrl) return;
+    return () => URL.revokeObjectURL(audioUrl);
+  }, [audioUrl]);
 
-  function chooseFile(nextFile: {
-    name: string;
-    size: string;
-    source: string;
-  }) {
-    setFile(nextFile);
+  function choose(next: ConversionSource) {
+    setSource(next);
+    setStatus(IDLE);
     setIsFileSelectorOpen(false);
-    setProgress(0);
-    setIsComplete(false);
   }
 
   function handleDeviceFile(event: React.ChangeEvent<HTMLInputElement>) {
-    const selected = event.target.files?.[0];
-    if (selected)
-      chooseFile({
-        name: selected.name,
-        size: formatBytes(selected.size),
-        source: "Your device",
-      });
+    const file = event.target.files?.[0];
+    // lets the same file be picked again
+    event.target.value = "";
+    if (file) choose({ kind: "device", file });
   }
 
   function startConversion() {
-    if (!file) return;
-    setProgress(0);
-    setIsComplete(false);
-    setIsConverting(true);
+    if (!source || busy) return;
+
+    const name = toMp3Name(source.file.name);
+    const finish = (next: Status) => {
+      cancelRef.current = null;
+      setStatus(next);
+    };
+
+    setStatus(
+      source.kind === "device"
+        ? { phase: "uploading", progress: 0 }
+        : { phase: "converting", progress: null, received: 0 },
+    );
+
+    cancelRef.current = requestConversion(source, {
+      onUploadProgress: (fraction) =>
+        setStatus(
+          // once sent, the server reads the video before audio comes back
+          fraction < 1
+            ? { phase: "uploading", progress: fraction }
+            : { phase: "converting", progress: null, received: 0 },
+        ),
+      onProgress: (received, progress) =>
+        setStatus({ phase: "converting", progress, received }),
+      onDone: (audio) =>
+        finish({
+          phase: "done",
+          url: URL.createObjectURL(audio),
+          name,
+          size: audio.size,
+        }),
+      onError: (message) => finish({ phase: "error", message }),
+    });
+  }
+
+  function cancelConversion() {
+    cancelRef.current?.();
+    cancelRef.current = null;
+    setStatus(IDLE);
   }
 
   return (
     <>
       <Card>
         <CardContent>
-          <div className="rounded-2xl sm:p-4">
-            <div className="rounded-xl px-5 py-10 text-center sm:px-10">
+          <div className="sm:p-4">
+            <div className="px-5 py-10 text-center sm:px-10">
               <div className="bg-secondary text-primary mx-auto flex h-14 w-14 items-center justify-center rounded-2xl">
                 <FileVideo size={27} />
               </div>
-              <h2 className="mt-5 text-[18px] font-semibold">
+              <h2 className="mt-5 text-lg font-semibold">
                 Choose a video to get started
               </h2>
-              <p className="mt-2 text-sm text-[#818792]">
-                MP4, MOV, AVI, MKV etc.
+              <p className="text-muted-foreground mt-2 text-sm">
+                MP4, MOV, MKV, WebM, AVI and more
               </p>
               <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-                <Input
+                <input
                   ref={inputRef}
                   type="file"
                   accept="video/*"
@@ -98,107 +127,68 @@ export default function VideoToAudio() {
                   onChange={handleDeviceFile}
                 />
                 <Button
+                  variant="secondary"
+                  disabled={busy}
                   onClick={() => inputRef.current?.click()}
-                  variant={"secondary"}
                 >
-                  <Upload size={16} />
+                  <Upload />
                   Choose from device
                 </Button>
-                <Button onClick={() => setIsFileSelectorOpen(true)}>
-                  <Cloud size={17} className="text-secondary" />
+                <Button
+                  disabled={busy}
+                  onClick={() => setIsFileSelectorOpen(true)}
+                >
+                  <Cloud />
                   Choose from Vaze
                 </Button>
               </div>
             </div>
 
-            {file && (
-              <div className="mt-3 flex flex-col gap-4 rounded-xl border border-[#e5e7eb] bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+            {source && (
+              <div className="mt-3 flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#f1efff] text-[#6256c9]">
+                  <div className="bg-secondary text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
                     <FileVideo size={19} />
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">
-                      {file.name}
+                      {source.file.name}
                     </p>
-                    <p className="mt-1 text-xs text-[#858b95]">
-                      {file.size} · {file.source}
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {formatBytes(source.file.size)} ·{" "}
+                      {source.kind === "device" ? "Your device" : "Vaze"}
                     </p>
                   </div>
-                  <button
-                    onClick={() => setFile(null)}
-                    className="ml-1 rounded p-1 text-[#9297a0] hover:bg-[#f3f4f6] hover:text-[#33373e]"
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground size-7 shrink-0"
+                    disabled={busy}
+                    onClick={() => {
+                      setSource(null);
+                      setStatus(IDLE);
+                    }}
                     aria-label="Remove selected video"
                   >
-                    <X size={16} />
-                  </button>
+                    <X />
+                  </Button>
                 </div>
-                <button
-                  onClick={startConversion}
-                  disabled={isConverting}
-                  className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#7168c9] px-5 text-sm font-semibold text-white transition hover:bg-[#5f56b5] disabled:cursor-wait disabled:opacity-70"
-                >
-                  {isConverting ? (
-                    <LoaderCircle size={16} className="animate-spin" />
-                  ) : (
-                    <Play size={15} fill="currentColor" />
-                  )}
-                  {isConverting ? "Converting…" : "Convert to audio"}
-                </button>
+                {busy ? (
+                  <Button variant="outline" onClick={cancelConversion}>
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button onClick={startConversion}>
+                    <Play fill="currentColor" />
+                    Convert to audio
+                  </Button>
+                )}
               </div>
             )}
 
-            {(isConverting || isComplete) && (
-              <div className="mt-3 rounded-xl border border-[#e5e7eb] bg-[#fafbfc] p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-semibold">
-                    {isComplete ? (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#dff5eb] text-[#299466]">
-                        <Check size={13} strokeWidth={3} />
-                      </span>
-                    ) : (
-                      <LoaderCircle
-                        size={16}
-                        className="animate-spin text-[#7168c9]"
-                      />
-                    )}
-                    {isComplete ? "Your audio is ready" : "Extracting audio…"}
-                  </div>
-                  <span className="text-sm font-semibold text-[#666c75]">
-                    {progress}%
-                  </span>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e9ebef]">
-                  <div
-                    className="h-full rounded-full bg-[#7168c9] transition-all duration-150"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                {isComplete && (
-                  <div className="mt-4 flex flex-col items-start justify-between gap-3 rounded-lg bg-white p-3 sm:flex-row sm:items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#e4f6ef] text-[#299466]">
-                        <AudioLines size={18} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">
-                          {file?.name.replace(/\.[^/.]+$/, "")}.mp3
-                        </p>
-                        <p className="text-xs text-[#858b95]">
-                          MP3 audio · Ready to download
-                        </p>
-                      </div>
-                    </div>
-                    <a
-                      href="#download"
-                      onClick={(event) => event.preventDefault()}
-                      className="flex h-9 items-center gap-2 rounded-lg bg-[#22252b] px-4 text-sm font-semibold text-white transition hover:bg-[#343840]"
-                    >
-                      <Download size={15} />
-                      Download MP3
-                    </a>
-                  </div>
-                )}
+            {status.phase !== "idle" && (
+              <div className="bg-muted/40 mt-3 rounded-xl border p-4">
+                <StatusPanel status={status} />
               </div>
             )}
           </div>
@@ -206,9 +196,88 @@ export default function VideoToAudio() {
       </Card>
 
       <FileSelector
-        onOpenChange={setIsFileSelectorOpen}
         open={isFileSelectorOpen}
+        onOpenChange={setIsFileSelectorOpen}
+        accept={isVideo}
+        onSelect={(file) => choose({ kind: "vaze", file })}
       />
+    </>
+  );
+}
+
+function StatusPanel({
+  status,
+}: {
+  status: Exclude<Status, { phase: "idle" }>;
+}) {
+  if (status.phase === "error") {
+    return (
+      <p
+        role="alert"
+        className="text-destructive flex items-start gap-2 text-sm"
+      >
+        <CircleAlert className="mt-0.5 size-4 shrink-0" />
+        {status.message}
+      </p>
+    );
+  }
+
+  if (status.phase === "done") {
+    return (
+      <>
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            <Check size={13} strokeWidth={3} />
+          </span>
+          Your audio is ready
+        </div>
+        <div className="bg-card mt-4 flex flex-col items-start justify-between gap-3 rounded-lg border p-3 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+              <AudioLines size={18} />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{status.name}</p>
+              <p className="text-muted-foreground text-xs">
+                MP3 audio · {formatBytes(status.size)}
+              </p>
+            </div>
+          </div>
+          <Button asChild size="sm">
+            <a href={status.url} download={status.name}>
+              <Download />
+              Download MP3
+            </a>
+          </Button>
+        </div>
+      </>
+    );
+  }
+
+  const progress =
+    status.progress === null ? null : Math.round(status.progress * 100);
+
+  return (
+    <>
+      <div
+        role="status"
+        className="flex items-center justify-between gap-3 text-sm font-semibold"
+      >
+        <span className="flex items-center gap-2">
+          <LoaderCircle className="text-primary size-4 animate-spin" />
+          {status.phase === "uploading"
+            ? "Uploading video…"
+            : "Extracting audio…"}
+        </span>
+        <span className="text-muted-foreground tabular-nums">
+          {progress !== null
+            ? `${progress}%`
+            : status.phase === "converting" && status.received > 0
+              ? formatBytes(status.received)
+              : null}
+        </span>
+      </div>
+      {progress !== null && <Progress value={progress} className="mt-3 h-2" />}
     </>
   );
 }
