@@ -78,6 +78,8 @@ export function parseMultipartToDisk(
 
     const busboy = Busboy({
       headers: { "content-type": contentType },
+      // browsers send filenames as raw UTF-8; busboy assumes latin1 otherwise
+      defParamCharset: "utf8",
       limits: {
         fileSize: maxFileSize,
         files: MAX_FILES_PER_REQUEST,
