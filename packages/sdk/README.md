@@ -66,7 +66,7 @@ const vaze = new Vaze();
 
 # API Documentation
 
-The SDK's main modules are `files` and `folders`, plus `keys`, `account`, `activity`, `users` and `settings` for signed-in users. All methods are asynchronous and return a standard `ApiResponse` object containing either `data` or an `error`. Files API Access file-related methods via `vaze.files.getAll(options?)` Retrieve a paginated list of all files.
+The SDK's main modules are `files`, `folders`, `deleted` and `conversion`, plus `keys`, `account`, `activity`, `users` and `settings` for signed-in users. All methods are asynchronous and return a standard `ApiResponse` object containing either `data` or an `error`. Files API Access file-related methods via `vaze.files.getAll(options?)` Retrieve a paginated list of all files.
 
 - options (optional):
   - `limit`
@@ -223,6 +223,20 @@ const { data } = await vaze.deleted.getAll(); // items, newest first, and retent
 await vaze.deleted.restore(["file-id-123", "folder-id"]); // back where they were
 await vaze.deleted.purge(["file-id-456"]); // gone for good
 await vaze.deleted.empty();
+```
+
+Conversion API Convert files via `vaze.conversion`. Needs `files:read` and a Vaze 4.5.0 server.
+
+`videoToAudio(source)` Extract a video's audio as an MP3. Pass a stored file's `id`, or a `file` from your device (a web `File`, or in React Native a `{ uri, name, type }` reference), which the server keeps only until the conversion is done.
+
+```ts
+const { data, error } = await vaze.conversion.videoToAudio({ id: "file-id-123" });
+// or: await vaze.conversion.videoToAudio({ file });
+
+if (data) {
+  console.log(data.filename); // e.g. "clip.mp3"
+  const buffer = Buffer.from(await data.blob.arrayBuffer());
+}
 ```
 
 Keys API Manage the caller's API keys via `vaze.keys`. These calls need a client that acts as a signed-in user (`headers`) holding `api-keys:manage`; a client built with an API key gets a `403`.

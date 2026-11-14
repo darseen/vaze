@@ -1,0 +1,60 @@
+---
+title: Conversion
+description: Extract the audio of a video as an MP3
+icon: Recycle
+---
+
+Conversion runs on the server with ffmpeg, which the Docker image includes. The
+result streams back as the response and is not stored, so save it, or
+[upload](/docs/api-reference/files#upload-files) it, if you want to keep it.
+
+Converting needs the `files:read` scope. It works with an [`API-Key`
+header](/docs/api-reference#authentication) or a signed-in session.
+
+## Video to audio
+
+```
+POST /api/conversion/video-to-audio
+```
+
+Send a stored file by its id as JSON:
+
+```json
+{ "fileId": "<id>" }
+```
+
+Or send a file from your device as `multipart/form-data`, with one file part.
+It is stored only until the conversion ends, and may be as large as
+`maxUploadSize` under [instance settings](/docs/api-reference/settings).
+
+```bash
+curl -X POST https://vaze.example.com/api/conversion/video-to-audio \
+  -H "API-Key: $VAZE_API_KEY" \
+  -F "file=@clip.mp4" \
+  -o clip.mp3
+```
+
+The response is the MP3 itself, with `Content-Type: audio/mpeg` and a
+`Content-Disposition` naming it after the video, e.g. `clip.mp3`. Audio is
+192 kbps constant bitrate, from the video's main audio track.
+
+The audio streams back while it is converted, so the response has no
+`Content-Length`. When the video declares its length, `X-Content-Duration`
+gives it in seconds, and the final size is about `duration × 24000` bytes, which
+is enough to show progress. Closing the connection stops the conversion.
+
+MP4, MOV, MKV, WebM, AVI, FLV, MPEG-TS, MPEG and WMV videos are supported, and
+so are MP3, WAV, FLAC, AAC and Ogg audio files.
+
+| Status | Meaning                                                                  |
+| ------ | ------------------------------------------------------------------------ |
+| `400`  | No `fileId`, or a form with more than one file                           |
+| `404`  | No file with that id                                                     |
+| `413`  | The uploaded file is larger than `maxUploadSize`                         |
+| `422`  | The video has no audio track, or is not a format that can be read        |
+| `503`  | The server is busy with other conversions; retry after `Retry-After`     |
+| `507`  | Not enough free space on the volume to hold the uploaded file meanwhile  |
+
+The errors use the usual [response envelope](/docs/api-reference#response-envelope).
+The server runs a few conversions at a time, depending on its CPU cores, and
+each client may start 30 per minute.

@@ -2,6 +2,7 @@ import type { ApiResponse, FileWithUrl, Me, Stats } from "@repo/types";
 import Account from "./account.js";
 import Activity from "./activity.js";
 import Base from "./base.js";
+import Conversion from "./conversion.js";
 import Deleted from "./deleted.js";
 import Files from "./files.js";
 import Folders from "./folders.js";
@@ -15,6 +16,7 @@ export default class Vaze extends Base implements IVaze {
   public files: Files;
   public folders: Folders;
   public deleted: Deleted;
+  public conversion: Conversion;
   public keys: Keys;
   public account: Account;
   public activity: Activity;
@@ -27,6 +29,7 @@ export default class Vaze extends Base implements IVaze {
     this.files = new Files(options);
     this.folders = new Folders(options);
     this.deleted = new Deleted(options);
+    this.conversion = new Conversion(options);
     this.keys = new Keys(options);
     this.account = new Account(options);
     this.activity = new Activity(options);
@@ -123,6 +126,7 @@ export type {
   BulkDeleteResult,
   BulkMoveResult,
   BulkRestoreResult,
+  ConversionSource,
   DeleteOptions,
   FileReference,
   ListOptions,

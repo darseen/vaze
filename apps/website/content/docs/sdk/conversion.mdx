@@ -1,0 +1,50 @@
+---
+title: Conversion
+description: Extract the audio of a video as an MP3
+icon: Recycle
+---
+
+`vaze.conversion` converts files on the server, which needs Vaze 4.5.0 or
+later. Converting needs `files:read`, and every method returns the [response
+envelope](/docs/sdk#response-shape).
+
+## Video to audio
+
+Pass a stored file by its `id`:
+
+```ts
+const { data, error } = await vaze.conversion.videoToAudio({ id: "file-id" });
+
+if (data) {
+  const { blob, filename, contentType } = data; // e.g. "clip.mp3", "audio/mpeg"
+  await fs.writeFile(filename ?? "audio.mp3", Buffer.from(await blob.arrayBuffer()));
+}
+```
+
+Or a `file` from your device: a web
+[`File`](https://developer.mozilla.org/en-US/docs/Web/API/File), or in React
+Native a `{ uri, name, type }` reference. The server keeps it only until the
+conversion is done.
+
+```ts
+const { data, error } = await vaze.conversion.videoToAudio({ file });
+```
+
+The MP3 is 192 kbps, named after the video. A video without an audio track, or
+in a format that can't be read, sets `error` with status `422`. A server busy
+with other conversions answers `503`; try again shortly.
+
+The audio is read into a `Blob`. To stream it to disk instead, or to show
+progress, post to the endpoint yourself with
+[`authHeaders()`](/docs/sdk#fetching-urls-yourself):
+
+```ts
+const response = await fetch(vaze.conversion.videoToAudioUrl(), {
+  method: "POST",
+  headers: { ...(await vaze.authHeaders()), "Content-Type": "application/json" },
+  body: JSON.stringify({ fileId: "file-id" }),
+});
+```
+
+See [the endpoint](/docs/api-reference/conversion) for the request formats and
+the `X-Content-Duration` header that progress can be measured against.

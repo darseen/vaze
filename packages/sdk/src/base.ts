@@ -125,18 +125,25 @@ export default class Base {
   protected async requestBlob(
     url: string,
     method = "GET",
-    body?: Record<string, any>,
+    body?: Record<string, any> | FormData,
   ): Promise<
     ApiResponse<{ blob: Blob; filename: string | null; contentType: string }>
   > {
     try {
       const headers = await this.authHeaders();
-      if (body !== undefined) headers["Content-Type"] = "application/json";
+      const isFormData = body instanceof FormData;
+      if (body !== undefined && !isFormData) {
+        headers["Content-Type"] = "application/json";
+      }
 
       const response = await this.fetch(url, {
         method,
         headers,
-        body: body !== undefined ? JSON.stringify(body) : null,
+        body: isFormData
+          ? body
+          : body !== undefined
+            ? JSON.stringify(body)
+            : null,
       });
       const { status } = response;
       const contentType = response.headers.get("content-type") ?? "";

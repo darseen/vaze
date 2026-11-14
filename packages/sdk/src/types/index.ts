@@ -1,6 +1,7 @@
 import type { FileWithUrl, Limits, Role, Scope, Visibility } from "@repo/types";
 import type Account from "../account.js";
 import type Activity from "../activity.js";
+import type Conversion from "../conversion.js";
 import type Deleted from "../deleted.js";
 import type Files from "../files.js";
 import type Folders from "../folders.js";
@@ -12,6 +13,7 @@ export interface IVaze {
   files: Files;
   folders: Folders;
   deleted: Deleted;
+  conversion: Conversion;
   keys: Keys;
   account: Account;
   activity: Activity;
@@ -43,6 +45,9 @@ export type FileReference = {
   name: string;
   type: string;
 };
+
+/** A stored file by its id, or a file from the caller's device. */
+export type ConversionSource = { id: string } | { file: File | FileReference };
 
 export type ListOptions = {
   limit?: number;
