@@ -9,6 +9,7 @@ import {
   type UploadResult,
 } from "expo-file-system";
 import { create } from "zustand";
+import { discardPicked } from "@/lib/transfer";
 import { useLibrary } from "./library";
 
 export type Upload = {
@@ -63,16 +64,6 @@ async function stage(file: FileReference, id: string) {
     await source.copy(staged);
   }
   return { staged, folder };
-}
-
-/** Deletes a picker's cached copy, never a file outside the app's cache. */
-function discard(uri: string) {
-  try {
-    const file = new DeviceFile(uri);
-    if (file.uri.startsWith(Paths.cache.uri) && file.exists) file.delete();
-  } catch {
-    // already gone
-  }
 }
 
 /**
@@ -205,7 +196,7 @@ export const useUploads = create<UploadsState>()((set, get) => ({
 
     // staged files are deleted as they finish; these were canceled before staging
     for (const [index, file] of files.entries()) {
-      if (!started.has(queued[index].id)) discard(file.uri);
+      if (!started.has(queued[index].id)) discardPicked(file.uri);
     }
 
     const finished = get().uploads.filter((upload) => upload.batch === batch);

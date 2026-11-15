@@ -1,6 +1,12 @@
 import type { DeletedItem } from "@darseen/vaze";
 import * as Haptics from "expo-haptics";
-import { Stack, useFocusEffect } from "expo-router";
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useNavigation,
+  type NativeStackNavigationProp,
+} from "expo-router";
 import { cn, Separator, Surface, useThemeColor, useToast } from "heroui-native";
 import {
   ArchiveRestore,
@@ -12,7 +18,7 @@ import {
   Undo2,
   X,
 } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BackHandler,
   FlatList,
@@ -30,18 +36,10 @@ import { Icon } from "@/components/icon";
 import { useServer } from "@/components/server-context";
 import { Sheet, SHEET_CLOSE_MS } from "@/components/sheet";
 import { useRestore } from "@/hooks/use-restore";
+import { deletedFrom, purgesSoon, removal } from "@/lib/deleted";
 import { fileKind, KIND_INFO } from "@/lib/file-kind";
-import {
-  formatBytes,
-  parseTimestamp,
-  plural,
-  timeAgo,
-  timeUntil,
-} from "@/lib/format";
-import { parentKey, useLibrary } from "@/stores/library";
-
-// an item this close to its purge is called out, like the web
-const SOON_MS = 3 * 24 * 60 * 60 * 1000;
+import { formatBytes, plural, timeAgo } from "@/lib/format";
+import { useLibrary } from "@/stores/library";
 
 type SheetName = "menu" | "item" | "purge" | "empty";
 
@@ -53,8 +51,6 @@ function contents(item: DeletedItem) {
     ? `${plural(item.files, "file")}, ${formatBytes(item.size)}`
     : "Empty";
 }
-
-const folderOf = (key: string) => parentKey(key) || "All files";
 
 const RowSeparator = () => <Separator className="ml-[72px] opacity-50" />;
 
@@ -78,6 +74,26 @@ export default function DeletedScreen() {
   const canDelete = can("files:delete");
   const items = useMemo(() => state?.data?.items ?? [], [state?.data]);
   const days = state?.data?.retentionDays;
+
+  // an item tapped on Home opens with its sheet, once the screen has slid in
+  const { item: linked } = useLocalSearchParams<{ item?: string }>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<Record<string, object>>>();
+  const [entered, setEntered] = useState(false);
+  const linkedShown = useRef(false);
+  useEffect(
+    () => navigation.addListener("transitionEnd", () => setEntered(true)),
+    [navigation],
+  );
+  useEffect(() => {
+    if (!linked || !entered || linkedShown.current) return;
+    const target = items.find((item) => item.id === linked);
+    if (!target) return;
+    linkedShown.current = true;
+    if (!canDelete) return;
+    setCurrent(target);
+    setSheet("item");
+  }, [linked, entered, items, canDelete]);
 
   const load = useCallback(
     () => loadDeleted(server.id, vaze),
@@ -342,7 +358,7 @@ export default function DeletedScreen() {
         title={current?.name}
         description={
           current
-            ? `Deleted ${timeAgo(current.deletedAt)} from ${folderOf(current.key)}. ${removal(current)}.`
+            ? `Deleted ${timeAgo(current.deletedAt)} from ${deletedFrom(current.key)}. ${removal(current)}.`
             : undefined
         }
       >
@@ -351,7 +367,7 @@ export default function DeletedScreen() {
             {
               label: "Restore",
               icon: Undo2,
-              description: `Back to ${folderOf(current?.key ?? "")}`,
+              description: `Back to ${deletedFrom(current?.key ?? "")}`,
               onPress: async () => {
                 if (!current) return;
                 setSheet(null);
@@ -432,11 +448,6 @@ export default function DeletedScreen() {
   );
 }
 
-function removal(item: DeletedItem) {
-  const left = timeUntil(item.purgeAt);
-  return left ? `Removed in ${left}` : "Removed soon";
-}
-
 function DeletedRow({
   item,
   selecting,
@@ -452,7 +463,7 @@ function DeletedRow({
 }) {
   const kind =
     item.type === "file" ? KIND_INFO[fileKind(item.name, item.mimeType)] : null;
-  const soon = parseTimestamp(item.purgeAt).getTime() - Date.now() < SOON_MS;
+  const soon = purgesSoon(item);
 
   return (
     <Pressable
@@ -484,7 +495,7 @@ function DeletedRow({
           {item.name}
         </Text>
         <Text numberOfLines={1} className="font-normal text-sm text-muted">
-          {folderOf(item.key)} · {contents(item)}
+          {deletedFrom(item.key)} · {contents(item)}
         </Text>
         <Text
           numberOfLines={1}

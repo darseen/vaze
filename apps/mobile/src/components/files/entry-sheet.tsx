@@ -1,5 +1,6 @@
 import { Chip } from "heroui-native";
 import {
+  AudioLines,
   Download,
   FolderInput,
   Globe,
@@ -10,8 +11,10 @@ import {
   Trash2,
 } from "lucide-react-native";
 import { Text, View } from "react-native";
+import { isVideo } from "@/lib/conversion";
 import { fileKind, KIND_INFO, previewKind } from "@/lib/file-kind";
 import { formatBytes, formatDateTime } from "@/lib/format";
+import { useLibrary } from "@/stores/library";
 import { ActionGroup } from "../action-group";
 import { useServer } from "../server-context";
 import { Sheet } from "../sheet";
@@ -26,6 +29,7 @@ export type EntryAction =
   | "move"
   | "make-private"
   | "make-public"
+  | "convert"
   | "delete";
 
 type EntrySheetProps = {
@@ -65,7 +69,8 @@ function EntryActions({
   busy,
   error,
 }: Pick<EntrySheetProps, "onAction" | "busy" | "error"> & { entry: Entry }) {
-  const { can } = useServer();
+  const { server, can } = useServer();
+  const converts = useLibrary((state) => state.conversion[server.id] === true);
   const isFile = entry.type === "file";
   const canWrite = can("files:write");
   const isPrivate = isFile && entry.file.visibility === "private";
@@ -103,6 +108,13 @@ function EntryActions({
               : undefined,
             busy: busy === "copy-link",
             onPress: () => onAction("copy-link"),
+          },
+          {
+            label: "Convert to audio",
+            icon: AudioLines,
+            description: "Extract its audio as an MP3",
+            hidden: !converts || !isFile || !isVideo(entry.file),
+            onPress: () => onAction("convert"),
           },
         ]}
       />

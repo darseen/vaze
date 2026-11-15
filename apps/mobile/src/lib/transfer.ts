@@ -96,10 +96,12 @@ export async function shareDownload(vaze: Vaze, request: DownloadRequest) {
   if (destination.exists) destination.delete();
   await writeDownload(vaze, request, destination);
 
-  await Sharing.shareAsync(destination.uri, {
-    mimeType: request.mimeType,
-    dialogTitle: request.name,
-  });
+  await shareLocalFile(destination, request.mimeType);
+}
+
+/** Opens the system share sheet for a file already on the device. */
+export function shareLocalFile(file: DeviceFile, mimeType: string) {
+  return Sharing.shareAsync(file.uri, { mimeType, dialogTitle: file.name });
 }
 
 export function shareFile(vaze: Vaze, file: File) {
@@ -109,6 +111,21 @@ export function shareFile(vaze: Vaze, file: File) {
 // Android 10 is the first that saves to Downloads without a permission
 const Downloads =
   Platform.OS === "android" && Platform.Version >= 29 ? SaveToDownloads : null;
+
+/** Whether saving puts files in Downloads, rather than handing them to the share sheet. */
+export const canSaveToDownloads = Downloads !== null;
+
+/** Saves a file already on the device into Downloads, or shares it where that can't be done. */
+export async function saveLocalFile(
+  file: DeviceFile,
+  mimeType: string,
+): Promise<string | null> {
+  if (!Downloads) {
+    await shareLocalFile(file, mimeType);
+    return null;
+  }
+  return await Downloads.save(file.uri, file.name, mimeType);
+}
 
 // one cache folder per save, so two files of one name never collide
 let saveCount = 0;
@@ -157,6 +174,51 @@ export async function pickMedia(): Promise<FileReference[]> {
     name: asset.fileName ?? nameFromUri(asset.uri),
     type: asset.mimeType ?? "application/octet-stream",
   }));
+}
+
+/** Deletes a picker's cached copy, never a file outside the app's cache. */
+export function discardPicked(uri: string) {
+  try {
+    const file = new DeviceFile(uri);
+    if (file.uri.startsWith(Paths.cache.uri) && file.exists) file.delete();
+  } catch {
+    // already gone
+  }
+}
+
+export type PickedFile = FileReference & { size: number };
+
+/** One video from the gallery or from the device's files, or null if none was picked. */
+export async function pickVideo(
+  from: "media" | "files",
+): Promise<PickedFile | null> {
+  if (from === "media") {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["videos"],
+      quality: 1,
+    });
+    const asset = result.canceled ? null : result.assets[0];
+    if (!asset) return null;
+    return {
+      uri: asset.uri,
+      name: asset.fileName ?? nameFromUri(asset.uri),
+      type: asset.mimeType ?? "video/mp4",
+      size: asset.fileSize ?? new DeviceFile(asset.uri).size ?? 0,
+    };
+  }
+
+  const result = await DocumentPicker.getDocumentAsync({
+    type: "video/*",
+    copyToCacheDirectory: true,
+  });
+  const asset = result.canceled ? null : result.assets[0];
+  if (!asset) return null;
+  return {
+    uri: asset.uri,
+    name: asset.name,
+    type: asset.mimeType ?? "application/octet-stream",
+    size: asset.size ?? new DeviceFile(asset.uri).size ?? 0,
+  };
 }
 
 export async function pickDocuments(): Promise<FileReference[]> {

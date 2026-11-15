@@ -12,6 +12,8 @@ then raise the version the app depends on.
 
 - A Vaze server with session support in the SDK (`/api/me`, `/api/stats` and
   the Better Auth Expo plugin). Older servers show an "update it" message.
+  Recently deleted needs Vaze 4.4.0 and conversion 4.5.0; on older servers
+  their entry points stay hidden.
 - A development build. Expo Go doesn't include every native module the app
   uses.
 - For Android builds, JDK 17. Newer JDKs fail the CMake step of
@@ -37,7 +39,11 @@ app. Plain `http://` works for LAN servers on both platforms.
 - `src/app`: routes. `index.tsx` is the server list; `server/[id]/(tabs)`
   holds the dashboard and file browser for one server, and `server/[id]/view`
   is the full-screen file viewer above the tabs, like `server/[id]/deleted`
-  for Recently deleted.
+  for Recently deleted and `server/[id]/conversion` for video to audio.
+- `src/lib/conversion.ts`: a stored video converts through Expo's streaming
+  fetch, so the MP3 is written to disk as it arrives. A video from the phone
+  goes through React Native's XHR instead, the one client that streams the
+  upload from disk with progress; its MP3 comes back whole.
 - `modules/file-previews`: a local Expo module that grabs video frames
   (`MediaMetadataRetriever` / AVFoundation) and renders PDF pages
   (`PdfRenderer` / PDFKit) for thumbnails and the viewer. Changing it needs a

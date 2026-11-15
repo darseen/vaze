@@ -20,6 +20,7 @@ import { CrashScreen } from "@/components/crash-screen";
 import { Icon } from "@/components/icon";
 import {
   ServerContext,
+  useServer,
   type ServerContextValue,
 } from "@/components/server-context";
 import { SignInForm } from "@/components/sign-in-form";
@@ -191,9 +192,16 @@ function ServerGate({ server }: { server: Server }) {
   );
 }
 
-// the file viewer and Recently deleted open above the tabs, so they cover the tab bar
+// the file viewer, Recently deleted and Conversion open above the tabs, so they cover the tab bar
 function ServerStack() {
+  const { server, vaze } = useServer();
   const stackOptions = useStackOptions();
+  const checkConversion = useLibrary((state) => state.checkConversion);
+
+  // asked up front, so Settings and file sheets offer conversion without a jump
+  useEffect(() => {
+    checkConversion(server.id, vaze);
+  }, [checkConversion, server.id, vaze]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -201,6 +209,10 @@ function ServerStack() {
       <Stack.Screen
         name="deleted"
         options={{ ...stackOptions, headerShown: true }}
+      />
+      <Stack.Screen
+        name="conversion"
+        options={{ ...stackOptions, headerShown: true, title: "Conversion" }}
       />
       <Stack.Screen
         name="view"

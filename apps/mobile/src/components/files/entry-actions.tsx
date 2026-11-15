@@ -1,5 +1,6 @@
 import type { Visibility } from "@darseen/vaze";
 import * as Clipboard from "expo-clipboard";
+import { router } from "expo-router";
 import { useToast } from "heroui-native";
 import { useState } from "react";
 import { useRestore } from "@/hooks/use-restore";
@@ -163,6 +164,15 @@ export function useEntryActions() {
         notifyAfterClose("success", "Link copied");
         return;
       }
+
+      case "convert":
+        if (entry.type !== "file") return;
+        setSheet(null);
+        router.push({
+          pathname: "/server/[id]/conversion",
+          params: { id: server.id, file: entry.file.id },
+        });
+        return;
 
       case "make-private":
       case "make-public":

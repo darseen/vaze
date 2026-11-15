@@ -1,8 +1,9 @@
-import type { File, Stats, StatsAlert } from "@darseen/vaze";
+import type { DeletedItem, File, Stats, StatsAlert } from "@darseen/vaze";
 import { Card, cn } from "heroui-native";
 import {
   ChevronRight,
   CircleX,
+  Folder as FolderIcon,
   Globe,
   HardDrive,
   KeyRound,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
+import { deletedFrom, purgesSoon, removal } from "@/lib/deleted";
 import { fileKind, KIND_INFO, type FileKind } from "@/lib/file-kind";
 import { formatBytes, formatDay, plural, timeAgo } from "@/lib/format";
 import { FileThumb } from "./files/file-thumb";
@@ -25,6 +27,7 @@ type UserStats = NonNullable<Stats["users"]>;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const SHOWN_KEYS = 5;
+const SHOWN_DELETED = 5;
 
 function Section({
   title,
@@ -445,6 +448,98 @@ export function FileListCard({
           </Pressable>
         ))}
       </View>
+    </Section>
+  );
+}
+
+/** The latest of what can still be restored; the server lists newest first. */
+export function DeletedCard({
+  items,
+  onOpen,
+  onOpenItem,
+}: {
+  items: DeletedItem[];
+  onOpen: () => void;
+  onOpenItem: (item: DeletedItem) => void;
+}) {
+  if (items.length === 0) return null;
+  const size = items.reduce((sum, item) => sum + item.size, 0);
+
+  return (
+    <Section
+      title="Recently deleted"
+      description={`${plural(items.length, "item")} you can restore · ${formatBytes(size)}`}
+      aside={
+        <Pressable
+          onPress={onOpen}
+          hitSlop={10}
+          accessibilityRole="link"
+          accessibilityLabel="Open Recently deleted"
+        >
+          <Icon icon={ChevronRight} size={18} className="text-muted" />
+        </Pressable>
+      }
+    >
+      <View className="gap-1">
+        {items.slice(0, SHOWN_DELETED).map((item) => {
+          const kind =
+            item.type === "file"
+              ? KIND_INFO[fileKind(item.name, item.mimeType)]
+              : null;
+
+          return (
+            <Pressable
+              key={item.id}
+              onPress={() => onOpenItem(item)}
+              className="-mx-2 flex-row items-center gap-3 rounded-xl px-2 py-1.5 active:bg-default"
+              accessibilityLabel={`${item.name}, ${removal(item)}`}
+            >
+              {kind ? (
+                <View className="size-9 items-center justify-center rounded-xl bg-default">
+                  <Icon icon={kind.icon} size={18} className="text-muted" />
+                </View>
+              ) : (
+                <View className="size-9 items-center justify-center rounded-xl bg-folder-soft">
+                  <Icon
+                    icon={FolderIcon}
+                    size={18}
+                    filled
+                    className="text-folder"
+                  />
+                </View>
+              )}
+              <View className="flex-1 gap-1">
+                <Text
+                  numberOfLines={1}
+                  className="font-normal text-sm text-foreground"
+                >
+                  {item.name}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  className={cn(
+                    "font-normal text-xs",
+                    purgesSoon(item) ? "text-warning" : "text-muted",
+                  )}
+                >
+                  {deletedFrom(item.key)} · {removal(item)}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+      {items.length > SHOWN_DELETED ? (
+        <Pressable
+          onPress={onOpen}
+          className="-mt-2 active:opacity-70"
+          accessibilityRole="link"
+        >
+          <Text className="text-sm font-medium text-foreground">
+            See all {plural(items.length, "item")}
+          </Text>
+        </Pressable>
+      ) : null}
     </Section>
   );
 }

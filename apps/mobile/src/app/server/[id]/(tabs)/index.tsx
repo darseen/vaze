@@ -19,6 +19,7 @@ import { useEntryActions } from "@/components/files/entry-actions";
 import { Icon } from "@/components/icon";
 import {
   AlertsCard,
+  DeletedCard,
   FileListCard,
   FilesAddedCard,
   folderOf,
@@ -38,7 +39,7 @@ import { hostOf } from "@/lib/server-url";
 import { useLibrary } from "@/stores/library";
 
 export default function OverviewScreen() {
-  const { server, vaze, me } = useServer();
+  const { server, vaze, me, can } = useServer();
   const actions = useEntryActions();
   const muted = useThemeColor("muted");
   const [switching, setSwitching] = useState(false);
@@ -46,10 +47,17 @@ export default function OverviewScreen() {
 
   const stats = useLibrary((state) => state.stats[server.id]);
   const loadStats = useLibrary((state) => state.loadStats);
+  const deleted = useLibrary((state) => state.deleted[server.id]);
+  const loadDeleted = useLibrary((state) => state.loadDeleted);
+  const canReadFiles = can("files:read");
 
   const refresh = useCallback(
-    () => loadStats(server.id, vaze),
-    [loadStats, server.id, vaze],
+    () =>
+      Promise.all([
+        loadStats(server.id, vaze),
+        canReadFiles ? loadDeleted(server.id, vaze) : null,
+      ]),
+    [loadStats, loadDeleted, canReadFiles, server.id, vaze],
   );
 
   useFocusEffect(
@@ -70,6 +78,12 @@ export default function OverviewScreen() {
     pathname: "/server/[id]/settings/keys",
     params: { id: server.id },
   } as const;
+
+  const openDeleted = (item?: string) =>
+    router.push({
+      pathname: "/server/[id]/deleted",
+      params: item ? { id: server.id, item } : { id: server.id },
+    });
 
   const openAlert = (target: AlertTarget) => {
     if (target === "files") router.navigate(filesHref);
@@ -214,6 +228,14 @@ export default function OverviewScreen() {
                   aside: timeAgo(file.createdAt),
                 }))}
                 onOpen={(file) => actions.open({ type: "file", file })}
+              />
+            ) : null}
+
+            {data.files && deleted?.supported && deleted.data ? (
+              <DeletedCard
+                items={deleted.data.items}
+                onOpen={() => openDeleted()}
+                onOpenItem={(item) => openDeleted(item.id)}
               />
             ) : null}
 
