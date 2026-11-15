@@ -35,40 +35,38 @@ const dbPath =
     ? ":memory:"
     : path.join(BASE_DB_PATH, "vaze.db");
 
-// Ensure the directories for the database, uploads, staging and deleted items exist.
-for (const dir of [
-  BASE_DB_PATH,
-  BASE_UPLOADS_PATH,
-  BASE_TMP_PATH,
-  BASE_DELETED_PATH,
-]) {
-  fs.mkdirSync(dir, { recursive: true });
+function openDatabase() {
+  // Ensure the directories for the database, uploads, staging and deleted items exist.
+  for (const dir of [
+    BASE_DB_PATH,
+    BASE_UPLOADS_PATH,
+    BASE_TMP_PATH,
+    BASE_DELETED_PATH,
+  ]) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const sqlite = new Database(dbPath);
+
+  sqlite.pragma("journal_mode = WAL");
+  sqlite.pragma("foreign_keys = ON");
+  // better-sqlite3 is synchronous with a single writer; without a busy timeout
+  // concurrent writes throw SQLITE_BUSY instead of waiting their turn.
+  sqlite.pragma("busy_timeout = 5000");
+  // Safe to relax under WAL: a crash can lose the last commit, never the database.
+  sqlite.pragma("synchronous = NORMAL");
+
+  return sqlite;
 }
 
-const sqlite = new Database(dbPath);
-
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
-// better-sqlite3 is synchronous with a single writer; without a busy timeout
-// concurrent writes throw SQLITE_BUSY instead of waiting their turn.
-sqlite.pragma("busy_timeout = 5000");
-// Safe to relax under WAL: a crash can lose the last commit, never the database.
-sqlite.pragma("synchronous = NORMAL");
+// every Next bundle (proxy, routes, pages) runs this module, so one connection and one boot are shared per process
+const shared = globalThis as typeof globalThis & {
+  __vazeSqlite?: Database.Database;
+};
+const booted = shared.__vazeSqlite !== undefined;
+const sqlite = shared.__vazeSqlite ?? openDatabase();
 
 export const db = drizzle(sqlite, { schema });
-
-migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
-
-// Insert the root uploads folder if it does not already exist.
-db.insert(schema.folders)
-  .values({
-    id: crypto.randomUUID(),
-    name: path.basename(BASE_UPLOADS_PATH),
-    key: "",
-    parentId: null,
-  })
-  .onConflictDoNothing()
-  .run();
 
 // Env vars only seed the settings; after that the dashboard owns them.
 const settingsSeed = {
@@ -81,29 +79,44 @@ const settingsSeed = {
   deletedRetentionDays: DELETED_RETENTION_DAYS,
 };
 
-db.insert(schema.settings)
-  .values({
-    id: SETTINGS_ID,
-    defaultVisibility: DEFAULT_FILE_VISIBILITY,
-    ...settingsSeed,
-  })
-  .onConflictDoNothing()
-  .run();
+function seedDatabase() {
+  migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
 
-// columns added after the row was created start out null
-db.update(schema.settings)
-  .set(
-    Object.fromEntries(
-      (Object.keys(settingsSeed) as (keyof typeof settingsSeed)[]).map(
-        (column) => [
-          column,
-          sql`coalesce(${schema.settings[column]}, ${settingsSeed[column]})`,
-        ],
+  // Insert the root uploads folder if it does not already exist.
+  db.insert(schema.folders)
+    .values({
+      id: crypto.randomUUID(),
+      name: path.basename(BASE_UPLOADS_PATH),
+      key: "",
+      parentId: null,
+    })
+    .onConflictDoNothing()
+    .run();
+
+  db.insert(schema.settings)
+    .values({
+      id: SETTINGS_ID,
+      defaultVisibility: DEFAULT_FILE_VISIBILITY,
+      ...settingsSeed,
+    })
+    .onConflictDoNothing()
+    .run();
+
+  // columns added after the row was created start out null
+  db.update(schema.settings)
+    .set(
+      Object.fromEntries(
+        (Object.keys(settingsSeed) as (keyof typeof settingsSeed)[]).map(
+          (column) => [
+            column,
+            sql`coalesce(${schema.settings[column]}, ${settingsSeed[column]})`,
+          ],
+        ),
       ),
-    ),
-  )
-  .where(eq(schema.settings.id, SETTINGS_ID))
-  .run();
+    )
+    .where(eq(schema.settings.id, SETTINGS_ID))
+    .run();
+}
 
 function getSetting<K extends keyof typeof settingsSeed>(column: K): number {
   const row = db
@@ -179,11 +192,23 @@ function purgeDeleted() {
     .catch((error) => console.error("failed to purge deleted items", error));
 }
 
-clearUploadStaging();
-pruneHistory();
-purgeDeleted();
-
 const HOUR_MS = 60 * 60 * 1000;
-setInterval(pruneHistory, 24 * HOUR_MS).unref();
-// hourly, so an item goes close to when the Recently deleted page says it will
-setInterval(purgeDeleted, HOUR_MS).unref();
+
+if (!booted) {
+  try {
+    seedDatabase();
+  } catch (error) {
+    // left unshared so the next bundle to load retries instead of using a half-migrated database
+    sqlite.close();
+    throw error;
+  }
+  shared.__vazeSqlite = sqlite;
+
+  clearUploadStaging();
+  pruneHistory();
+  purgeDeleted();
+
+  setInterval(pruneHistory, 24 * HOUR_MS).unref();
+  // hourly, so an item goes close to when the Recently deleted page says it will
+  setInterval(purgeDeleted, HOUR_MS).unref();
+}
