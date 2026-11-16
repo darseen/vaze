@@ -1,6 +1,6 @@
+import { fileStream } from "@/lib/file-stream";
 import { NextRequest, NextResponse } from "next/server";
-import fs, { type Stats } from "node:fs";
-import { Readable } from "node:stream";
+import type { Stats } from "node:fs";
 
 export interface Validators {
   etag: string;
@@ -169,37 +169,16 @@ export function streamFileResponse({
   }
 
   const partial = range.type === "ok" ? range : null;
-
-  const nodeStream = partial
-    ? fs.createReadStream(path, { start: partial.start, end: partial.end })
-    : fs.createReadStream(path);
+  const start = partial ? partial.start : 0;
+  const end = partial ? partial.end : stats.size - 1;
 
   if (partial) {
-    responseHeaders["Content-Range"] =
-      `bytes ${partial.start}-${partial.end}/${stats.size}`;
-    responseHeaders["Content-Length"] = String(
-      partial.end - partial.start + 1,
-    );
-  } else {
-    responseHeaders["Content-Length"] = String(stats.size);
+    responseHeaders["Content-Range"] = `bytes ${start}-${end}/${stats.size}`;
   }
+  responseHeaders["Content-Length"] = String(end - start + 1);
 
-  const body = Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
-
-  return new NextResponse(
-    onBytes
-      ? body.pipeThrough(
-          new TransformStream<Uint8Array, Uint8Array>({
-            transform(chunk, controller) {
-              onBytes(chunk.byteLength);
-              controller.enqueue(chunk);
-            },
-          }),
-        )
-      : body,
-    {
-      status: partial ? 206 : 200,
-      headers: responseHeaders,
-    },
-  );
+  return new NextResponse(fileStream(path, start, end, onBytes), {
+    status: partial ? 206 : 200,
+    headers: responseHeaders,
+  });
 }
