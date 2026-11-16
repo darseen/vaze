@@ -3,6 +3,7 @@ export const siteDescription =
   "Vaze is a self-hosted file storage and hosting server with a web dashboard, an Android app and an SDK.";
 export const docsRoute = "/docs";
 export const privacyRoute = "/privacy";
+export const benchmarksRoute = "/benchmarks";
 export const docsImageRoute = "/og/docs";
 export const docsContentRoute = "/llms.mdx/docs";
 

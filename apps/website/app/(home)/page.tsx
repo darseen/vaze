@@ -31,6 +31,7 @@ import {
 import {
   absoluteUrl,
   appName,
+  benchmarksRoute,
   docsRoute,
   installCommand,
   npmUrl,
@@ -499,6 +500,9 @@ export default async function HomePage() {
           <nav className="flex gap-6" aria-label="Footer">
             <Link href={docsRoute} className="hover:text-fd-foreground">
               Docs
+            </Link>
+            <Link href={benchmarksRoute} className="hover:text-fd-foreground">
+              Benchmarks
             </Link>
             <Link href={privacyRoute} className="hover:text-fd-foreground">
               Privacy

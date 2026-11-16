@@ -27,6 +27,8 @@ Notable routes:
 - `/`: the landing page. Its screenshots live in
   [`public/screenshots`](./public/screenshots), one light and one dark WebP
   per screen, shown to match the visitor's theme.
+- `/benchmarks`: Vaze and Seafile measured on the same machine. The numbers
+  live in [`lib/benchmarks.ts`](./lib/benchmarks.ts).
 - `/privacy`: the privacy policy, linked from the Google Play listing of the
   mobile app. Update its effective date whenever it changes.
 - `/docs` — the documentation pages.

@@ -6,16 +6,23 @@
 :root {
   --vz-gold: #9a6c12;
   --vz-gold-soft: #f7edd6;
+  /* benchmark marks: Vaze in gold, the server it is compared with in gray */
+  --vz-chart-vaze: #9a6c12;
+  --vz-chart-other: #a3a29c;
 }
 
 .dark {
   --vz-gold: #e3b341;
   --vz-gold-soft: #2b2312;
+  --vz-chart-vaze: #b48722;
+  --vz-chart-other: #6f6e69;
 }
 
 @theme inline {
   --color-gold: var(--vz-gold);
   --color-gold-soft: var(--vz-gold-soft);
+  --color-chart-vaze: var(--vz-chart-vaze);
+  --color-chart-other: var(--vz-chart-other);
   --font-display: var(--font-display-face), ui-sans-serif, system-ui,
     sans-serif;
 }
