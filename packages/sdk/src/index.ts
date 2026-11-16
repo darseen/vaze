@@ -129,6 +129,8 @@ export type {
   ConversionSource,
   DeleteOptions,
   FileReference,
+  ImageConversionOptions,
+  ImageFormat,
   ListOptions,
   MoveDestination,
   NewKeyOptions,

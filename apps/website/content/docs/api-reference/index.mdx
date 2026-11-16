@@ -145,9 +145,9 @@ Keys created before key scopes existed carry all three file scopes.
 ## Rate limits
 
 Requests are limited per client IP: 300/minute across `/api`, 600/minute
-on the public hosting endpoint, and 30/minute for
-[conversion](/docs/api-reference/conversion). Exceeding any of them responds
-`429`.
+on the public hosting endpoint, and for
+[conversion](/docs/api-reference/conversion), 30/minute for video and
+60/minute for images. Exceeding any of them responds `429`.
 
 ## List query parameters
 
@@ -200,7 +200,7 @@ offer the right form:
   />
   <Card
     title="Conversion"
-    description="Extract the audio of a video as an MP3."
+    description="Extract the audio of a video as an MP3, and convert and resize images."
     href="/docs/api-reference/conversion"
   />
   <Card

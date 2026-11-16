@@ -239,6 +239,17 @@ if (data) {
 }
 ```
 
+`image(source, options)` Convert an image, HEIC photos included, to WebP, JPG, PNG or AVIF. Needs a Vaze 4.6.0 server. Options are `format` (`"webp"`, `"jpeg"`, `"png"` or `"avif"`), `quality` (1 to 100, ignored for PNG), and `width` and `height`, a box the image is fitted inside without being made larger. The result is upright and has no metadata such as the camera or the location.
+
+```ts
+const { data, error } = await vaze.conversion.image(
+  { id: "file-id-123" },
+  { format: "webp", width: 1920, height: 1920 },
+);
+
+if (data) console.log(data.filename); // e.g. "photo.webp"
+```
+
 Keys API Manage the caller's API keys via `vaze.keys`. These calls need a client that acts as a signed-in user (`headers`) holding `api-keys:manage`; a client built with an API key gets a `403`.
 
 `getAll()` List the caller's keys, newest first.

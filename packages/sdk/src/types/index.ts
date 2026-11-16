@@ -49,6 +49,17 @@ export type FileReference = {
 /** A stored file by its id, or a file from the caller's device. */
 export type ConversionSource = { id: string } | { file: File | FileReference };
 
+export type ImageFormat = "webp" | "jpeg" | "png" | "avif";
+
+export type ImageConversionOptions = {
+  format: ImageFormat;
+  /** 1 to 100. Defaults to 80, or 50 for AVIF; PNG ignores it. */
+  quality?: number;
+  /** Fits the image inside `width` × `height`; only an SVG is ever made larger. */
+  width?: number;
+  height?: number;
+};
+
 export type ListOptions = {
   limit?: number;
   offset?: number;

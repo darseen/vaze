@@ -1,11 +1,12 @@
 ---
 title: Conversion
-description: Extract the audio of a video as an MP3
+description: Extract the audio of a video as an MP3, and convert and resize images
 icon: Recycle
 ---
 
-Conversion runs on the server with ffmpeg, which the Docker image includes. The
-result streams back as the response and is not stored, so save it, or
+Conversion runs on the server: ffmpeg for video, and libvips and libheif for
+images, all of which the Docker image includes. The result comes back as the
+response and is not stored, so save it, or
 [upload](/docs/api-reference/files#upload-files) it, if you want to keep it.
 
 Converting needs the `files:read` scope. It works with an [`API-Key`
@@ -56,5 +57,66 @@ so are MP3, WAV, FLAC, AAC and Ogg audio files.
 | `507`  | Not enough free space on the volume to hold the uploaded file meanwhile  |
 
 The errors use the usual [response envelope](/docs/api-reference#response-envelope).
-The server runs a few conversions at a time, depending on its CPU cores, and
-each client may start 30 per minute.
+The server runs a few video conversions at a time, depending on its CPU cores,
+and each client may start 30 per minute.
+
+## Images
+
+```
+POST /api/conversion/image
+```
+
+Converts an image to WebP, JPG, PNG or AVIF, and resizes it if you ask. Needs
+Vaze 4.6.0 or later. Send a stored file by its id as JSON, with the options
+beside it:
+
+```json
+{ "fileId": "<id>", "format": "webp", "quality": 80, "width": 1920, "height": 1920 }
+```
+
+Or send a file from your device as `multipart/form-data`, with the options as
+fields and one file part. It is stored only until the conversion ends, and may
+be as large as `maxUploadSize`.
+
+```bash
+curl -X POST https://vaze.example.com/api/conversion/image \
+  -H "API-Key: $VAZE_API_KEY" \
+  -F "format=webp" \
+  -F "width=1920" \
+  -F "height=1920" \
+  -F "file=@photo.heic" \
+  -o photo.webp
+```
+
+| Option            | Description                                                                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format`          | Required. `webp`, `jpeg` (or `jpg`), `png` or `avif`                                                                                         |
+| `quality`         | 1 to 100. Defaults to 80, or 50 for AVIF, which looks as good at a lower number. PNG is lossless and ignores it                              |
+| `width`, `height` | Up to 16384 each. The image is fitted inside this box, keeping its shape, and never made larger than it is. Give one to limit only that side |
+
+The response is the image itself, with its `Content-Type`, a
+`Content-Length`, and a `Content-Disposition` naming it after the original,
+e.g. `photo.webp`. `X-Image-Width` and `X-Image-Height` give its size in
+pixels.
+
+Every image comes out upright and in sRGB, without metadata such as the camera,
+when it was taken or where. An animated GIF or WebP stays animated as WebP,
+while the other formats take its first frame. JPG has no transparency, so
+transparent areas turn white. SVGs are drawn at the size asked for, so they
+stay sharp when made larger.
+
+JPEG, PNG, WebP, AVIF, GIF, TIFF, SVG and HEIC images can be converted,
+including the HEIC photos phones take.
+
+| Status | Meaning                                                                         |
+| ------ | ------------------------------------------------------------------------------- |
+| `400`  | No `fileId`, an option that isn't valid, or a form with more than one file      |
+| `404`  | No file with that id                                                            |
+| `413`  | The uploaded file is larger than `maxUploadSize`                                |
+| `422`  | Not an image that can be read, a damaged one, or too large for the format       |
+| `503`  | Too many images are waiting to be converted; retry after `Retry-After`          |
+| `507`  | Not enough free space on the volume to hold the uploaded file meanwhile         |
+
+The server converts one image at a time and lets a few more wait their turn,
+so a handful of requests at once all succeed. Each client may start 60 per
+minute.

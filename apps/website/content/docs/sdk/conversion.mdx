@@ -1,12 +1,12 @@
 ---
 title: Conversion
-description: Extract the audio of a video as an MP3
+description: Extract the audio of a video as an MP3, and convert and resize images
 icon: Recycle
 ---
 
 `vaze.conversion` converts files on the server, which needs Vaze 4.5.0 or
-later. Converting needs `files:read`, and every method returns the [response
-envelope](/docs/sdk#response-shape).
+later, and 4.6.0 for images. Converting needs `files:read`, and every method
+returns the [response envelope](/docs/sdk#response-shape).
 
 ## Video to audio
 
@@ -48,3 +48,35 @@ const response = await fetch(vaze.conversion.videoToAudioUrl(), {
 
 See [the endpoint](/docs/api-reference/conversion) for the request formats and
 the `X-Content-Duration` header that progress can be measured against.
+
+## Images
+
+`image(source, options)` converts an image to WebP, JPG, PNG or AVIF. The
+source is a stored file's `id` or a `file` from your device, as for video:
+
+```ts
+const { data, error } = await vaze.conversion.image(
+  { id: "file-id" },
+  { format: "webp", width: 1920, height: 1920 },
+);
+
+if (data) {
+  const { blob, filename } = data; // e.g. "photo.webp"
+  await fs.writeFile(filename ?? "image.webp", Buffer.from(await blob.arrayBuffer()));
+}
+```
+
+| Option            | Description                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| `format`          | `"webp"`, `"jpeg"`, `"png"` or `"avif"`                                                             |
+| `quality`         | 1 to 100. Defaults to 80, or 50 for AVIF; PNG ignores it                                            |
+| `width`, `height` | Fits the image inside this box, keeping its shape. It is never made larger, except an SVG           |
+
+HEIC photos from phones convert like any other image. Every result comes out
+upright, without metadata such as the camera or the location. A file that
+isn't an image that can be read sets `error` with status `422`.
+
+To read the result's size in pixels from the `X-Image-Width` and
+`X-Image-Height` headers, post to `vaze.conversion.imageUrl()` yourself with
+[`authHeaders()`](/docs/sdk#fetching-urls-yourself). See [the
+endpoint](/docs/api-reference/conversion#images) for everything it accepts.
