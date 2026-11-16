@@ -34,8 +34,8 @@ RUN pnpm turbo run build
 FROM base AS runner
 
 RUN apk update
-# ffmpeg and ffprobe power video to audio conversion; updated with every image rebuild
-RUN apk add --no-cache openssl ffmpeg
+# ffmpeg and ffprobe power video to audio conversion, and libheif's heif-dec reads HEIC images; updated with every image rebuild
+RUN apk add --no-cache openssl ffmpeg libheif-tools
 
 WORKDIR /app
 
