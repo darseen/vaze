@@ -174,6 +174,15 @@ export function useEntryActions() {
         });
         return;
 
+      case "convert-image":
+        if (entry.type !== "file") return;
+        setSheet(null);
+        router.push({
+          pathname: "/server/[id]/conversion",
+          params: { id: server.id, image: entry.file.id },
+        });
+        return;
+
       case "make-private":
       case "make-public":
         return setVisibility(

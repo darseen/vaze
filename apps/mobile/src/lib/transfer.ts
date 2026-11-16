@@ -188,27 +188,31 @@ export function discardPicked(uri: string) {
 
 export type PickedFile = FileReference & { size: number };
 
-/** One video from the gallery or from the device's files, or null if none was picked. */
-export async function pickVideo(
+/** One video or image from the gallery or from the device's files, or null if none was picked. */
+export async function pickOne(
+  kind: "video" | "image",
   from: "media" | "files",
 ): Promise<PickedFile | null> {
   if (from === "media") {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["videos"],
+      mediaTypes: [kind === "video" ? "videos" : "images"],
       quality: 1,
+      // iOS would otherwise hand over a HEIC photo already turned into a JPG
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
     });
     const asset = result.canceled ? null : result.assets[0];
     if (!asset) return null;
     return {
       uri: asset.uri,
       name: asset.fileName ?? nameFromUri(asset.uri),
-      type: asset.mimeType ?? "video/mp4",
+      type: asset.mimeType ?? (kind === "video" ? "video/mp4" : "image/jpeg"),
       size: asset.fileSize ?? new DeviceFile(asset.uri).size ?? 0,
     };
   }
 
   const result = await DocumentPicker.getDocumentAsync({
-    type: "video/*",
+    type: kind === "video" ? "video/*" : "image/*",
     copyToCacheDirectory: true,
   });
   const asset = result.canceled ? null : result.assets[0];

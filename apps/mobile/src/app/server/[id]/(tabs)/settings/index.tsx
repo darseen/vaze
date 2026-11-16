@@ -48,7 +48,7 @@ export default function SettingsScreen() {
   const { server, vaze, me, can, signOut } = useServer();
   const deleted = useLibrary((state) => state.deleted[server.id]);
   const loadDeleted = useLibrary((state) => state.loadDeleted);
-  const converts = useLibrary((state) => state.conversion[server.id] === true);
+  const conversion = useLibrary((state) => state.conversion[server.id]);
   const theme = usePreferences((state) => state.theme);
   const setTheme = usePreferences((state) => state.setTheme);
   const [switching, setSwitching] = useState(false);
@@ -156,8 +156,11 @@ export default function SettingsScreen() {
             {
               label: "Conversion",
               icon: Recycle,
-              description: "Extract the audio of a video as an MP3",
-              hidden: !can("files:read") || !converts,
+              description: conversion?.image
+                ? "Extract audio from videos, and convert images"
+                : "Extract the audio of a video as an MP3",
+              hidden:
+                !can("files:read") || !(conversion?.video || conversion?.image),
               onPress: open("conversion"),
             },
           ]}

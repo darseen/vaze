@@ -4,7 +4,7 @@ import { ListGroup, Separator, Spinner } from "heroui-native";
 import { ChevronLeft, Folder as FolderIcon } from "lucide-react-native";
 import { Fragment, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { isVideo } from "@/lib/conversion";
+import { isConvertibleImage, isVideo } from "@/lib/conversion";
 import { formatBytes } from "@/lib/format";
 import { folderCacheKey, parentKey, useLibrary } from "@/stores/library";
 import { FileThumb } from "../files/file-thumb";
@@ -12,7 +12,9 @@ import { Icon } from "../icon";
 import { useServer } from "../server-context";
 import { Sheet } from "../sheet";
 
-type VideoPickerSheetProps = {
+type FilePickerSheetProps = {
+  /** Which files can be picked. */
+  kind: "video" | "image";
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (file: File) => void;
@@ -21,12 +23,13 @@ type VideoPickerSheetProps = {
 const byName = (a: { name: string }, b: { name: string }) =>
   a.name.localeCompare(b.name);
 
-/** Browses the server's folders and picks one of its videos, like the web's picker. */
-export function VideoPickerSheet({
+/** Browses the server's folders and picks one of its videos or images, like the web's picker. */
+export function FilePickerSheet({
+  kind,
   isOpen,
   onOpenChange,
   onSelect,
-}: VideoPickerSheetProps) {
+}: FilePickerSheetProps) {
   const { server, vaze } = useServer();
   const [browseKey, setBrowseKey] = useState("");
   const contents = useLibrary(
@@ -40,10 +43,12 @@ export function VideoPickerSheet({
 
   const folders = [...(contents?.data?.folders ?? [])].sort(byName);
   const files = contents?.data?.files ?? [];
-  const videos = files.filter(isVideo).sort(byName);
+  const matches = files
+    .filter(kind === "video" ? isVideo : isConvertibleImage)
+    .sort(byName);
   const rows = [
     ...folders.map((folder) => ({ type: "folder" as const, folder })),
-    ...videos.map((file) => ({ type: "file" as const, file })),
+    ...matches.map((file) => ({ type: "file" as const, file })),
   ];
 
   return (
@@ -51,7 +56,7 @@ export function VideoPickerSheet({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Choose from Vaze"
-      description="Open a folder to look inside, then pick a video."
+      description={`Open a folder to look inside, then pick ${kind === "video" ? "a video" : "an image"}.`}
       scrollable
     >
       <View className="flex-1 gap-3">
@@ -122,7 +127,7 @@ export function VideoPickerSheet({
           ) : contents?.data ? (
             <Text className="font-normal py-6 text-center text-sm text-muted">
               {files.length > 0
-                ? "No videos in this folder"
+                ? `No ${kind}s in this folder`
                 : "This folder is empty"}
             </Text>
           ) : contents?.error ? (

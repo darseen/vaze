@@ -1,7 +1,7 @@
 import type Vaze from "@darseen/vaze";
 import type { DeletedItem, File, Folder, Stats } from "@darseen/vaze";
 import { create } from "zustand";
-import { supportsConversion } from "@/lib/conversion";
+import { supportedConversions, type ConversionSupport } from "@/lib/conversion";
 
 type Loadable<T> = { data: T | null; loading: boolean; error: string | null };
 
@@ -14,8 +14,8 @@ type LibraryState = {
   stats: Record<string, Loadable<Stats>>;
   /** `supported` is false on servers that predate Recently deleted. */
   deleted: Record<string, Loadable<DeletedContents> & { supported?: boolean }>;
-  /** Whether each server converts files, once it has answered. */
-  conversion: Record<string, boolean>;
+  /** Which conversions each server offers, once it has answered. */
+  conversion: Record<string, ConversionSupport>;
   loadFolder: (serverId: string, vaze: Vaze, key: string) => Promise<void>;
   loadStats: (serverId: string, vaze: Vaze) => Promise<void>;
   loadDeleted: (serverId: string, vaze: Vaze) => Promise<void>;
@@ -99,7 +99,7 @@ export const useLibrary = create<LibraryState>()((set) => ({
   },
 
   checkConversion: async (serverId, vaze) => {
-    const supported = await supportsConversion(vaze);
+    const supported = await supportedConversions(vaze);
     if (supported === null) return;
     set((state) => ({
       conversion: { ...state.conversion, [serverId]: supported },
