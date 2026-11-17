@@ -129,6 +129,7 @@ export type {
   ConversionSource,
   DeleteOptions,
   FileReference,
+  HostedImageWidth,
   ImageConversionOptions,
   ImageFormat,
   ListOptions,

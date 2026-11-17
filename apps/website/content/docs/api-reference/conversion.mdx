@@ -108,6 +108,10 @@ stay sharp when made larger.
 JPEG, PNG, WebP, AVIF, GIF, TIFF, SVG and HEIC images can be converted,
 including the HEIC photos phones take.
 
+To embed an image at a smaller size on a page, add `w` and `format` to its
+hosting URL instead, which keeps each copy on disk after the first request. See
+[Resize and convert images](/docs/api-reference/files#resize-and-convert-images).
+
 | Status | Meaning                                                                         |
 | ------ | ------------------------------------------------------------------------------- |
 | `400`  | No `fileId`, an option that isn't valid, or a form with more than one file      |

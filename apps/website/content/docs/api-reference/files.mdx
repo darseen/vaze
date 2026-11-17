@@ -242,6 +242,8 @@ JSON body:
 | `id`        | string | The file id. Either this or `key` is required.                      |
 | `key`       | string | The object key. Either this or `id` is required.                    |
 | `expiresIn` | number | Seconds the link stays valid. Defaults to the instance's default signed link lifetime and is clamped to its maximum, both set under **Settings**. |
+| `width`     | number | Sign a link to a [resized copy](#resize-and-convert-images) of an image, one of the widths listed there. |
+| `format`    | string | Sign a link to a [converted copy](#resize-and-convert-images) of an image: `webp`, `jpeg`, `png` or `avif`. |
 
 ```json
 {
@@ -255,6 +257,11 @@ JSON body:
 
 Like `url` on a file object, the returned `url` is relative to your instance's
 base URL. Signing a public file is allowed; the link simply also works unsigned.
+
+With `width` or `format`, the link carries `w` and `format` and the signature
+covers them, so it opens that copy and nothing else: not another size, and not
+the original. A link signed without them opens only the original. Responds `400`
+for a width or format that isn't offered, or for a file that isn't an image.
 
 <Callout type="warn">
   Signatures are stateless, so an individual link cannot be revoked. Rotating
@@ -421,6 +428,55 @@ session. See [Stats](/docs/api-reference/account#hosting-traffic).
   under **Settings** in the dashboard, for anything you don't want reachable by URL.
 </Callout>
 
+## Resize and convert images
+
+```
+GET /api/hosting/<object-key>?w=800&format=webp
+```
+
+Add `w`, `format` or both to an image's hosting URL to get a copy of it at that
+width or in that format. Needs Vaze 4.7.0 or later.
+
+```html
+<img
+  src="https://files.example.com/api/hosting/projects/demo/photo.jpg?w=800&format=webp"
+  srcset="
+    https://files.example.com/api/hosting/projects/demo/photo.jpg?w=640&format=webp   640w,
+    https://files.example.com/api/hosting/projects/demo/photo.jpg?w=1280&format=webp 1280w
+  "
+/>
+```
+
+| Param    | Description |
+| -------- | ----------- |
+| `w`      | One of `64`, `128`, `256`, `320`, `480`, `640`, `800`, `1024`, `1280`, `1600`, `1920` or `2560`. The height follows the image's shape, and an image is never made larger than it is. Without `w` the copy keeps the image's own size. |
+| `format` | `webp`, `jpeg` (or `jpg`), `png` or `avif`. Without it, JPG, PNG, WebP and AVIF keep their format and other images become WebP. |
+
+Only these widths are offered because the route is public and every copy is
+kept on disk: open-ended sizes would let anyone fill it with copies of one
+image. Any other width or format responds `400`, and so does a file that isn't
+an image. Other params, such as `download=1`, work as on the original.
+
+Copies are made as [image conversion](/docs/api-reference/conversion#images)
+makes them: upright, in sRGB and without metadata such as the camera or the
+location. An animated GIF or WebP stays animated as WebP, and an SVG is drawn
+at the width asked for.
+
+The first request for a copy renders it, which can take a few seconds for a
+large photo, and later ones read it from disk. A copy is kept until its file is
+deleted for good, so it survives a stay in Recently deleted. Rendering shares
+the image conversion queue, and responds `503` with `Retry-After` when that is
+full. Copies that are not on disk yet are limited to 60 a minute per client IP,
+`429` beyond that; copies already on disk count only against the hosting
+limit.
+
+A **private** image needs its own signed link for each copy: pass the same
+`width` and `format` to [`POST /api/files/sign`](#sign-a-url). Callers with an
+`API-Key` header or a dashboard session can ask for any copy.
+
+Each copy has its own `ETag` and `Last-Modified`, and is served with ranges
+and conditional requests as described below.
+
 ## Range requests and caching
 
 Both `/api/hosting/<key>` and `/api/files/download/<id>` are range-aware and
@@ -457,6 +513,10 @@ curl -H 'If-None-Match: "a-6899f2c1"' \
   https://files.example.com/api/hosting/projects/demo/photo.png
 # → 304 Not Modified, no body
 ```
+
+A resized or converted copy's `ETag` comes from the copy itself and ends with
+its name, e.g. `"8984-6afc9c3b-w800.webp"`, so no two copies, nor a copy and
+its original, share one.
 
 `If-None-Match` takes precedence over `If-Modified-Since` when both are sent.
 `If-Range` is honoured with strong comparison: if the validator is stale, the

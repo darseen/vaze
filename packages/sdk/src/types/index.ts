@@ -67,11 +67,22 @@ export type ListOptions = {
   orderDirection?: "ASC" | "DESC";
 };
 
+/** The widths a hosting URL can resize an image to (`?w=`). */
+export type HostedImageWidth =
+  64 | 128 | 256 | 320 | 480 | 640 | 800 | 1024 | 1280 | 1600 | 1920 | 2560;
+
 export type SignOptions = {
   id?: string;
   key?: string;
   /** Seconds the link stays valid. Capped server-side, default one hour. */
   expiresIn?: number;
+  /** Sign a link to the image resized to this width, never made larger. */
+  width?: HostedImageWidth;
+  /**
+   * Sign a link to the image in this format. Without one, a resize keeps JPG,
+   * PNG, WebP and AVIF in their own format and makes other images WebP.
+   */
+  format?: ImageFormat;
 };
 
 export type SignedUrl = {

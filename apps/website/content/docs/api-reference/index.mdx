@@ -145,9 +145,10 @@ Keys created before key scopes existed carry all three file scopes.
 ## Rate limits
 
 Requests are limited per client IP: 300/minute across `/api`, 600/minute
-on the public hosting endpoint, and for
-[conversion](/docs/api-reference/conversion), 30/minute for video and
-60/minute for images. Exceeding any of them responds `429`.
+on the public hosting endpoint, of which 60/minute may render a
+[resized image](/docs/api-reference/files#resize-and-convert-images) not yet on
+disk, and for [conversion](/docs/api-reference/conversion), 30/minute for video
+and 60/minute for images. Exceeding any of them responds `429`.
 
 ## List query parameters
 

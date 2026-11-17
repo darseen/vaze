@@ -218,7 +218,10 @@ export default class Files extends Base {
     };
   }
 
-  /** Mint a time-limited URL that reads a file without an API key. */
+  /**
+   * Mint a time-limited URL that reads a file without an API key. With a
+   * `width` or `format`, it reads that resized copy of an image, and only that.
+   */
   public async sign(options: SignOptions) {
     const { data, error } = await this.request<SignedUrl>(
       "POST",

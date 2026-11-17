@@ -277,6 +277,24 @@ const { data, error } = await vaze.files.sign({
 default signed link lifetime and is capped at its maximum, both set under
 **Settings** in the dashboard.
 
+For a private image, pass `width`, `format` or both to sign a link to a
+[resized or converted copy](/docs/api-reference/files#resize-and-convert-images).
+The signature covers them, so the link opens that copy only, never another size
+or the original. `width` is typed as `HostedImageWidth`, the widths a hosting
+URL offers. Needs Vaze 4.7.0 or later.
+
+```ts
+const { data } = await vaze.files.sign({
+  id: "file-id",
+  width: 800,
+  format: "webp",
+});
+
+// data.url => ".../api/hosting/photos/beach.jpg?w=800&format=webp&exp=...&sig=..."
+```
+
+A public image needs no signing: add `?w=800&format=webp` to its `url`.
+
 <Callout type="warn">
   Signed links cannot be revoked individually — they are stateless signatures,
   not stored grants. Prefer short lifetimes. Rotating `AUTH_SECRET` invalidates
