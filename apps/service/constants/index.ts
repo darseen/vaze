@@ -15,6 +15,11 @@ export const BASE_UPLOADS_PATH = path.join(BASE_DATA_PATH, "uploads");
 export const BASE_TMP_PATH = path.join(BASE_DATA_PATH, "tmp");
 // Dashboard previews of images, one per file id, rendered on first view.
 export const BASE_THUMBNAILS_PATH = path.join(BASE_DATA_PATH, "thumbnails");
+// Resized and converted copies that hosting URLs ask for, one folder per file id.
+export const BASE_HOSTED_IMAGES_PATH = path.join(
+  BASE_DATA_PATH,
+  "hosted-images",
+);
 // Deleted items wait here until purged, on the uploads filesystem so moves are renames.
 export const BASE_DELETED_PATH = path.join(BASE_DATA_PATH, ".deleted");
 

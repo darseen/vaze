@@ -6,6 +6,7 @@ import {
 import { keyTaken, type Tx } from "@/app/api/_utils/move";
 import { BASE_DELETED_PATH } from "@/constants";
 import { db } from "@/db";
+import { removeHostedImages } from "@/lib/hosted-images";
 import { getLimits } from "@/lib/settings";
 import { removeThumbnails } from "@/lib/thumbnails";
 import { files, folders, type File, type Folder } from "@repo/db";
@@ -26,6 +27,11 @@ const OK: Outcome = { error: null };
 
 function fail(message: string, status: number): Outcome {
   return { error: { message, status } };
+}
+
+/** Thumbnails and hosted image copies stay while a file can be restored. */
+async function removeCopies(fileIds: string[]) {
+  await Promise.all([removeThumbnails(fileIds), removeHostedImages(fileIds)]);
 }
 
 // SQLite caps bound parameters per statement
@@ -172,7 +178,7 @@ export async function deleteFile(
     db.delete(files)
       .where(and(eq(files.id, file.id), isNull(files.deletedAt)))
       .run();
-    await removeThumbnails([file.id]);
+    await removeCopies([file.id]);
     return;
   }
 
@@ -228,7 +234,7 @@ export async function deleteFolder(
       tx.delete(folders).where(eq(folders.id, folder.id)).run();
       return cascaded;
     });
-    await removeThumbnails(fileIds);
+    await removeCopies(fileIds);
     return;
   }
 
@@ -431,7 +437,7 @@ async function purgeRoot(root: Root) {
   await fs
     .rm(deletedPath(id), { recursive: true, force: true })
     .catch((error) => console.error("failed to remove a purged item", error));
-  await removeThumbnails(fileIds);
+  await removeCopies(fileIds);
 }
 
 /** Delete an item in Recently deleted for good, before its time is up. */

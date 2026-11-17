@@ -1,8 +1,11 @@
 import { keyToUrl } from "@/app/api/_utils";
+import { transformParams, type ImageTransform } from "@/lib/image-transform";
 import { getLimits } from "@/lib/settings";
 import crypto from "node:crypto";
 
 const VERSION = "v1";
+// a resize signs under its own first line, so no signature verifies on both sides
+const IMAGE_VERSION = "v1-image";
 const INFO = "vaze-presign-v1";
 
 let cachedSecret: Buffer | null = null;
@@ -28,11 +31,23 @@ function signingSecret(): Buffer {
  * Sign the *decoded* key. The hosting route decodes percent-encoding before
  * looking a file up, so signing the encoded form would let a re-encoding verify
  * against a different key than the one served.
+ *
+ * A `transform` is covered too, so a link to one size can't be edited into
+ * another, or into the original. The key goes last because it is the only
+ * part that can hold a newline.
  */
-export function signKey(key: string, expiresAt: number): string {
+export function signKey(
+  key: string,
+  expiresAt: number,
+  transform: ImageTransform | null = null,
+): string {
+  const payload = transform
+    ? `${IMAGE_VERSION}\n${transformParams(transform)}\n${expiresAt}\n${key}`
+    : `${VERSION}\n${key}\n${expiresAt}`;
+
   return crypto
     .createHmac("sha256", signingSecret())
-    .update(`${VERSION}\n${key}\n${expiresAt}`)
+    .update(payload)
     .digest("base64url");
 }
 
@@ -40,6 +55,7 @@ export function verifySignature(
   key: string,
   exp: string | null,
   signature: string | null,
+  transform: ImageTransform | null = null,
 ): boolean {
   if (!exp || !signature) return false;
 
@@ -49,7 +65,7 @@ export function verifySignature(
 
   let expected: string;
   try {
-    expected = signKey(key, expiresAt);
+    expected = signKey(key, expiresAt, transform);
   } catch (error) {
     console.error("failed to verify a signed url", error);
     return false;
@@ -65,10 +81,11 @@ export function verifySignature(
   return crypto.timingSafeEqual(provided, digest);
 }
 
-/** Mint a relative, time-limited hosting URL for a key. */
+/** Mint a relative, time-limited hosting URL for a key, resized if asked. */
 export function buildSignedUrl(
   key: string,
   ttlSeconds?: number,
+  transform: ImageTransform | null = null,
 ): { url: string; expiresAt: string } {
   const { defaultPresignTtl, maxPresignTtl } = getLimits();
   const ttl = Math.min(
@@ -77,10 +94,9 @@ export function buildSignedUrl(
   );
   const expiresAt = Math.floor(Date.now() / 1000) + ttl;
 
-  const params = new URLSearchParams({
-    exp: String(expiresAt),
-    sig: signKey(key, expiresAt),
-  });
+  const params = transform ? transformParams(transform) : new URLSearchParams();
+  params.set("exp", String(expiresAt));
+  params.set("sig", signKey(key, expiresAt, transform));
 
   return {
     url: `${keyToUrl(key)}?${params}`,

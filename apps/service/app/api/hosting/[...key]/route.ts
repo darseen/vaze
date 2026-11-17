@@ -1,10 +1,22 @@
 import { db } from "@/db";
+import { ConversionError } from "@/lib/conversion";
+import { findCachedImage, renderImage, variantName } from "@/lib/hosted-images";
 import { countBytes, countNotFound, countServed } from "@/lib/hosting-traffic";
 import { streamFileResponse } from "@/lib/http-cache";
+import {
+  outputFormat,
+  parseImageTransform,
+  type ImageTransform,
+} from "@/lib/image-transform";
 import { verifySignature } from "@/lib/presign";
 import { getLimits } from "@/lib/settings";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import { files as filesTable } from "@repo/db";
+import {
+  IMAGE_FORMAT_INFO,
+  isConvertibleImage,
+  toImageName,
+} from "@/utils/conversion";
+import { files as filesTable, type File } from "@repo/db";
 import { getSessionCookie } from "better-auth/cookies";
 import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
@@ -24,12 +36,17 @@ const SECURITY_HEADERS = {
   "Access-Control-Allow-Origin": "*",
 };
 
-function notFound() {
+function jsonError(message: string, status: number, retryAfter?: number) {
   return NextResponse.json(
-    { data: null, error: { message: "File not found" } },
-    { status: 404 },
+    { data: null, error: { message } },
+    {
+      status,
+      headers: retryAfter ? { "Retry-After": String(retryAfter) } : undefined,
+    },
   );
 }
+
+const notFound = () => jsonError("File not found", 404);
 
 /**
  * Traffic counts what visitors and other apps pull. A request carrying a
@@ -46,13 +63,71 @@ function isTracked(request: NextRequest): boolean {
 async function canReadPrivate(
   request: NextRequest,
   key: string,
+  transform: ImageTransform | null,
 ): Promise<boolean> {
   const params = request.nextUrl.searchParams;
 
-  if (verifySignature(key, params.get("exp"), params.get("sig"))) return true;
+  if (verifySignature(key, params.get("exp"), params.get("sig"), transform)) {
+    return true;
+  }
 
   const { error } = await authorizeRequest(request, { scope: "files:read" });
   return !error;
+}
+
+/** What a response sends: the file itself, or a copy of it. */
+interface Body {
+  path: string;
+  stats: Stats;
+  mimeType: string;
+  name: string;
+  /** Names a resized or converted copy, whose ETag it marks. */
+  variant?: string;
+}
+
+/** The copy a transform asks for, rendered first when it isn't cached, or the error to send. */
+async function imageCopy(
+  request: NextRequest,
+  file: File,
+  storagePath: string,
+  transform: ImageTransform,
+): Promise<Body | NextResponse> {
+  if (!isConvertibleImage(file)) {
+    return jsonError("Only images can be resized or converted", 400);
+  }
+
+  const variant = {
+    width: transform.width,
+    format: outputFormat(transform, file.mimeType),
+  };
+
+  let copy = await findCachedImage(file.id, variant);
+  if (!copy) {
+    // rendering costs seconds of CPU where a cached copy costs one read
+    const renders = rateLimit("hosting-render", clientIp(request), {
+      limit: 60,
+      windowMs: 60_000,
+    });
+    if (!renders.ok) {
+      return jsonError("Too many requests", 429, renders.retryAfter);
+    }
+
+    try {
+      copy = await renderImage(file.id, storagePath, variant);
+    } catch (error) {
+      if (!(error instanceof ConversionError)) throw error;
+      const retryAfter = error.status === 503 ? 10 : undefined;
+      return jsonError(error.message, error.status, retryAfter);
+    }
+  }
+
+  return {
+    path: copy.path,
+    stats: copy.stats,
+    mimeType: IMAGE_FORMAT_INFO[variant.format].mimeType,
+    name: toImageName(file.name, variant.format),
+    variant: variantName(variant),
+  };
 }
 
 export async function GET(
@@ -66,12 +141,17 @@ export async function GET(
       windowMs: 60_000,
     });
 
-    if (!limit.ok) {
-      return NextResponse.json(
-        { data: null, error: { message: "Too many requests" } },
-        { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
-      );
-    }
+    if (!limit.ok) return jsonError("Too many requests", 429, limit.retryAfter);
+
+    const searchParams = request.nextUrl.searchParams;
+
+    // checked before the lookup, so a bad size says nothing about the key
+    const { transform, error: transformError } = parseImageTransform({
+      width: searchParams.get("w"),
+      format: searchParams.get("format"),
+      widthName: "w",
+    });
+    if (transformError) return jsonError(transformError, 400);
 
     const tracked = isTracked(request);
     const missing = () => {
@@ -105,7 +185,7 @@ export async function GET(
     // enumeration oracle.
     if (
       file.visibility === "private" &&
-      !(await canReadPrivate(request, key))
+      !(await canReadPrivate(request, key, transform))
     ) {
       return missing();
     }
@@ -119,31 +199,40 @@ export async function GET(
       stats = await stat(storagePath);
     } catch {
       if (tracked) countNotFound();
-      return NextResponse.json(
-        { data: null, error: { message: "File missing from local storage" } },
-        { status: 404 },
-      );
+      return jsonError("File missing from local storage", 404);
+    }
+
+    let body: Body = {
+      path: storagePath,
+      stats,
+      mimeType: file.mimeType,
+      name: file.name,
+    };
+
+    if (transform) {
+      const copy = await imageCopy(request, file, storagePath, transform);
+      if (copy instanceof Response) return copy;
+      body = copy;
     }
 
     const disposition =
-      request.nextUrl.searchParams.get("download") === "1"
-        ? "attachment"
-        : "inline";
+      searchParams.get("download") === "1" ? "attachment" : "inline";
 
     const isPrivate = file.visibility === "private";
 
     const response = streamFileResponse({
       request,
-      path: storagePath,
-      stats,
+      path: body.path,
+      stats: body.stats,
+      variant: body.variant,
       onBytes: tracked ? (bytes) => countBytes(file.id, bytes) : undefined,
       // a private object must not be retained by a proxy or CDN in front of
       // Vaze and handed to the next caller
       cacheable: !isPrivate,
       headers: {
         ...SECURITY_HEADERS,
-        "Content-Type": file.mimeType,
-        "Content-Disposition": contentDisposition(disposition, file.name),
+        "Content-Type": body.mimeType,
+        "Content-Disposition": contentDisposition(disposition, body.name),
         "Cache-Control": isPrivate
           ? "private, no-store"
           : `public, max-age=${getLimits().hostingCacheMaxAge}, must-revalidate`,
@@ -158,9 +247,6 @@ export async function GET(
     return response;
   } catch (error) {
     console.error("Error serving file:", error);
-    return NextResponse.json(
-      { data: null, error: { message: "Internal server error" } },
-      { status: 500 },
-    );
+    return jsonError("Internal server error", 500);
   }
 }

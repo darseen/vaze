@@ -16,12 +16,16 @@ type Range =
  * Strong validators derived from size and mtime, the same shape nginx and
  * Apache use. mtime is floored to seconds so the ETag can never disagree with
  * `Last-Modified`, which has no sub-second precision.
+ *
+ * `variant` names a copy made from a file, such as a resized image, so two
+ * copies can't share an ETag even when their size and mtime match.
  */
-export function fileValidators(stats: Stats): Validators {
+export function fileValidators(stats: Stats, variant?: string): Validators {
   const seconds = Math.floor(stats.mtimeMs / 1000);
+  const suffix = variant ? `-${variant}` : "";
 
   return {
-    etag: `"${stats.size.toString(16)}-${seconds.toString(16)}"`,
+    etag: `"${stats.size.toString(16)}-${seconds.toString(16)}${suffix}"`,
     lastModified: new Date(seconds * 1000).toUTCString(),
   };
 }
@@ -118,7 +122,8 @@ export function parseRange(header: string | null, size: number): Range {
  * `cacheable` is false for private objects: they are sent `no-store`, so
  * offering them a revalidation path would contradict it. Ranges still work.
  *
- * `onBytes` sees each chunk of the body as it is pulled by the client.
+ * `onBytes` sees each chunk of the body as it is pulled by the client, and
+ * `variant` goes into the ETag as `fileValidators` describes.
  */
 export function streamFileResponse({
   request,
@@ -126,6 +131,7 @@ export function streamFileResponse({
   stats,
   headers,
   cacheable,
+  variant,
   onBytes,
 }: {
   request: NextRequest;
@@ -133,9 +139,10 @@ export function streamFileResponse({
   stats: Stats;
   headers: Record<string, string>;
   cacheable: boolean;
+  variant?: string;
   onBytes?: (bytes: number) => void;
 }): NextResponse {
-  const validators = fileValidators(stats);
+  const validators = fileValidators(stats, variant);
 
   const responseHeaders: Record<string, string> = {
     ...headers,

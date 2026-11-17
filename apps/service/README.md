@@ -11,7 +11,8 @@ public file hosting.
 - Single administrator account (created on first run via `/register`).
 - File & folder management with nested folders.
 - API keys (with optional expiry) for programmatic access.
-- Public file hosting via `/api/hosting/<filename>`.
+- Public file hosting via `/api/hosting/<filename>`, with images resized and
+  converted on request (`?w=800&format=webp`) from a fixed set of widths.
 - Dashboard analytics: storage usage, largest files, file types and API usage.
 
 ## Getting started
@@ -49,7 +50,9 @@ Docker image already includes it.
 ## Data & persistence
 
 The SQLite database lives in `${DATA_PATH}/db/vaze.db` and uploaded files in
-`${DATA_PATH}/uploads`. In Docker, `DATA_PATH` is pinned to `/var/lib/vaze`, which
+`${DATA_PATH}/uploads`. Thumbnails and the resized copies hosting URLs ask for
+are kept in `${DATA_PATH}/thumbnails` and `${DATA_PATH}/hosted-images` until
+their file is deleted for good. In Docker, `DATA_PATH` is pinned to `/var/lib/vaze`, which
 is where the named `vaze_data` volume is mounted (see
 [`compose.prod.yaml`](../../compose.prod.yaml)), so data survives container
 recreation. The entrypoint refuses to start when `DATA_PATH` is not on a mounted
