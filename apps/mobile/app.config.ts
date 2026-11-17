@@ -51,6 +51,7 @@ export default {
     "expo-image",
     "expo-sharing",
     "expo-asset",
+    "expo-status-bar",
     [
       "expo-build-properties",
       {

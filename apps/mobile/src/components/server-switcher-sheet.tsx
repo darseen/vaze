@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { Avatar, ListGroup, Separator } from "heroui-native";
 import { Check, Server as ServerIcon } from "lucide-react-native";
 import { Fragment } from "react";
@@ -20,6 +20,7 @@ export function ServerSwitcherSheet({
   isOpen,
   onOpenChange,
 }: ServerSwitcherSheetProps) {
+  const router = useRouter();
   const { server: current } = useServer();
   const servers = useServers((state) => state.servers);
 

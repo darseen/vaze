@@ -1,5 +1,5 @@
 import type { Limits } from "@darseen/vaze";
-import { router, Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import {
   Button,
   Description,
@@ -120,6 +120,7 @@ function toValue({ amount, unit }: Field): number {
 }
 
 export default function LimitsScreen() {
+  const router = useRouter();
   const { vaze } = useServer();
   const { toast } = useToast();
   const spinnerColor = useThemeColor("accent-foreground");

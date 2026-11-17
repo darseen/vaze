@@ -63,3 +63,8 @@ app. Plain `http://` works for LAN servers on both platforms.
   AsyncStorage; folder listings, stats and uploads are in memory.
 - UI is HeroUI Native styled with Uniwind (Tailwind 4). Most actions open in
   a bottom sheet.
+- Uniwind patches Metro's module graph through its own `metro` and
+  `metro-cache` peers, so both are pinned to the exact Metro that Expo's
+  bundler runs (the version `@expo/metro` depends on). `expo install`
+  recommends an older Metro line, so `metro` is in `expo.install.exclude`.
+  After an SDK upgrade, move both pins to the new `@expo/metro`'s Metro.

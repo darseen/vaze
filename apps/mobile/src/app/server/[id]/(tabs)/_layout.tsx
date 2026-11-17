@@ -1,4 +1,4 @@
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/native-tabs";
 import { useThemeColor } from "heroui-native";
 import { useServer } from "@/components/server-context";
 import { fonts } from "@/lib/fonts";

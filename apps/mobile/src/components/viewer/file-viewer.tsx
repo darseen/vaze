@@ -1,5 +1,5 @@
 import type { File } from "@darseen/vaze";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Spinner, useToast } from "heroui-native";
 import {
@@ -208,6 +208,7 @@ export function FileViewer({
   query?: string;
   kind?: FileKind | null;
 }) {
+  const router = useRouter();
   const { server, vaze } = useServer();
   const { toast } = useToast();
   const { top } = useSafeAreaInsets();
@@ -250,7 +251,7 @@ export function FileViewer({
     if (index !== -1) lastIndex.current = index;
     if (file && file.id !== currentId) setCurrentId(file.id);
     if (contents?.data && files.length === 0) router.back();
-  }, [index, file, currentId, contents?.data, files.length]);
+  }, [index, file, currentId, contents?.data, files.length, router]);
 
   // follows changes the pager didn't make, such as a filmstrip tap
   useEffect(() => {

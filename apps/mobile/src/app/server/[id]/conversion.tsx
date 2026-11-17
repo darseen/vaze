@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, type ScrollViewInstance, Text, View } from "react-native";
 import { ImageConverter } from "@/components/conversion/image-converter";
 import { VideoToAudio } from "@/components/conversion/video-to-audio";
 import { useServer } from "@/components/server-context";
@@ -15,7 +15,7 @@ export default function ConversionScreen() {
     file?: string;
     image?: string;
   }>();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   // the image card scrolls into view once it has grown to show that image
   const scrollPendingRef = useRef(false);
 

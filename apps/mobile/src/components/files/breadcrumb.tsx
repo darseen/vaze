@@ -1,6 +1,12 @@
 import { ChevronRight } from "lucide-react-native";
 import { Fragment, useRef } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  type ScrollViewInstance,
+  Text,
+  View,
+} from "react-native";
 import { Icon } from "../icon";
 
 type BreadcrumbProps = {
@@ -9,7 +15,7 @@ type BreadcrumbProps = {
 };
 
 export function Breadcrumb({ folderKey, onNavigate }: BreadcrumbProps) {
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<ScrollViewInstance>(null);
   const names = folderKey.split("/");
   const crumbs = [
     { key: "", label: "Files" },

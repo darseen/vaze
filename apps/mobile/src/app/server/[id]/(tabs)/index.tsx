@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Avatar, Button, Spinner, useThemeColor } from "heroui-native";
 import {
   ChevronDown,
@@ -39,6 +39,7 @@ import { hostOf } from "@/lib/server-url";
 import { useLibrary } from "@/stores/library";
 
 export default function OverviewScreen() {
+  const router = useRouter();
   const { server, vaze, me, can } = useServer();
   const actions = useEntryActions();
   const muted = useThemeColor("muted");
@@ -92,7 +93,7 @@ export default function OverviewScreen() {
         pathname: "/server/[id]/activity",
         params: { id: server.id },
       });
-    } else router.push(keysHref);
+    } else router.push(keysHref, { withAnchor: true });
   };
 
   const largest = Math.max(
@@ -213,7 +214,7 @@ export default function OverviewScreen() {
                   icon={KeyRound}
                   label="API keys"
                   value={data.apiKeys.total}
-                  onPress={() => router.push(keysHref)}
+                  onPress={() => router.push(keysHref, { withAnchor: true })}
                 />
               ) : null}
             </View>
@@ -283,10 +284,13 @@ export default function OverviewScreen() {
               <UsersCard
                 users={data.users}
                 onPress={() =>
-                  router.push({
-                    pathname: "/server/[id]/settings/users",
-                    params: { id: server.id },
-                  })
+                  router.push(
+                    {
+                      pathname: "/server/[id]/settings/users",
+                      params: { id: server.id },
+                    },
+                    { withAnchor: true },
+                  )
                 }
               />
             ) : null}

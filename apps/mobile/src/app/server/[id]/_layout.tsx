@@ -1,9 +1,9 @@
 import type { Me } from "@darseen/vaze";
 import {
   Redirect,
-  router,
   Stack,
   useLocalSearchParams,
+  useRouter,
   type ErrorBoundaryProps,
 } from "expo-router";
 import { Button, Spinner } from "heroui-native";
@@ -34,6 +34,7 @@ import { useServers, type Server } from "@/stores/servers";
 
 // a crash in any of a server's screens keeps the app open, with a way back
 export function ErrorBoundary(props: ErrorBoundaryProps) {
+  const router = useRouter();
   return (
     <CrashScreen
       {...props}
@@ -59,6 +60,7 @@ type GateState =
   | { status: "error"; message: string };
 
 function ServerGate({ server }: { server: Server }) {
+  const router = useRouter();
   const { auth, vaze } = useMemo(() => getClients(server), [server]);
   const update = useServers((state) => state.update);
   const clearLibrary = useLibrary((state) => state.clear);
@@ -145,7 +147,7 @@ function ServerGate({ server }: { server: Server }) {
         await auth.signOut().catch(() => undefined);
       },
     };
-  }, [state, server, vaze, auth, update, clearLibrary, reloadMe]);
+  }, [state, server, vaze, auth, update, clearLibrary, reloadMe, router]);
 
   if (state.status === "loading") {
     return (
@@ -234,6 +236,7 @@ function SignInScreen({
   expired: boolean;
   onSignedIn: () => void;
 }) {
+  const router = useRouter();
   // a server reset to no accounts asks for its admin again, like the web
   const [setup, setSetup] = useState(false);
   useEffect(() => {

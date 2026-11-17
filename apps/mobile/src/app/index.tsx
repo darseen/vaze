@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import * as WebBrowser from "expo-web-browser";
 import { Avatar, Button, ListGroup, Separator } from "heroui-native";
@@ -19,15 +19,16 @@ const LINKS = [
   { label: "Docs", icon: BookOpen, url: "https://vaze.darseen.dev/docs" },
 ];
 
-function openServer(server: Server) {
-  router.push({ pathname: "/server/[id]", params: { id: server.id } });
-}
-
 export default function ServersScreen() {
+  const router = useRouter();
   const servers = useServers((state) => state.servers);
   const [adding, setAdding] = useState(false);
   const [selected, setSelected] = useState<Server | null>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
+
+  function openServer(server: Server) {
+    router.push({ pathname: "/server/[id]", params: { id: server.id } });
+  }
 
   function showActions(server: Server) {
     setSelected(server);

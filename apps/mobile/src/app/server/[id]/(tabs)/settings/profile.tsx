@@ -1,4 +1,4 @@
-import { router, Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import {
   Button,
   Description,
@@ -14,6 +14,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text } from "react-native";
 import { useServer } from "@/components/server-context";
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { vaze, me, reloadMe } = useServer();
   const { toast } = useToast();
   const spinnerColor = useThemeColor("accent-foreground");

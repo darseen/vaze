@@ -2,7 +2,14 @@ import type { File } from "@darseen/vaze";
 import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import {
+  GestureDetector,
+  GestureStateManager,
+  usePanGesture,
+  usePinchGesture,
+  useSimultaneousGestures,
+  useTapGesture,
+} from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -87,8 +94,8 @@ export function ImageView({
     scheduleOnRN(onZoomChange, true);
   };
 
-  const pinch = Gesture.Pinch()
-    .onStart((event) => {
+  const pinch = usePinchGesture({
+    onActivate: (event) => {
       start.value = {
         scale: scale.value,
         x: x.value,
@@ -96,8 +103,8 @@ export function ImageView({
         focalX: event.focalX - page.width / 2,
         focalY: event.focalY - page.height / 2,
       };
-    })
-    .onUpdate((event) => {
+    },
+    onUpdate: (event) => {
       const from = start.value;
       const next = clamp(from.scale * event.scale, 0.75, MAX_SCALE);
       const ratio = next / from.scale;
@@ -105,26 +112,27 @@ export function ImageView({
       scale.value = next;
       x.value = event.focalX - page.width / 2 - (from.focalX - from.x) * ratio;
       y.value = event.focalY - page.height / 2 - (from.focalY - from.y) * ratio;
-    })
-    .onEnd(settle);
+    },
+    onDeactivate: settle,
+  });
 
   // at rest the page belongs to the pager, so a drag only pans when zoomed in
-  const pan = Gesture.Pan()
-    .maxPointers(1)
-    .manualActivation(true)
-    .onTouchesMove((_event, manager) => {
-      if (scale.value > 1) manager.activate();
-      else manager.fail();
-    })
-    .onStart(() => {
+  const pan = usePanGesture({
+    maxPointers: 1,
+    manualActivation: true,
+    onTouchesMove: (event) => {
+      if (scale.value > 1) GestureStateManager.activate(event.handlerTag);
+      else GestureStateManager.fail(event.handlerTag);
+    },
+    onActivate: () => {
       start.value = { ...start.value, x: x.value, y: y.value };
-    })
-    .onUpdate((event) => {
+    },
+    onUpdate: (event) => {
       const bounds = limits(scale.value);
       x.value = clamp(start.value.x + event.translationX, -bounds.x, bounds.x);
       y.value = clamp(start.value.y + event.translationY, -bounds.y, bounds.y);
-    })
-    .onEnd((event) => {
+    },
+    onDeactivate: (event) => {
       const bounds = limits(scale.value);
       x.value = withDecay({
         velocity: event.velocityX,
@@ -134,12 +142,13 @@ export function ImageView({
         velocity: event.velocityY,
         clamp: [-bounds.y, bounds.y],
       });
-    });
+    },
+  });
 
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .onEnd((event, success) => {
-      if (!success) return;
+  const doubleTap = useTapGesture({
+    numberOfTaps: 2,
+    onDeactivate: (event) => {
+      if (event.canceled) return;
       if (scale.value > 1) {
         scale.value = withTiming(1);
         x.value = withTiming(0);
@@ -160,9 +169,10 @@ export function ImageView({
         clamp(-tapY * (DOUBLE_TAP_SCALE - 1), -bounds.y, bounds.y),
       );
       scheduleOnRN(onZoomChange, true);
-    });
+    },
+  });
 
-  const zoom = Gesture.Simultaneous(pinch, pan, doubleTap);
+  const zoom = useSimultaneousGestures(pinch, pan, doubleTap);
 
   const style = useAnimatedStyle(() => ({
     transform: [

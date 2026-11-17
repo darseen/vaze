@@ -1,4 +1,4 @@
-import { router, Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { Avatar, Chip, Tabs } from "heroui-native";
 import {
   ArchiveRestore,
@@ -45,6 +45,7 @@ const PAGES = {
 } as const;
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { server, vaze, me, can, signOut } = useServer();
   const deleted = useLibrary((state) => state.deleted[server.id]);
   const loadDeleted = useLibrary((state) => state.loadDeleted);

@@ -1,4 +1,4 @@
-import { router, Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import {
   Button,
   ControlField,
@@ -23,6 +23,7 @@ import { useServer } from "@/components/server-context";
 const EMPTY = { current: "", next: "", confirm: "" };
 
 export default function PasswordScreen() {
+  const router = useRouter();
   const { vaze } = useServer();
   const { toast } = useToast();
   const spinnerColor = useThemeColor("accent-foreground");

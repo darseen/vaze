@@ -1,9 +1,9 @@
 import type { FileReference } from "@darseen/vaze";
 import {
-  router,
   Stack,
   useFocusEffect,
   useNavigation,
+  useRouter,
   type Href,
 } from "expo-router";
 import {
@@ -93,6 +93,7 @@ const GridGap = () => <View className="h-3" />;
 const RowSeparator = () => <Separator className="ml-[72px] opacity-50" />;
 
 export function FolderBrowser({ folderKey }: { folderKey: string }) {
+  const router = useRouter();
   const { server, vaze, can } = useServer();
   const { toast } = useToast();
   const actions = useEntryActions();

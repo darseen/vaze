@@ -8,7 +8,12 @@ import { cn, Spinner } from "heroui-native";
 import { Music, Pause, Play, RotateCcw, RotateCw } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import {
+  GestureDetector,
+  useExclusiveGestures,
+  usePanGesture,
+  useTapGesture,
+} from "react-native-gesture-handler";
 import { formatDuration } from "@/lib/format";
 import { claimPlayback, releasePlayback } from "@/lib/playback";
 import { Icon } from "../icon";
@@ -37,25 +42,29 @@ function SeekBar({
   const percent = disabled ? 0 : clamp(shown / duration, 0, 1) * 100;
 
   // claims the drag from the pager once it moves sideways
-  const drag = Gesture.Pan()
-    .runOnJS(true)
-    .enabled(!disabled)
-    .activeOffsetX([-4, 4])
-    .onStart((event) => setDragging(valueAt(event.x)))
-    .onUpdate((event) => setDragging(valueAt(event.x)))
-    .onEnd((event) => onSeek(valueAt(event.x)))
-    .onFinalize(() => setDragging(null));
+  const drag = usePanGesture({
+    runOnJS: true,
+    enabled: !disabled,
+    activeOffsetX: [-4, 4],
+    onActivate: (event) => setDragging(valueAt(event.x)),
+    onUpdate: (event) => setDragging(valueAt(event.x)),
+    onDeactivate: (event) => onSeek(valueAt(event.x)),
+    onFinalize: () => setDragging(null),
+  });
 
-  const tap = Gesture.Tap()
-    .runOnJS(true)
-    .enabled(!disabled)
-    .onEnd((event, success) => {
-      if (success) onSeek(valueAt(event.x));
-    });
+  const tap = useTapGesture({
+    runOnJS: true,
+    enabled: !disabled,
+    onDeactivate: (event) => {
+      if (!event.canceled) onSeek(valueAt(event.x));
+    },
+  });
+
+  const seek = useExclusiveGestures(drag, tap);
 
   return (
     <View className="gap-2">
-      <GestureDetector gesture={Gesture.Exclusive(drag, tap)}>
+      <GestureDetector gesture={seek}>
         <View
           onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
           className="h-8 justify-center"

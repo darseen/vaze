@@ -161,7 +161,7 @@ export async function videoPoster(
   }
 
   const frame = await native().videoFrame(file.url, headers, image.uri);
-  meta.write(JSON.stringify({ duration: frame.duration }));
+  await meta.write(JSON.stringify({ duration: frame.duration }));
   return { uri: image.uri, duration: frame.duration };
 }
 

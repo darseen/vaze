@@ -10,5 +10,20 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@darseen/vaze'
-  - fumadocs-core@16.17.6
-  - fumadocs-ui@16.17.6
+  - '@expo/cli@58.1.21'
+  - '@expo/metro-config@58.0.23'
+  - '@expo/router-server@58.0.23'
+  - '@noxcturnal/noxcturnal-darwin-arm64@0.1.14'
+  - '@noxcturnal/noxcturnal-darwin-x64@0.1.14'
+  - '@noxcturnal/noxcturnal-linux-arm64-gnu@0.1.14'
+  - '@noxcturnal/noxcturnal-linux-arm64-musl@0.1.14'
+  - '@noxcturnal/noxcturnal-linux-x64-gnu@0.1.14'
+  - '@noxcturnal/noxcturnal-linux-x64-musl@0.1.14'
+  - '@noxcturnal/noxcturnal-win32-arm64-msvc@0.1.14'
+  - '@noxcturnal/noxcturnal-win32-x64-msvc@0.1.14'
+  - babel-preset-expo@58.0.26
+  - expo-file-system@58.0.14
+  - expo@58.0.26
+  - noxcturnal@0.1.14
+  - expo-router@58.0.32
+  - expo-web-browser@58.1.0

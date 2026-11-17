@@ -300,7 +300,7 @@ export default function DeletedScreen() {
               {plural(items.length, "item")}, {formatBytes(totalSize)}. They
               are removed for good {plural(days, "day")} after they're deleted.
             </Text>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
           state?.supported === false ? (

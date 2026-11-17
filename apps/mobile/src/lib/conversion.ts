@@ -264,7 +264,7 @@ async function convertDevice(
     xhr.send(body);
   });
 
-  destination.write(new Uint8Array(result));
+  await destination.write(new Uint8Array(result));
   return header;
 }
 

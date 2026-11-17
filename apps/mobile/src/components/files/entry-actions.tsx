@@ -1,6 +1,6 @@
 import type { Visibility } from "@darseen/vaze";
 import * as Clipboard from "expo-clipboard";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { useToast } from "heroui-native";
 import { useState } from "react";
 import { useRestore } from "@/hooks/use-restore";
@@ -35,6 +35,7 @@ export const keepsDeleted = (item: object) => "deletedAt" in item;
 
 /** The details sheet for a file or folder, plus every action it leads to. */
 export function useEntryActions() {
+  const router = useRouter();
   const { server, vaze } = useServer();
   const { toast } = useToast();
   const loadFolder = useLibrary((state) => state.loadFolder);
