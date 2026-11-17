@@ -1,6 +1,6 @@
 {
   "name": "@darseen/vaze",
-  "version": "2.9.0",
+  "version": "2.10.0",
   "description": "Vaze Self-Hosted file storage and hosting service SDK.",
   "keywords": [
     "api",
