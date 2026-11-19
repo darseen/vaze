@@ -11,6 +11,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import sharp, { type Metadata } from "sharp";
 import { ConversionError } from "./conversion";
+import { createTurnQueue } from "./turn-queue";
 
 const execFileAsync = promisify(execFile);
 
@@ -28,52 +29,12 @@ const READABLE_FORMATS = new Set([
   "heif",
 ]);
 
-// sharp runs on libuv's thread pool, which thumbnails and file I/O also need
-const MAX_RUNNING = 1;
+// sharp runs on libuv's thread pool, which thumbnails and file I/O also need;
 // a conversion takes seconds, so a few wait their turn rather than being refused
-const MAX_WAITING = 8;
-
-let running = 0;
-const waiting: (() => void)[] = [];
-
-export const isBusy = () =>
-  running >= MAX_RUNNING && waiting.length >= MAX_WAITING;
-
-/** Waits for a turn and returns its release, or null when too many are waiting. */
-export async function acquireTurn(
-  signal: AbortSignal,
-): Promise<(() => void) | null> {
-  signal.throwIfAborted();
-
-  if (running < MAX_RUNNING) {
-    running++;
-  } else if (waiting.length >= MAX_WAITING) {
-    return null;
-  } else {
-    await new Promise<void>((resolve, reject) => {
-      const grant = () => {
-        signal.removeEventListener("abort", leave);
-        resolve();
-      };
-      const leave = () => {
-        waiting.splice(waiting.indexOf(grant), 1);
-        reject(signal.reason);
-      };
-      waiting.push(grant);
-      signal.addEventListener("abort", leave, { once: true });
-    });
-  }
-
-  let released = false;
-  return () => {
-    if (released) return;
-    released = true;
-    // hand the turn straight to the next request so nothing can jump the queue
-    const next = waiting.shift();
-    if (next) next();
-    else running--;
-  };
-}
+export const { isBusy, acquireTurn } = createTurnQueue({
+  maxRunning: 1,
+  maxWaiting: 8,
+});
 
 export interface ImageOptions {
   format: ImageFormat;

@@ -24,7 +24,9 @@ export function SourcePicker({
   accept,
   filter,
   disabled,
+  multiple = false,
   onChoose,
+  onUnavailable,
 }: {
   icon: LucideIcon;
   title: string;
@@ -34,16 +36,20 @@ export function SourcePicker({
   /** Which Vaze files can be picked. Must be stable, e.g. defined at module level. */
   filter: (file: FileWithUrl) => boolean;
   disabled: boolean;
+  /** Lets the device picker take several files, each passed to `onChoose`. */
+  multiple?: boolean;
   onChoose: (source: ConversionSource) => void;
+  /** When set, the buttons call this instead of opening a picker, e.g. to explain why the tool is off. */
+  onUnavailable?: () => void;
 }) {
   const [isFileSelectorOpen, setIsFileSelectorOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleDeviceFile(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const files = [...(event.target.files ?? [])];
     // lets the same file be picked again
     event.target.value = "";
-    if (file) onChoose({ kind: "device", file });
+    for (const file of files) onChoose({ kind: "device", file });
   }
 
   return (
@@ -59,20 +65,25 @@ export function SourcePicker({
             ref={inputRef}
             type="file"
             accept={accept}
+            multiple={multiple}
             className="hidden"
             onChange={handleDeviceFile}
           />
           <Button
             variant="secondary"
             disabled={disabled}
-            onClick={() => inputRef.current?.click()}
+            onClick={() =>
+              onUnavailable ? onUnavailable() : inputRef.current?.click()
+            }
           >
             <Upload />
             Choose from device
           </Button>
           <Button
             disabled={disabled}
-            onClick={() => setIsFileSelectorOpen(true)}
+            onClick={() =>
+              onUnavailable ? onUnavailable() : setIsFileSelectorOpen(true)
+            }
           >
             <Cloud />
             Choose from Vaze

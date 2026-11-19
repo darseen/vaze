@@ -48,6 +48,10 @@ function buildCrumbs(pathname: string): Crumb[] {
     ];
   }
 
+  if (segments[0] === "pdf") {
+    return [{ label: "Dashboard", href: "/dashboard" }, { label: "PDF Tools" }];
+  }
+
   if (segments[0] === "settings") {
     return [{ label: "Dashboard", href: "/dashboard" }, { label: "Settings" }];
   }

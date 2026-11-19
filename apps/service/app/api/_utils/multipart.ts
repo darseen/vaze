@@ -37,9 +37,16 @@ export interface StagedFile {
   size: number;
 }
 
+/** One part of the body, in the order the body sent it. */
+export type UploadPart =
+  | { kind: "field"; name: string; value: string }
+  | { kind: "file"; name: string; file: StagedFile };
+
 export interface ParsedUpload {
   fields: Record<string, string>;
+  /** In the order the body sent them. */
   files: StagedFile[];
+  parts: UploadPart[];
 }
 
 /**
@@ -87,14 +94,17 @@ export function parseMultipartToDisk(
     });
 
     const fields: Record<string, string> = {};
-    const files: StagedFile[] = [];
+    // a file's slot is taken on arrival, so a slow write can't reorder it
+    const parts: (UploadPart | { kind: "pending" })[] = [];
     const writes: Promise<void>[] = [];
 
     busboy.on("field", (name, value) => {
       fields[name] = value;
+      parts.push({ kind: "field", name, value });
     });
 
-    busboy.on("file", (_name, stream, info) => {
+    busboy.on("file", (name, stream, info) => {
+      const slot = parts.push({ kind: "pending" }) - 1;
       const stagedPath = path.join(stagingDir, crypto.randomUUID());
       let truncated = false;
 
@@ -109,7 +119,11 @@ export function parseMultipartToDisk(
           if (truncated) throw new UploadTooLargeError(maxFileSize);
           const { size } = await fs.stat(stagedPath);
           // an octet-stream part without a filename has no name; the route rejects it
-          files.push({ originalName: info.filename ?? "", stagedPath, size });
+          parts[slot] = {
+            kind: "file",
+            name,
+            file: { originalName: info.filename ?? "", stagedPath, size },
+          };
         },
       );
 
@@ -124,7 +138,17 @@ export function parseMultipartToDisk(
 
     busboy.on("close", () => {
       Promise.all(writes)
-        .then(() => succeed({ fields, files }))
+        .then(() => {
+          // every write has finished, so no slot is still pending
+          const ordered = parts as UploadPart[];
+          succeed({
+            fields,
+            files: ordered.flatMap((part) =>
+              part.kind === "file" ? [part.file] : [],
+            ),
+            parts: ordered,
+          });
+        })
         .catch(fail);
     });
 

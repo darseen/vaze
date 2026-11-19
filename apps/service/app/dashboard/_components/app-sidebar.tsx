@@ -18,6 +18,7 @@ import {
 import type { Scope } from "@repo/types";
 import {
   ArchiveRestore,
+  FileStack,
   FolderOpen,
   History,
   KeyRound,
@@ -101,6 +102,13 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         href: "/dashboard/conversion",
         icon: Recycle,
         isActive: (pathname) => pathname.startsWith("/dashboard/conversion"),
+        scope: "files:read",
+      },
+      {
+        title: "PDF Tools",
+        href: "/dashboard/pdf",
+        icon: FileStack,
+        isActive: (pathname) => pathname.startsWith("/dashboard/pdf"),
         scope: "files:read",
       },
     ],

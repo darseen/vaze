@@ -34,8 +34,8 @@ RUN pnpm turbo run build
 FROM base AS runner
 
 RUN apk update
-# ffmpeg and ffprobe power video to audio conversion, and libheif's heif-dec reads HEIC images; updated with every image rebuild
-RUN apk add --no-cache openssl ffmpeg libheif-tools
+# ffmpeg and ffprobe power video to audio conversion, libheif's heif-dec reads HEIC images, and su-exec drops to node after start-up; updated with every image rebuild
+RUN apk add --no-cache openssl ffmpeg libheif-tools su-exec
 
 WORKDIR /app
 
@@ -52,10 +52,8 @@ COPY --from=builder /app/apps/service/entrypoint.sh ./apps/service/entrypoint.sh
 
 RUN chmod +x ./apps/service/entrypoint.sh
 
-# Run unprivileged; a named volume at /var/lib/vaze inherits node's ownership on first use.
+# The entrypoint starts as root only to install LibreOffice when asked, then runs Vaze as node; a named volume at /var/lib/vaze inherits node's ownership on first use.
 RUN mkdir -p /var/lib/vaze && chown node:node /var/lib/vaze && chown -R node:node /app
-
-USER node
 
 EXPOSE 3000
 ENV PORT=3000

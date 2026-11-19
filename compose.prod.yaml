@@ -11,6 +11,8 @@ services:
       TZ: ${TZ:-UTC}
       HOSTNAME: 0.0.0.0
       DATA_PATH: /var/lib/vaze
+      # true installs LibreOffice as the container starts, for turning documents into PDFs; adds about 1 GB
+      ENABLE_DOCUMENT_CONVERSION: ${ENABLE_DOCUMENT_CONVERSION:-false}
     ports:
       - "${VAZE_BIND_ADDR:-0.0.0.0}:${VAZE_PORT:-3000}:3000"
     volumes:
