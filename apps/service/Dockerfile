@@ -1,4 +1,4 @@
-FROM node:24-alpine AS base
+FROM node:26-alpine AS base
  
 FROM base AS builder
 
@@ -7,7 +7,7 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-RUN corepack enable pnpm 
+RUN npm install -g corepack && corepack enable pnpm
 RUN npm install -g turbo@latest
 
 COPY . .
@@ -18,7 +18,7 @@ FROM base AS installer
 
 RUN apk update
 RUN apk add --no-cache libc6-compat
-RUN corepack enable pnpm
+RUN npm install -g corepack && corepack enable pnpm
 
 WORKDIR /app
  
