@@ -6,6 +6,7 @@ import type Deleted from "../deleted.js";
 import type Files from "../files.js";
 import type Folders from "../folders.js";
 import type Keys from "../keys.js";
+import type Pdf from "../pdf.js";
 import type Settings from "../settings.js";
 import type Users from "../users.js";
 
@@ -14,6 +15,7 @@ export interface IVaze {
   folders: Folders;
   deleted: Deleted;
   conversion: Conversion;
+  pdf: Pdf;
   keys: Keys;
   account: Account;
   activity: Activity;
@@ -58,6 +60,39 @@ export type ImageConversionOptions = {
   /** Fits the image inside `width` × `height`; only an SVG is ever made larger. */
   width?: number;
   height?: number;
+};
+
+/** Split by ranges such as "1-3, 4-6, 7-", where "7-" runs to the end, or every so many pages. */
+export type PdfSplitOptions =
+  | { ranges: string; every?: never }
+  | { every: number; ranges?: never }
+  | { ranges?: never; every?: never };
+
+/** Quarter turns clockwise, added to the page's own. */
+export type PdfPageRotation = 0 | 90 | 180 | 270;
+
+/** A page of the original, numbered from 1, or that page turned. */
+export type PdfPage = number | { page: number; rotate?: PdfPageRotation };
+
+export type PdfEditOptions = {
+  /**
+   * The pages to keep, in their new order. A page can be left out, moved,
+   * repeated or turned. Leave this out to keep every page as it is.
+   */
+  pages?: PdfPage[];
+  /** Number the pages at the foot of each, as shown. */
+  pageNumbers?: boolean;
+  /** Up to 500 characters. Defaults to the original's title. */
+  title?: string;
+};
+
+/** `fit` gives each image a page of its own size; A4 and Letter turn to match it. */
+export type PdfPageSize = "fit" | "a4" | "letter";
+
+export type ImagesToPdfOptions = {
+  pageSize?: PdfPageSize;
+  /** Space around each image, in points from 0 to 144 (2 inches). Defaults to 0. */
+  margin?: number;
 };
 
 export type ListOptions = {

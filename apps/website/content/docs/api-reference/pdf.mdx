@@ -1,0 +1,195 @@
+---
+title: PDF Tools
+description: Merge, split and edit PDFs, and make PDFs from images and documents
+icon: FileStack
+---
+
+The PDF tools need Vaze 4.8.0 or later. They work on the server: pdf-lib for
+merging, splitting and editing, and LibreOffice for documents, which is
+[turned on](/docs/getting-started/configuration#document-conversion) separately.
+The result comes back as the response and is not
+stored, so save it, or [upload](/docs/api-reference/files#upload-files) it, if
+you want to keep it.
+
+Using them needs the `files:read` scope. They work with an [`API-Key`
+header](/docs/api-reference#authentication) or a signed-in session.
+
+## Sending files
+
+Every endpoint takes stored files, files from your device, or both.
+
+Send stored files by id as JSON, with the options beside them. Endpoints that
+take one file read `fileId`, and those that take several read `fileIds`, in
+order:
+
+```json
+{ "fileIds": ["<id>", "<id>"] }
+```
+
+Or send `multipart/form-data`, with the options as fields and each file from
+your device as a file part. Stored files can go among them as `fileId` fields,
+and the files are used in the order the parts are sent. Options that are lists
+are sent as JSON text. Uploaded files are stored only until the response is
+sent, and each may be as large as `maxUploadSize` under [instance
+settings](/docs/api-reference/settings).
+
+```bash
+curl -X POST https://vaze.example.com/api/pdf/merge \
+  -H "API-Key: $VAZE_API_KEY" \
+  -F "file=@cover.pdf" \
+  -F "fileId=<id>" \
+  -F "file=@appendix.pdf" \
+  -o merged.pdf
+```
+
+One request reads up to 512 MB of files in all, and its result may have up to
+10,000 pages. A PDF that is protected with a password, or with permissions
+that stop it being changed, can't be used until they are removed.
+
+Pages keep their content and annotations. Links between pages follow the
+pages they go to, and a link to a page that isn't in the result is removed.
+Bookmarks are not carried over, and form fields can no longer be filled in.
+
+## Merge PDFs
+
+```
+POST /api/pdf/merge
+```
+
+Joins 2 to 100 PDFs into one, in the order they are sent.
+
+```json
+{ "fileIds": ["<id>", "<id>", "<id>"] }
+```
+
+The response is the PDF, named after the first file, e.g.
+`cover (merged).pdf`. `X-Pdf-Pages` gives its number of pages.
+
+## Split a PDF
+
+```
+POST /api/pdf/split
+```
+
+Cuts a PDF into parts and sends them back as PDFs in a ZIP.
+
+```json
+{ "fileId": "<id>", "ranges": "1-3, 7, 10-" }
+```
+
+| Option   | Description                                                                                                                                   |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ranges` | Pages and ranges, each of which becomes one PDF, such as `1-3, 7, 10-`. `10-` runs to the last page, and `-3` from the first. Ranges may overlap |
+| `every`  | A part every so many pages, from 1 to 10000. `every: 5` makes pages 1-5, 6-10 and so on                                                        |
+
+Send one of the two, or neither for a PDF of each page. The ZIP is named after
+the PDF, e.g. `report (split).zip`, and holds parts such as
+`report (pages 1-3).pdf` and `report (page 7).pdf`. `X-Pdf-Parts` gives how
+many there are.
+
+## Edit pages
+
+```
+POST /api/pdf/edit
+```
+
+Rearranges a PDF's pages, numbers them, and retitles the document.
+
+```json
+{
+  "fileId": "<id>",
+  "pages": [3, { "page": 1, "rotate": 90 }, 4],
+  "pageNumbers": true,
+  "title": "Signed contract"
+}
+```
+
+| Option        | Description                                                                                                                                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages`       | The pages to keep, in their new order. Each is a page number from 1, or `{ "page", "rotate" }` to turn it clockwise by 90, 180 or 270 on top of its own turn. Pages left out are removed, and a page may appear more than once. Without it, every page stays as it is |
+| `pageNumbers` | `true` to number the pages at the foot of each, the right way up however the page is turned                                                                                                                          |
+| `title`       | The document's new title, up to 500 characters. Without it, the original's title is kept                                                                                                                            |
+
+The response is the PDF, under the original's name, and `X-Pdf-Pages` gives
+its number of pages. The author, subject, keywords, creator and creation date
+carry over.
+
+Removed pages are gone from the file, not only hidden, so they can't be
+recovered from the result. Editing the text or images on a page isn't
+supported.
+
+## Images to PDF
+
+```
+POST /api/pdf/from-images
+```
+
+Makes a PDF with one image on each page, in the order they are sent, from 1 to
+100 images.
+
+```json
+{ "fileIds": ["<id>", "<id>"], "pageSize": "a4", "margin": 18 }
+```
+
+| Option     | Description                                                                                                                                                       |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pageSize` | `fit`, the default, gives each image a page of its own size, as it shows on a screen. `a4` and `letter` fit the image inside the paper, which turns to match it |
+| `margin`   | Space around each image in points, from 0 to 144 (2 inches). Defaults to 0                                                                                        |
+
+The response is the PDF, named after the first image, and `X-Pdf-Pages` gives
+its number of pages.
+
+JPEG, PNG, WebP, AVIF, GIF, TIFF, SVG and HEIC images can be used. Photos come
+out upright and transparency is kept. An upright JPG in color or gray goes in
+unchanged. PNG, GIF and SVG images, and any with transparency, are stored
+losslessly, and the rest as high quality JPG.
+
+## Document to PDF
+
+```
+POST /api/pdf/from-document
+```
+
+Turns a document, spreadsheet or presentation into a PDF with LibreOffice.
+It is off unless the server sets `ENABLE_DOCUMENT_CONVERSION=true`, which
+installs LibreOffice in Docker and adds about 1 GB; see
+[Configuration](/docs/getting-started/configuration#document-conversion).
+Until then the endpoint answers `501`.
+
+```bash
+curl -X POST https://vaze.example.com/api/pdf/from-document \
+  -H "API-Key: $VAZE_API_KEY" \
+  -F "file=@report.docx" \
+  -o report.pdf
+```
+
+| Kind          | Formats                                                     |
+| ------------- | ----------------------------------------------------------- |
+| Documents     | DOCX, DOC, DOCM, DOTX, DOT, ODT, OTT, FODT, RTF and TXT     |
+| Spreadsheets  | XLSX, XLS, XLSM, ODS, FODS and CSV                          |
+| Presentations | PPTX, PPT, PPSX, PPS, ODP and FODP                          |
+
+The format is read from the file's extension. Text and CSV files are read as
+UTF-8, and CSV as comma separated. The response is the PDF, named after the
+document, e.g. `report.pdf`.
+
+Documents are opened with macros, embedded objects and links switched off, so
+a document can't run code, or pull in other files or anything from the
+network. Linked content shows as it was last saved.
+
+## Errors and limits
+
+| Status | Meaning                                                                                                    |
+| ------ | ---------------------------------------------------------------------------------------------------------- |
+| `400`  | Too few or too many files, or an option that isn't valid                                                   |
+| `404`  | No file with that id                                                                                       |
+| `413`  | An uploaded file is larger than `maxUploadSize`, or the files or the result are larger than one request takes |
+| `422`  | A file that can't be read or is protected with a password, or a page that isn't in the PDF                 |
+| `501`  | Document conversion is turned off on this server                                                           |
+| `503`  | Too many requests are waiting their turn, so retry after `Retry-After`, or LibreOffice couldn't be installed |
+| `507`  | Not enough free space on the volume to hold the uploaded files meanwhile                                   |
+
+The errors use the usual [response envelope](/docs/api-reference#response-envelope).
+The server works on one PDF request at a time and one document at a time, and
+lets a few more wait their turn. Each client may start 60 PDF requests and 20
+document conversions per minute.

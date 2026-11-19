@@ -7,6 +7,7 @@ import Deleted from "./deleted.js";
 import Files from "./files.js";
 import Folders from "./folders.js";
 import Keys from "./keys.js";
+import Pdf from "./pdf.js";
 import Settings from "./settings.js";
 import Users from "./users.js";
 import type { IVaze, VazeOptions } from "./types/index.js";
@@ -17,6 +18,7 @@ export default class Vaze extends Base implements IVaze {
   public folders: Folders;
   public deleted: Deleted;
   public conversion: Conversion;
+  public pdf: Pdf;
   public keys: Keys;
   public account: Account;
   public activity: Activity;
@@ -30,6 +32,7 @@ export default class Vaze extends Base implements IVaze {
     this.folders = new Folders(options);
     this.deleted = new Deleted(options);
     this.conversion = new Conversion(options);
+    this.pdf = new Pdf(options);
     this.keys = new Keys(options);
     this.account = new Account(options);
     this.activity = new Activity(options);
@@ -132,11 +135,17 @@ export type {
   HostedImageWidth,
   ImageConversionOptions,
   ImageFormat,
+  ImagesToPdfOptions,
   ListOptions,
   MoveDestination,
   NewKeyOptions,
   NewUserOptions,
   PasswordChange,
+  PdfEditOptions,
+  PdfPage,
+  PdfPageRotation,
+  PdfPageSize,
+  PdfSplitOptions,
   ProfileChanges,
   SettingsChanges,
   SignedUrl,
