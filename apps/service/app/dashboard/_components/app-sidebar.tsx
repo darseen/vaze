@@ -2,6 +2,18 @@
 
 import logo from "@/assets/images/vaze.png";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -12,27 +24,32 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import type { Scope } from "@repo/types";
 import {
   ArchiveRestore,
-  FileStack,
+  ChevronRight,
   FolderOpen,
   History,
   KeyRound,
   LayoutDashboard,
   type LucideIcon,
-  Recycle,
   Settings,
   Users,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import NavUser from "./nav-user";
 import { useCan } from "./permissions";
+import { TOOL_GROUPS, toolHref, type ToolGroup } from "./tools";
 
 type NavItem = {
   title: string;
@@ -40,7 +57,19 @@ type NavItem = {
   icon: LucideIcon;
   isActive: (pathname: string) => boolean;
   scope?: Scope;
+  /** Makes the item a group that opens to list these tools. */
+  group?: ToolGroup;
 };
+
+const groupItem = (group: ToolGroup): NavItem => ({
+  title: group.title,
+  href: group.href,
+  icon: group.icon,
+  isActive: (pathname) =>
+    pathname === group.href || pathname.startsWith(`${group.href}/`),
+  scope: group.scope,
+  group,
+});
 
 const navGroups: { label: string; items: NavItem[] }[] = [
   {
@@ -96,22 +125,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   },
   {
     label: "Tools",
-    items: [
-      {
-        title: "Conversion",
-        href: "/dashboard/conversion",
-        icon: Recycle,
-        isActive: (pathname) => pathname.startsWith("/dashboard/conversion"),
-        scope: "files:read",
-      },
-      {
-        title: "PDF Tools",
-        href: "/dashboard/pdf",
-        icon: FileStack,
-        isActive: (pathname) => pathname.startsWith("/dashboard/pdf"),
-        scope: "files:read",
-      },
-    ],
+    items: [groupItem(TOOL_GROUPS.conversion), groupItem(TOOL_GROUPS.pdf)],
   },
 ];
 
@@ -121,6 +135,93 @@ const activeStyles = [
   "data-[active=true]:before:absolute data-[active=true]:before:top-1/2 data-[active=true]:before:left-0 data-[active=true]:before:h-4 data-[active=true]:before:w-0.5 data-[active=true]:before:-translate-y-1/2 data-[active=true]:before:rounded-full data-[active=true]:before:bg-primary",
   "group-data-[collapsible=icon]:before:hidden",
 ].join(" ");
+
+/** A group of tools, open as a list in the sidebar, or beside its icon when the sidebar is folded. */
+function ToolGroupItem({
+  item,
+  group,
+  pathname,
+}: {
+  item: NavItem;
+  group: ToolGroup;
+  pathname: string;
+}) {
+  const { state, isMobile } = useSidebar();
+  const active = item.isActive(pathname);
+  const [open, setOpen] = useState(active);
+  const [wasActive, setWasActive] = useState(active);
+
+  // arriving on one of its tools opens the group
+  if (active !== wasActive) {
+    setWasActive(active);
+    if (active) setOpen(true);
+  }
+
+  if (state === "collapsed" && !isMobile) {
+    return (
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton isActive={active} className={activeStyles}>
+              <item.icon />
+              <span>{item.title}</span>
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" className="min-w-48">
+            <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
+            {group.tools.map((tool) => (
+              <DropdownMenuItem key={tool.slug} asChild>
+                <Link href={toolHref(group, tool)}>
+                  <tool.icon />
+                  {tool.title}
+                </Link>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    );
+  }
+
+  return (
+    <Collapsible
+      asChild
+      open={open}
+      onOpenChange={setOpen}
+      className="group/collapsible"
+    >
+      <SidebarMenuItem>
+        {/* the open list shows which tool is current, so only a closed group is marked */}
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            isActive={active && !open}
+            className={activeStyles}
+          >
+            <item.icon />
+            <span>{item.title}</span>
+            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {group.tools.map((tool) => {
+              const href = toolHref(group, tool);
+              return (
+                <SidebarMenuSubItem key={tool.slug}>
+                  <SidebarMenuSubButton asChild isActive={pathname === href}>
+                    <Link href={href}>
+                      <span>{tool.title}</span>
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              );
+            })}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+}
 
 export default function AppSidebar({
   username,
@@ -177,21 +278,30 @@ export default function AppSidebar({
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {items.map((item) => (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        asChild
-                        tooltip={item.title}
-                        isActive={item.isActive(pathname)}
-                        className={activeStyles}
-                      >
-                        <Link href={item.href}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  {items.map((item) =>
+                    item.group ? (
+                      <ToolGroupItem
+                        key={item.href}
+                        item={item}
+                        group={item.group}
+                        pathname={pathname}
+                      />
+                    ) : (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                          asChild
+                          tooltip={item.title}
+                          isActive={item.isActive(pathname)}
+                          className={activeStyles}
+                        >
+                          <Link href={item.href}>
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ),
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

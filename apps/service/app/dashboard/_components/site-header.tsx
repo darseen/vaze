@@ -14,6 +14,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment } from "react";
+import { TOOL_GROUPS, type ToolGroup } from "./tools";
 
 type Crumb = { label: string; href?: string };
 
@@ -41,15 +42,14 @@ function buildCrumbs(pathname: string): Crumb[] {
     return [{ label: "Dashboard", href: "/dashboard" }, { label: "Users" }];
   }
 
-  if (segments[0] === "conversion") {
+  if (segments[0] === "conversion" || segments[0] === "pdf") {
+    const group: ToolGroup = TOOL_GROUPS[segments[0]];
+    const tool = group.tools.find((tool) => tool.slug === segments[1]);
     return [
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Conversion" },
+      { label: group.title, href: tool ? group.href : undefined },
+      ...(tool ? [{ label: tool.title }] : []),
     ];
-  }
-
-  if (segments[0] === "pdf") {
-    return [{ label: "Dashboard", href: "/dashboard" }, { label: "PDF Tools" }];
   }
 
   if (segments[0] === "settings") {
