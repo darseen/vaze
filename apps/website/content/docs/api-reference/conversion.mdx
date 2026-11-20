@@ -14,7 +14,10 @@ header](/docs/api-reference#authentication) or a signed-in session.
 
 A server can turn Conversion off with `ENABLE_CONVERSION=false` (see
 [Configuration](/docs/getting-started/configuration#tools)), and then every
-endpoint here answers `404`.
+endpoint here answers `404`. To find out what a server offers without
+converting anything, send a `GET` to a `POST` endpoint: it answers `405` when
+the server has it and `404` when it doesn't. The SDK's
+[`tools()`](/docs/sdk#tools) does this for you.
 
 ## Video to audio
 

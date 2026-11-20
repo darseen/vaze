@@ -8,7 +8,8 @@ icon: FileStack
 needs `files:read`, and every method returns the [response
 envelope](/docs/sdk#response-shape), with the result as a `Blob`. On a server
 that [turned the PDF tools off](/docs/getting-started/configuration#tools),
-every method sets `error` with status `404`.
+every method sets `error` with status `404`. [`tools()`](/docs/sdk#tools) tells
+you beforehand whether a server has them.
 
 ## Sources
 

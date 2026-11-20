@@ -122,6 +122,15 @@ export default class Base {
     }
   }
 
+  /** Whether the server has an endpoint, which a server without it answers with 404. */
+  protected async hasEndpoint(url: string): Promise<boolean> {
+    const response = await this.fetch(url, {
+      method: "GET",
+      headers: await this.authHeaders(),
+    });
+    return response.status !== 404;
+  }
+
   protected async requestBlob(
     url: string,
     method = "GET",

@@ -401,6 +401,15 @@ const canUpload = data?.scopes.includes("files:write");
 
 Failed requests carry the HTTP status in `error.status`, such as `401` once a session expires.
 
+# Tools
+
+`vaze.tools()` says which conversions and PDF tools the server offers: `videoToAudio`, `video`, `image` and `pdf`. Each is `false` on a server too old for it, or one whose admin turned its section off with `ENABLE_CONVERSION=false` or `ENABLE_PDF_TOOLS=false`.
+
+```ts
+const { data } = await vaze.tools();
+if (data?.pdf) showPdfTools();
+```
+
 # Types
 
 This SDK is built with TypeScript and exports all necessary types to ensure type safety in your applications. Types such as `File`, `Folder`, `DeletedItem`, `ApiKey`, `Activity`, `User`, `Session`, `InstanceSettings`, `Stats`, `StatsAlert`, `TrafficDay`, `ApiKeyUsage`, `ApiResponse`, `ListOptions`, and `VazeOptions`.

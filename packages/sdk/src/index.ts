@@ -10,7 +10,7 @@ import Keys from "./keys.js";
 import Pdf from "./pdf.js";
 import Settings from "./settings.js";
 import Users from "./users.js";
-import type { IVaze, VazeOptions } from "./types/index.js";
+import type { IVaze, Tools, VazeOptions } from "./types/index.js";
 import { constructFileUrls } from "./utils/index.js";
 
 export default class Vaze extends Base implements IVaze {
@@ -45,6 +45,33 @@ export default class Vaze extends Base implements IVaze {
       "GET",
       this.apiUrl("/api/health"),
     );
+  }
+
+  /**
+   * Which conversions and PDF tools the server offers. A server older than a
+   * tool lacks it, and an admin can turn Conversion or the PDF tools off.
+   */
+  public async tools(): Promise<ApiResponse<Tools>> {
+    try {
+      // the endpoints only take POST, so one that is there answers a GET with 405
+      const [videoToAudio, video, image, pdf] = await Promise.all([
+        this.hasEndpoint(this.conversion.videoToAudioUrl()),
+        this.hasEndpoint(this.conversion.videoUrl()),
+        this.hasEndpoint(this.conversion.imageUrl()),
+        this.hasEndpoint(this.pdf.mergeUrl()),
+      ]);
+      return { data: { videoToAudio, video, image, pdf }, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "An error occurred while making the request.",
+        },
+      };
+    }
   }
 
   /** Whether the instance still needs its first account, which becomes the admin. */
@@ -154,6 +181,7 @@ export type {
   SettingsChanges,
   SignedUrl,
   SignOptions,
+  Tools,
   UserAccess,
   VazeHeaders,
   VazeOptions,

@@ -57,6 +57,18 @@ export type FileReference = {
   type: string;
 };
 
+/** Which tools a server offers; each is false on a server too old for it, or with its section turned off. */
+export type Tools = {
+  /** Video to audio, in Vaze 4.5.0 and later. */
+  videoToAudio: boolean;
+  /** Video conversion, in Vaze 4.8.0 and later. */
+  video: boolean;
+  /** Image conversion, in Vaze 4.6.0 and later. */
+  image: boolean;
+  /** Every PDF tool, in Vaze 4.8.0 and later. */
+  pdf: boolean;
+};
+
 /** A stored file by its id, or a file from the caller's device. */
 export type ConversionSource = { id: string } | { file: File | FileReference };
 

@@ -9,9 +9,11 @@ merging, splitting and editing, and LibreOffice for documents, both of which
 the Docker image includes. A server can turn them off with
 `ENABLE_PDF_TOOLS=false` (see
 [Configuration](/docs/getting-started/configuration#tools)), and then every
-endpoint here answers `404`. The result comes back as the response and is not
-stored, so save it, or [upload](/docs/api-reference/files#upload-files) it, if
-you want to keep it.
+endpoint here answers `404`. To find out whether a server has them, send a
+`GET` to one: it answers `405` when the server has it and `404` when it
+doesn't, which the SDK's [`tools()`](/docs/sdk#tools) checks for you. The
+result comes back as the response and is not stored, so save it, or
+[upload](/docs/api-reference/files#upload-files) it, if you want to keep it.
 
 Using them needs the `files:read` scope. They work with an [`API-Key`
 header](/docs/api-reference#authentication) or a signed-in session.
