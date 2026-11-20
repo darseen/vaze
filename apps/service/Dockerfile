@@ -1,9 +1,6 @@
-FROM node:26-alpine AS base
+FROM node:26-slim AS base
  
 FROM base AS builder
-
-RUN apk update
-RUN apk add --no-cache libc6-compat 
 
 WORKDIR /app
 
@@ -16,8 +13,6 @@ RUN turbo prune service --docker
  
 FROM base AS installer
 
-RUN apk update
-RUN apk add --no-cache libc6-compat
 RUN npm install -g corepack && corepack enable pnpm
 
 WORKDIR /app
@@ -33,9 +28,12 @@ RUN pnpm turbo run build
  
 FROM base AS runner
 
-RUN apk update
-# ffmpeg and ffprobe power video to audio conversion, libheif's heif-dec reads HEIC images, and su-exec drops to node after start-up; updated with every image rebuild
-RUN apk add --no-cache openssl ffmpeg libheif-tools su-exec
+# ffmpeg powers the Conversion tools, heif-dec reads HEIC images, and headless LibreOffice with metric-compatible fonts turns documents into PDFs; updated with every image rebuild
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  openssl ffmpeg libheif-examples libheif-plugin-libde265 \
+  libreoffice-writer-nogui libreoffice-calc-nogui libreoffice-impress-nogui \
+  fonts-liberation fonts-noto-core \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -52,8 +50,10 @@ COPY --from=builder /app/apps/service/entrypoint.sh ./apps/service/entrypoint.sh
 
 RUN chmod +x ./apps/service/entrypoint.sh
 
-# The entrypoint starts as root only to install LibreOffice when asked, then runs Vaze as node; a named volume at /var/lib/vaze inherits node's ownership on first use.
+# Run unprivileged; a named volume at /var/lib/vaze inherits node's ownership on first use.
 RUN mkdir -p /var/lib/vaze && chown node:node /var/lib/vaze && chown -R node:node /app
+
+USER node
 
 EXPOSE 3000
 ENV PORT=3000

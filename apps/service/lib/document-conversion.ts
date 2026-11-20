@@ -1,9 +1,5 @@
 import type { ConversionSource } from "@/app/api/_utils/conversion";
-import {
-  DOCUMENT_CONVERSION_ENV,
-  documentExtension,
-  LIBREOFFICE_ADDED_SIZE,
-} from "@/utils/pdf-tools";
+import { documentExtension } from "@/utils/pdf-tools";
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -15,11 +11,6 @@ import { createTurnQueue } from "./turn-queue";
 const SOFFICE = process.env.SOFFICE_PATH || "soffice";
 
 const TIMEOUT_MS = 120_000;
-
-export const isDocumentConversionEnabled = () =>
-  process.env[DOCUMENT_CONVERSION_ENV] === "true";
-
-export const DOCUMENT_CONVERSION_OFF_MESSAGE = `Document conversion is turned off on this server. Set ${DOCUMENT_CONVERSION_ENV}=true for the Vaze container and recreate it, which installs LibreOffice and adds about ${LIBREOFFICE_ADDED_SIZE}`;
 
 // LibreOffice takes a few hundred MB, so one runs at a time
 export const { isBusy, acquireTurn } = createTurnQueue({
@@ -140,7 +131,7 @@ export async function convertDocument(
       reject(
         error.code === "ENOENT"
           ? new ConversionError(
-              "LibreOffice isn't installed, so documents can't be converted. Restart the Vaze container to install it again, or install LibreOffice where Vaze runs",
+              "LibreOffice isn't installed where Vaze runs, so documents can't be converted",
               503,
             )
           : error,

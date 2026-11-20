@@ -1,4 +1,5 @@
 import getUser from "@/actions/auth/get-user-from-token";
+import { enabledToolSections } from "@/lib/tool-sections";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 import { ReactNode } from "react";
@@ -24,6 +25,7 @@ export default async function DashboardLayout({
         <AppSidebar
           username={data?.username ?? null}
           role={data?.role ?? null}
+          sections={enabledToolSections()}
         />
         <SidebarInset className="h-svh overflow-hidden md:h-[calc(100svh-1rem)]">
           <SiteHeader />

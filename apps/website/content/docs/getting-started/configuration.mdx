@@ -69,26 +69,28 @@ instance totals for a year. See [Stats](/docs/api-reference/account#hosting-traf
   it later has no effect.
 </Callout>
 
-### Document conversion
+### Tools
 
-| Variable                     | Default | Description                                                                                                       |
-| ---------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
-| `ENABLE_DOCUMENT_CONVERSION` | `false` | `true` lets [PDF tools](/docs/api-reference/pdf#document-to-pdf) turn Word, Excel, PowerPoint and OpenDocument files into PDFs |
+| Variable            | Default | Description                                                                                                                       |
+| ------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `ENABLE_CONVERSION` | `true`  | `false` turns off [Conversion](/docs/api-reference/conversion): video to audio, the video converter and the image converter         |
+| `ENABLE_PDF_TOOLS`  | `true`  | `false` turns off the [PDF tools](/docs/api-reference/pdf): merging, splitting, editing, and making PDFs from images and documents |
 
-Turning documents into PDFs needs LibreOffice, which adds about 1 GB, so the
-image leaves it out. With the variable set to `true`, the container installs
-LibreOffice as it starts. That takes a few minutes, and happens again each
-time the container is recreated, such as on an upgrade; a plain restart keeps
-it. Add the line to your `.env` and apply it:
+Both sections are on by default. The Docker image includes everything they
+run on: ffmpeg and libheif for Conversion, and LibreOffice with the Liberation
+and Noto fonts for turning documents into PDFs.
+
+A section that is turned off disappears from the dashboard's sidebar and from
+the mobile app, its pages are gone, and its endpoints answer `404`. To turn
+one off, add its line to your `.env` and apply it:
 
 ```bash
-echo "ENABLE_DOCUMENT_CONVERSION=true" >> .env
+echo "ENABLE_PDF_TOOLS=false" >> .env
 docker compose -f compose.prod.yaml up -d
 ```
 
-The other PDF tools work either way. Installing needs the container to start
-as root, which it does unless you run it with another `user`; Vaze itself
-always runs as the unprivileged `node` user.
+Turning a section off doesn't make the image smaller, since the image is the
+same for everyone.
 
 Public files are served to anyone with the link; private files require a signed
 URL, an API key, or a dashboard session. See [signing a

@@ -1,9 +1,5 @@
 import * as documentQueue from "@/lib/document-conversion";
-import {
-  convertDocument,
-  DOCUMENT_CONVERSION_OFF_MESSAGE,
-  isDocumentConversionEnabled,
-} from "@/lib/document-conversion";
+import { convertDocument } from "@/lib/document-conversion";
 import { toPdfName } from "@/utils/pdf-tools";
 import { NextRequest } from "next/server";
 import { handlePdfTool } from "../../_utils/pdf";
@@ -15,8 +11,6 @@ export function POST(request: NextRequest) {
     bucket: "document-conversion",
     limit: 20,
     queue: documentQueue,
-    disabled: () =>
-      isDocumentConversionEnabled() ? null : DOCUMENT_CONVERSION_OFF_MESSAGE,
     sources: { min: 1, max: 1 },
     parse: () => undefined,
     run: async ({ sources: [source], workDir, signal }) => ({

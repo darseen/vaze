@@ -5,8 +5,10 @@ icon: Recycle
 ---
 
 `vaze.conversion` converts files on the server, which needs Vaze 4.5.0 or
-later, 4.6.0 for images and 4.8.0 for videos. Converting needs `files:read`, and every method
-returns the [response envelope](/docs/sdk#response-shape).
+later, 4.6.0 for images and 4.8.0 for videos. Converting needs `files:read`,
+and every method returns the [response envelope](/docs/sdk#response-shape). On
+a server that [turned Conversion off](/docs/getting-started/configuration#tools),
+every method sets `error` with status `404`.
 
 ## Video to audio
 

@@ -1,6 +1,7 @@
+import { isToolSectionEnabled } from "@/lib/tool-sections";
 import { authorize } from "@/utils/auth";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { findTool, type ToolGroupKey } from "./tools";
@@ -21,6 +22,7 @@ export default async function ToolPage({
   children: ReactNode;
 }) {
   await connection();
+  if (!isToolSectionEnabled(groupKey)) notFound();
 
   const { group, tool } = findTool(groupKey, slug);
   const { error } = await authorize(group.scope);

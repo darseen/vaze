@@ -27,7 +27,6 @@ export function SourcePicker({
   disabled,
   multiple = false,
   onChoose,
-  onUnavailable,
 }: {
   icon: LucideIcon;
   title: string;
@@ -40,8 +39,6 @@ export function SourcePicker({
   /** Lets the device picker take several files, each passed to `onChoose`. */
   multiple?: boolean;
   onChoose: (source: ConversionSource) => void;
-  /** When set, the buttons call this instead of opening a picker, e.g. to explain why the tool is off. */
-  onUnavailable?: () => void;
 }) {
   const [isFileSelectorOpen, setIsFileSelectorOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,18 +70,14 @@ export function SourcePicker({
           <Button
             variant="secondary"
             disabled={disabled}
-            onClick={() =>
-              onUnavailable ? onUnavailable() : inputRef.current?.click()
-            }
+            onClick={() => inputRef.current?.click()}
           >
             <Upload />
             Choose from device
           </Button>
           <Button
             disabled={disabled}
-            onClick={() =>
-              onUnavailable ? onUnavailable() : setIsFileSelectorOpen(true)
-            }
+            onClick={() => setIsFileSelectorOpen(true)}
           >
             <Cloud />
             Choose from Vaze

@@ -94,12 +94,6 @@ export interface EditedPage {
   rotate: Rotation;
 }
 
-/** The variable that turns document conversion on, and in Docker installs LibreOffice on start. */
-export const DOCUMENT_CONVERSION_ENV = "ENABLE_DOCUMENT_CONVERSION";
-
-/** What installing LibreOffice and its fonts adds to the container. */
-export const LIBREOFFICE_ADDED_SIZE = "1 GB";
-
 // what LibreOffice turns into a PDF, by the extension it reads the type from
 const DOCUMENT_EXTENSIONS = new Set([
   // text documents

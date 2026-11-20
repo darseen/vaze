@@ -42,8 +42,6 @@ interface PdfTool<Options> {
   limit: number;
   sources: { min: number; max: number };
   queue: Queue;
-  /** Why the tool is turned off on this server, if it is. */
-  disabled?: () => string | null;
   /** Checks the options before the request waits its turn. */
   parse: (
     fields: Record<string, unknown>,
@@ -138,8 +136,6 @@ export async function handlePdfTool<Options>(
   }
 
   // refuse before a device upload is read, not after
-  const disabled = tool.disabled?.();
-  if (disabled) return jsonError(disabled, 501);
   if (tool.queue.isBusy()) return busy();
 
   const workDir = path.join(BASE_TMP_PATH, crypto.randomUUID());

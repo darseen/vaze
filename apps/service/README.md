@@ -45,29 +45,29 @@ Docker image already includes it.
 The PDF tools use `pdf-lib`, on a worker thread so a large PDF doesn't hold up
 other requests. Turning DOCX, XLSX, PPTX, ODT, RTF and similar files into PDFs
 needs LibreOffice's `soffice` (e.g. `brew install --cask libreoffice`,
-`apt install libreoffice-writer libreoffice-calc libreoffice-impress`), and is
-off unless `ENABLE_DOCUMENT_CONVERSION=true`. LibreOffice runs with macros, OLE
-and links switched off, so a document can't run code or pull in other files.
+`apt install libreoffice-writer-nogui libreoffice-calc-nogui libreoffice-impress-nogui`).
+LibreOffice runs with macros, OLE and links switched off, so a document can't
+run code or pull in other files. The Docker image, built on Debian slim,
+includes headless LibreOffice with the Liberation and Noto fonts.
 
-The Docker image leaves LibreOffice out, as it adds about 1 GB. With
-`ENABLE_DOCUMENT_CONVERSION=true`, the container installs it with the Liberation
-and Noto fonts as it starts, which takes a few minutes and happens again
-whenever the container is recreated, e.g. on an upgrade. Installing needs the
-container to start as root, as it does by default; Vaze itself then runs as
-`node`.
+The Conversion and PDF tool sections are on by default. Set
+`ENABLE_CONVERSION=false` or `ENABLE_PDF_TOOLS=false` to turn one off: it
+leaves the dashboard's sidebar and the mobile app, and its pages and endpoints
+answer 404.
 
 ## Environment variables
 
-| Variable                     | Required    | Description                                                                                       |
-| ---------------------------- | ----------- | ------------------------------------------------------------------------------------------------- |
-| `AUTH_SECRET`                | Yes (prod)  | Secret used to sign session JWTs. The app refuses to sign/verify tokens if it is unset.           |
-| `BASE_URL`                   | Recommended | Public base URL. Used to decide whether the auth cookie is marked `secure` (`https://...`).       |
-| `DATA_PATH`                  | No          | Absolute path for the SQLite DB and uploads. Defaults to `<cwd>/data`.                            |
-| `FFMPEG_PATH`                | No          | Path to the `ffmpeg` binary. Defaults to `ffmpeg` on `PATH`.                                      |
-| `FFPROBE_PATH`               | No          | Path to the `ffprobe` binary. Defaults to `ffprobe` on `PATH`.                                    |
-| `HEIF_DEC_PATH`              | No          | Path to libheif's `heif-dec` binary. Defaults to `heif-dec` on `PATH`.                            |
-| `SOFFICE_PATH`               | No          | Path to LibreOffice's `soffice` binary. Defaults to `soffice` on `PATH`.                          |
-| `ENABLE_DOCUMENT_CONVERSION` | No          | `true` turns documents into PDFs, and in Docker installs LibreOffice on start, adding about 1 GB. |
+| Variable            | Required    | Description                                                                                 |
+| ------------------- | ----------- | ------------------------------------------------------------------------------------------- |
+| `AUTH_SECRET`       | Yes (prod)  | Secret used to sign session JWTs. The app refuses to sign/verify tokens if it is unset.     |
+| `BASE_URL`          | Recommended | Public base URL. Used to decide whether the auth cookie is marked `secure` (`https://...`). |
+| `DATA_PATH`         | No          | Absolute path for the SQLite DB and uploads. Defaults to `<cwd>/data`.                      |
+| `FFMPEG_PATH`       | No          | Path to the `ffmpeg` binary. Defaults to `ffmpeg` on `PATH`.                                |
+| `FFPROBE_PATH`      | No          | Path to the `ffprobe` binary. Defaults to `ffprobe` on `PATH`.                              |
+| `HEIF_DEC_PATH`     | No          | Path to libheif's `heif-dec` binary. Defaults to `heif-dec` on `PATH`.                      |
+| `SOFFICE_PATH`      | No          | Path to LibreOffice's `soffice` binary. Defaults to `soffice` on `PATH`.                    |
+| `ENABLE_CONVERSION` | No          | `false` turns off the Conversion tools: video to audio, video and image conversion.         |
+| `ENABLE_PDF_TOOLS`  | No          | `false` turns off the PDF tools, documents to PDF included.                                 |
 
 ## Data & persistence
 

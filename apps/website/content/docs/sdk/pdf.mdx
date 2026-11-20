@@ -6,7 +6,9 @@ icon: FileStack
 
 `vaze.pdf` works on PDFs on the server, which needs Vaze 4.8.0 or later. It
 needs `files:read`, and every method returns the [response
-envelope](/docs/sdk#response-shape), with the result as a `Blob`.
+envelope](/docs/sdk#response-shape), with the result as a `Blob`. On a server
+that [turned the PDF tools off](/docs/getting-started/configuration#tools),
+every method sets `error` with status `404`.
 
 ## Sources
 
@@ -98,10 +100,6 @@ RTF, CSV or plain text into a PDF.
 ```ts
 const { data } = await vaze.pdf.fromDocument({ id: "report-docx-id" });
 ```
-
-Document conversion is off unless the server [turns it
-on](/docs/getting-started/configuration#document-conversion); until then
-`error` has status `501` and a message saying how.
 
 ## Sending the request yourself
 

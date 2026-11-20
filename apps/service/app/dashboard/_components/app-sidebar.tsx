@@ -49,6 +49,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import NavUser from "./nav-user";
 import { useCan } from "./permissions";
+import type { ToolSection } from "@/lib/tool-sections";
 import { TOOL_GROUPS, toolHref, type ToolGroup } from "./tools";
 
 type NavItem = {
@@ -59,17 +60,23 @@ type NavItem = {
   scope?: Scope;
   /** Makes the item a group that opens to list these tools. */
   group?: ToolGroup;
+  /** The section the server can turn off. */
+  section?: ToolSection;
 };
 
-const groupItem = (group: ToolGroup): NavItem => ({
-  title: group.title,
-  href: group.href,
-  icon: group.icon,
-  isActive: (pathname) =>
-    pathname === group.href || pathname.startsWith(`${group.href}/`),
-  scope: group.scope,
-  group,
-});
+const groupItem = (section: ToolSection): NavItem => {
+  const group: ToolGroup = TOOL_GROUPS[section];
+  return {
+    title: group.title,
+    href: group.href,
+    icon: group.icon,
+    isActive: (pathname) =>
+      pathname === group.href || pathname.startsWith(`${group.href}/`),
+    scope: group.scope,
+    group,
+    section,
+  };
+};
 
 const navGroups: { label: string; items: NavItem[] }[] = [
   {
@@ -125,7 +132,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   },
   {
     label: "Tools",
-    items: [groupItem(TOOL_GROUPS.conversion), groupItem(TOOL_GROUPS.pdf)],
+    items: [groupItem("conversion"), groupItem("pdf")],
   },
 ];
 
@@ -226,9 +233,12 @@ function ToolGroupItem({
 export default function AppSidebar({
   username,
   role,
+  sections,
 }: {
   username: string | null;
   role: string | null;
+  /** Which tool sections the server has on. */
+  sections: Record<ToolSection, boolean>;
 }) {
   const pathname = usePathname();
   const can = useCan();
@@ -266,7 +276,9 @@ export default function AppSidebar({
       <SidebarContent>
         {navGroups.map((group) => {
           const items = group.items.filter(
-            (item) => !item.scope || can(item.scope),
+            (item) =>
+              (!item.scope || can(item.scope)) &&
+              (!item.section || sections[item.section]),
           );
           // a label over nothing would be noise
           if (items.length === 0) return null;

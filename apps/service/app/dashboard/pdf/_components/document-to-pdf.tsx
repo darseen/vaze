@@ -3,22 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DOCUMENT_ACCEPT,
-  DOCUMENT_CONVERSION_ENV,
   isConvertibleDocument,
-  LIBREOFFICE_ADDED_SIZE,
   toPdfName,
 } from "@/utils/pdf-tools";
-import { FileType, Info, Play } from "lucide-react";
+import { FileType, Play } from "lucide-react";
 import { useState } from "react";
 import {
   SelectedSource,
@@ -27,51 +16,9 @@ import {
 import type { ConversionSource } from "../../conversion/_components/request-conversion";
 import { PdfJobStatus, usePdfJob } from "./pdf-job";
 
-function Code({ children }: { children: React.ReactNode }) {
-  return (
-    <code className="bg-muted rounded px-1 py-0.5 font-mono text-xs">
-      {children}
-    </code>
-  );
-}
-
-/** Names the variable that turns document conversion on, and what it costs in space. */
-function TurnedOffDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader className="text-left">
-          <DialogTitle className="flex items-start gap-2">
-            <Info className="text-primary mt-0.5 size-5 shrink-0" />
-            Document conversion is turned off
-          </DialogTitle>
-          <DialogDescription>
-            Add the <Code>{`${DOCUMENT_CONVERSION_ENV}=true`}</Code> environment
-            variable to turn it on. This adds about{" "}
-            <strong>{LIBREOFFICE_ADDED_SIZE}</strong> to the container.
-          </DialogDescription>
-        </DialogHeader>
-
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button>Got it</Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export default function DocumentToPdf({ enabled }: { enabled: boolean }) {
+export default function DocumentToPdf() {
   const job = usePdfJob();
   const [source, setSource] = useState<ConversionSource | null>(null);
-  const [isTurnedOffOpen, setIsTurnedOffOpen] = useState(false);
 
   return (
     <Card>
@@ -88,11 +35,6 @@ export default function DocumentToPdf({ enabled }: { enabled: boolean }) {
               setSource(next);
               job.reset();
             }}
-            onUnavailable={enabled ? undefined : () => setIsTurnedOffOpen(true)}
-          />
-          <TurnedOffDialog
-            open={isTurnedOffOpen}
-            onOpenChange={setIsTurnedOffOpen}
           />
 
           {source && (
