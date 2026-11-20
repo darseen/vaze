@@ -12,6 +12,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
 import SaveToDownloads from "../../modules/downloads";
+import { DOCUMENT_MIME_TYPES, PDF_MIME_TYPE } from "./pdf-tools";
 
 export type DownloadRequest = {
   url: string;
@@ -192,6 +193,8 @@ export type PickedFile = FileReference & { size: number };
 export async function pickOne(
   kind: "video" | "image",
   from: "media" | "files",
+  /** Lets the device's files offer animated GIFs along with videos. */
+  { gifs = false }: { gifs?: boolean } = {},
 ): Promise<PickedFile | null> {
   if (from === "media") {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -212,7 +215,12 @@ export async function pickOne(
   }
 
   const result = await DocumentPicker.getDocumentAsync({
-    type: kind === "video" ? "video/*" : "image/*",
+    type:
+      kind === "image"
+        ? "image/*"
+        : gifs
+          ? ["video/*", "image/gif"]
+          : "video/*",
     copyToCacheDirectory: true,
   });
   const asset = result.canceled ? null : result.assets[0];
@@ -223,6 +231,53 @@ export async function pickOne(
     type: asset.mimeType ?? "application/octet-stream",
     size: asset.size ?? new DeviceFile(asset.uri).size ?? 0,
   };
+}
+
+// what each kind of file is offered as in the phone's file picker
+const PICKER_TYPES: Record<"image" | "pdf" | "document", string[]> = {
+  image: ["image/*"],
+  pdf: [PDF_MIME_TYPE],
+  document: DOCUMENT_MIME_TYPES,
+};
+
+/** Images from the gallery, or images, PDFs or documents from the device's files; empty if none were picked. */
+export async function pickFiles(
+  kind: "image" | "pdf" | "document",
+  from: "media" | "files",
+  { multiple }: { multiple: boolean },
+): Promise<PickedFile[]> {
+  if (from === "media") {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: multiple,
+      // keeps the order the photos were tapped in
+      orderedSelection: multiple,
+      quality: 1,
+      // iOS would otherwise hand over a HEIC photo already turned into a JPG
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
+    });
+    if (result.canceled) return [];
+    return result.assets.map((asset) => ({
+      uri: asset.uri,
+      name: asset.fileName ?? nameFromUri(asset.uri),
+      type: asset.mimeType ?? "image/jpeg",
+      size: asset.fileSize ?? new DeviceFile(asset.uri).size ?? 0,
+    }));
+  }
+
+  const result = await DocumentPicker.getDocumentAsync({
+    type: PICKER_TYPES[kind],
+    multiple,
+    copyToCacheDirectory: true,
+  });
+  if (result.canceled) return [];
+  return result.assets.map((asset) => ({
+    uri: asset.uri,
+    name: asset.name,
+    type: asset.mimeType ?? "application/octet-stream",
+    size: asset.size ?? new DeviceFile(asset.uri).size ?? 0,
+  }));
 }
 
 export async function pickDocuments(): Promise<FileReference[]> {

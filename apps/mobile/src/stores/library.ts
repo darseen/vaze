@@ -1,7 +1,6 @@
 import type Vaze from "@darseen/vaze";
-import type { DeletedItem, File, Folder, Stats } from "@darseen/vaze";
+import type { DeletedItem, File, Folder, Stats, Tools } from "@darseen/vaze";
 import { create } from "zustand";
-import { supportedConversions, type ConversionSupport } from "@/lib/conversion";
 
 type Loadable<T> = { data: T | null; loading: boolean; error: string | null };
 
@@ -14,12 +13,12 @@ type LibraryState = {
   stats: Record<string, Loadable<Stats>>;
   /** `supported` is false on servers that predate Recently deleted. */
   deleted: Record<string, Loadable<DeletedContents> & { supported?: boolean }>;
-  /** Which conversions each server offers, once it has answered. */
-  conversion: Record<string, ConversionSupport>;
+  /** Which conversions and PDF tools each server offers. */
+  tools: Record<string, Loadable<Tools>>;
   loadFolder: (serverId: string, vaze: Vaze, key: string) => Promise<void>;
   loadStats: (serverId: string, vaze: Vaze) => Promise<void>;
   loadDeleted: (serverId: string, vaze: Vaze) => Promise<void>;
-  checkConversion: (serverId: string, vaze: Vaze) => Promise<void>;
+  loadTools: (serverId: string, vaze: Vaze) => Promise<void>;
   /** Drops items restored or purged, ahead of the reload. */
   forgetDeleted: (serverId: string, ids: string[]) => void;
   clear: (serverId: string) => void;
@@ -43,7 +42,7 @@ export const useLibrary = create<LibraryState>()((set) => ({
   folders: {},
   stats: {},
   deleted: {},
-  conversion: {},
+  tools: {},
 
   loadFolder: async (serverId, vaze, key) => {
     const id = folderCacheKey(serverId, key);
@@ -98,11 +97,19 @@ export const useLibrary = create<LibraryState>()((set) => ({
     }));
   },
 
-  checkConversion: async (serverId, vaze) => {
-    const supported = await supportedConversions(vaze);
-    if (supported === null) return;
+  loadTools: async (serverId, vaze) => {
     set((state) => ({
-      conversion: { ...state.conversion, [serverId]: supported },
+      tools: patch(state.tools, serverId, { loading: true, error: null }),
+    }));
+
+    const { data, error } = await vaze.tools();
+
+    set((state) => ({
+      tools: patch(state.tools, serverId, {
+        loading: false,
+        error: error?.message ?? null,
+        ...(data ? { data } : {}),
+      }),
     }));
   },
 
@@ -134,8 +141,8 @@ export const useLibrary = create<LibraryState>()((set) => ({
       deleted: Object.fromEntries(
         Object.entries(state.deleted).filter(([id]) => id !== serverId),
       ),
-      conversion: Object.fromEntries(
-        Object.entries(state.conversion).filter(([id]) => id !== serverId),
+      tools: Object.fromEntries(
+        Object.entries(state.tools).filter(([id]) => id !== serverId),
       ),
     })),
 }));

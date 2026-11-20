@@ -35,12 +35,15 @@ export function SourceChoices({
   title,
   hint,
   descriptions,
+  origins = ["media", "files", "vaze"],
   onPick,
 }: {
   icon: LucideIcon;
   title: string;
   hint: string;
-  descriptions: Record<SourceOrigin, string>;
+  descriptions: Partial<Record<SourceOrigin, string>>;
+  /** Where files may come from; Photos only holds images and videos. */
+  origins?: SourceOrigin[];
   onPick: (origin: SourceOrigin) => void;
 }) {
   return (
@@ -55,26 +58,20 @@ export function SourceChoices({
         </Text>
       </View>
       <ActionGroup
-        actions={[
-          {
-            label: "From Photos",
-            icon: Images,
-            description: descriptions.media,
-            onPress: () => onPick("media"),
-          },
-          {
-            label: "From Files",
-            icon: FolderOpen,
-            description: descriptions.files,
-            onPress: () => onPick("files"),
-          },
-          {
-            label: "From Vaze",
-            icon: Cloud,
-            description: descriptions.vaze,
-            onPress: () => onPick("vaze"),
-          },
-        ]}
+        actions={(
+          [
+            { origin: "media", label: "From Photos", icon: Images },
+            { origin: "files", label: "From Files", icon: FolderOpen },
+            { origin: "vaze", label: "From Vaze", icon: Cloud },
+          ] as const
+        )
+          .filter(({ origin }) => origins.includes(origin))
+          .map(({ origin, label, icon }) => ({
+            label,
+            icon,
+            description: descriptions[origin],
+            onPress: () => onPick(origin),
+          }))}
       />
     </>
   );
@@ -86,6 +83,7 @@ export function SourceRow({
   showDeviceImage = false,
   removeLabel,
   onRemove,
+  actions,
 }: {
   source: ConversionSource;
   /** Stands in for a file from the phone, which has no server thumbnail. */
@@ -95,6 +93,8 @@ export function SourceRow({
   removeLabel: string;
   /** Missing while the file is converting. */
   onRemove?: () => void;
+  /** More buttons before the remove one, e.g. to reorder a list. */
+  actions?: ReactNode;
 }) {
   const { server } = useServer();
 
@@ -127,6 +127,7 @@ export function SourceRow({
           {source.kind === "device" ? "This phone" : server.name}
         </Text>
       </View>
+      {actions}
       {onRemove ? (
         <Pressable
           onPress={onRemove}

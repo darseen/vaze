@@ -1,6 +1,7 @@
 import { Chip } from "heroui-native";
 import {
   AudioLines,
+  Clapperboard,
   Download,
   FolderInput,
   Globe,
@@ -12,7 +13,11 @@ import {
   Trash2,
 } from "lucide-react-native";
 import { Text, View } from "react-native";
-import { isConvertibleImage, isVideo } from "@/lib/conversion";
+import {
+  isConvertibleImage,
+  isConvertibleVideo,
+  isVideo,
+} from "@/lib/conversion";
 import { fileKind, KIND_INFO, previewKind } from "@/lib/file-kind";
 import { formatBytes, formatDateTime } from "@/lib/format";
 import { useLibrary } from "@/stores/library";
@@ -30,7 +35,8 @@ export type EntryAction =
   | "move"
   | "make-private"
   | "make-public"
-  | "convert"
+  | "convert-video"
+  | "convert-audio"
   | "convert-image"
   | "delete";
 
@@ -72,7 +78,7 @@ function EntryActions({
   error,
 }: Pick<EntrySheetProps, "onAction" | "busy" | "error"> & { entry: Entry }) {
   const { server, can } = useServer();
-  const conversion = useLibrary((state) => state.conversion[server.id]);
+  const tools = useLibrary((state) => state.tools[server.id]?.data);
   const isFile = entry.type === "file";
   const canWrite = can("files:write");
   const isPrivate = isFile && entry.file.visibility === "private";
@@ -112,18 +118,24 @@ function EntryActions({
             onPress: () => onAction("copy-link"),
           },
           {
+            label: "Convert video",
+            icon: Clapperboard,
+            description: "Compress it, or change its format",
+            hidden: !tools?.video || !isFile || !isConvertibleVideo(entry.file),
+            onPress: () => onAction("convert-video"),
+          },
+          {
             label: "Convert to audio",
             icon: AudioLines,
             description: "Extract its audio as an MP3",
-            hidden: !conversion?.video || !isFile || !isVideo(entry.file),
-            onPress: () => onAction("convert"),
+            hidden: !tools?.videoToAudio || !isFile || !isVideo(entry.file),
+            onPress: () => onAction("convert-audio"),
           },
           {
             label: "Convert image",
             icon: ImageIcon,
             description: "To WebP, JPG, PNG or AVIF, and resize it",
-            hidden:
-              !conversion?.image || !isFile || !isConvertibleImage(entry.file),
+            hidden: !tools?.image || !isFile || !isConvertibleImage(entry.file),
             onPress: () => onAction("convert-image"),
           },
         ]}

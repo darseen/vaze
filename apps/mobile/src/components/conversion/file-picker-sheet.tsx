@@ -4,7 +4,12 @@ import { ListGroup, Separator, Spinner } from "heroui-native";
 import { ChevronLeft, Folder as FolderIcon } from "lucide-react-native";
 import { Fragment, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { isConvertibleImage, isVideo } from "@/lib/conversion";
+import {
+  isConvertibleImage,
+  isConvertibleVideo,
+  isVideo,
+} from "@/lib/conversion";
+import { isConvertibleDocument, isPdf } from "@/lib/pdf-tools";
 import { formatBytes } from "@/lib/format";
 import { folderCacheKey, parentKey, useLibrary } from "@/stores/library";
 import { FileThumb } from "../files/file-thumb";
@@ -12,9 +17,32 @@ import { Icon } from "../icon";
 import { useServer } from "../server-context";
 import { Sheet } from "../sheet";
 
+export type PickableKind =
+  "video" | "convertible-video" | "image" | "pdf" | "document";
+
+const KINDS: Record<
+  PickableKind,
+  { accepts: (file: File) => boolean; one: string; many: string }
+> = {
+  video: { accepts: isVideo, one: "a video", many: "videos" },
+  // the video converter reads animated GIFs too
+  "convertible-video": {
+    accepts: isConvertibleVideo,
+    one: "a video",
+    many: "videos",
+  },
+  image: { accepts: isConvertibleImage, one: "an image", many: "images" },
+  pdf: { accepts: isPdf, one: "a PDF", many: "PDFs" },
+  document: {
+    accepts: isConvertibleDocument,
+    one: "a document",
+    many: "documents",
+  },
+};
+
 type FilePickerSheetProps = {
   /** Which files can be picked. */
-  kind: "video" | "image";
+  kind: PickableKind;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (file: File) => void;
@@ -23,7 +51,7 @@ type FilePickerSheetProps = {
 const byName = (a: { name: string }, b: { name: string }) =>
   a.name.localeCompare(b.name);
 
-/** Browses the server's folders and picks one of its videos or images, like the web's picker. */
+/** Browses the server's folders and picks one of its files of a kind, like the web's picker. */
 export function FilePickerSheet({
   kind,
   isOpen,
@@ -43,9 +71,7 @@ export function FilePickerSheet({
 
   const folders = [...(contents?.data?.folders ?? [])].sort(byName);
   const files = contents?.data?.files ?? [];
-  const matches = files
-    .filter(kind === "video" ? isVideo : isConvertibleImage)
-    .sort(byName);
+  const matches = files.filter(KINDS[kind].accepts).sort(byName);
   const rows = [
     ...folders.map((folder) => ({ type: "folder" as const, folder })),
     ...matches.map((file) => ({ type: "file" as const, file })),
@@ -56,7 +82,7 @@ export function FilePickerSheet({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Choose from Vaze"
-      description={`Open a folder to look inside, then pick ${kind === "video" ? "a video" : "an image"}.`}
+      description={`Open a folder to look inside, then pick ${KINDS[kind].one}.`}
       scrollable
     >
       <View className="flex-1 gap-3">
@@ -127,7 +153,7 @@ export function FilePickerSheet({
           ) : contents?.data ? (
             <Text className="font-normal py-6 text-center text-sm text-muted">
               {files.length > 0
-                ? `No ${kind}s in this folder`
+                ? `No ${KINDS[kind].many} in this folder`
                 : "This folder is empty"}
             </Text>
           ) : contents?.error ? (

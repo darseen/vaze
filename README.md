@@ -25,7 +25,7 @@
 - **Users, roles and API keys**: Add accounts as Admin, Editor or Viewer, or with a custom set of scopes, and give each API key only the access it needs.
 - **Dashboard**: See what needs attention, how your storage is used, hosting traffic, the most requested files and how each API key is used.
 - **Conversion and PDF tools**: Compress and convert videos, extract their sound, convert images, and merge, split and edit PDFs or make them from images and documents, all on your server. An admin can turn either section off.
-- **Android app**: The same files, dashboard, keys and users on your phone, for as many servers as you add.
+- **Android app**: The same files, dashboard, tools, keys and users on your phone, for as many servers as you add.
 - **API and SDK**: A REST API and the [`@darseen/vaze`](https://npmjs.com/package/@darseen/vaze) TypeScript SDK for using Vaze from your own apps.
 - **Docker**: One container and one data volume. A single command installs it and later upgrades it.
 

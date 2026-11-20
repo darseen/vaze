@@ -2,10 +2,16 @@ import { NativeTabs } from "expo-router/native-tabs";
 import { useThemeColor } from "heroui-native";
 import { useServer } from "@/components/server-context";
 import { fonts } from "@/lib/fonts";
+import { hasAnyTool } from "@/lib/tools";
+import { useLibrary } from "@/stores/library";
 
 // API keys, users and instance settings are pages inside the Settings tab
 export default function TabsLayout() {
-  const canReadFiles = useServer().can("files:read");
+  const { server, can } = useServer();
+  const canReadFiles = can("files:read");
+  // shown until the server says it has none, so the common case doesn't shift
+  const tools = useLibrary((state) => state.tools[server.id]?.data);
+  const noTools = tools ? !hasAnyTool(tools) : false;
   const [background, foreground, muted, indicator] = useThemeColor([
     "background",
     "foreground",
@@ -38,6 +44,16 @@ export default function TabsLayout() {
           md="folder"
         />
         <NativeTabs.Trigger.Label>Files</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="tools" hidden={!canReadFiles || noTools}>
+        <NativeTabs.Trigger.Icon
+          sf={{
+            default: "wrench.and.screwdriver",
+            selected: "wrench.and.screwdriver.fill",
+          }}
+          md="handyman"
+        />
+        <NativeTabs.Trigger.Label>Tools</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="activity">
         <NativeTabs.Trigger.Icon sf="clock.arrow.circlepath" md="history" />

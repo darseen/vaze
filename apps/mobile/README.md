@@ -12,8 +12,10 @@ then raise the version the app depends on.
 
 - A Vaze server with session support in the SDK (`/api/me`, `/api/stats` and
   the Better Auth Expo plugin). Older servers show an "update it" message.
-  Recently deleted needs Vaze 4.4.0, video to audio 4.5.0 and image
-  conversion 4.6.0; on older servers their entry points stay hidden.
+  Recently deleted needs Vaze 4.4.0, video to audio 4.5.0, image
+  conversion 4.6.0, and the video converter and the PDF tools 4.8.0. On older
+  servers, and on servers that turn Conversion or the PDF tools off, their
+  entry points stay hidden, and so does the Tools tab when none are left.
 - A development build. Expo Go doesn't include every native module the app
   uses.
 - For Android builds, JDK 17. Newer JDKs fail the CMake step of
@@ -37,16 +39,25 @@ app. Plain `http://` works for LAN servers on both platforms.
 ## How it fits together
 
 - `src/app`: routes. `index.tsx` is the server list; `server/[id]/(tabs)`
-  holds the dashboard and file browser for one server, and `server/[id]/view`
-  is the full-screen file viewer above the tabs, like `server/[id]/deleted`
-  for Recently deleted and `server/[id]/conversion` for video to audio and
-  images.
+  holds the dashboard, the file browser and the Tools tab for one server, and
+  `server/[id]/view` is the full-screen file viewer above the tabs, like
+  `server/[id]/deleted` for Recently deleted and
+  `server/[id]/conversion/[tool]` and `server/[id]/pdf/[tool]` for each tool,
+  named as in the dashboard's URLs.
+- `src/lib/tools.ts`: the Tools tab's sections and what each tool needs from
+  the server. `vaze.tools()` says which ones a server offers, asked once as
+  it opens.
 - `src/lib/conversion.ts`: a stored file converts through Expo's streaming
   fetch, so the result is written to disk as it arrives. A file from the
   phone goes through React Native's XHR instead, the one client that streams
   the upload from disk with progress; its result comes back whole. Video to
-  audio and images share this, and each server is asked which of them it
-  has.
+  audio, images and the PDF tools share this, sending several files in order
+  where a tool takes them, to the URLs the SDK gives. A video converts as a
+  job instead: it starts with the upload or `startVideo`, is polled with
+  `videoJob`, streams down from `videoDownloadUrl`, and is removed from the
+  server with `cancelVideo` once it is on the phone or the screen closes.
+- `src/lib/pdf-tools.ts`: the PDF tools' result names and their requests to
+  `vaze.pdf`'s URLs.
 - `modules/file-previews`: a local Expo module that grabs video frames
   (`MediaMetadataRetriever` / AVFoundation) and renders PDF pages
   (`PdfRenderer` / PDFKit) for thumbnails and the viewer. Changing it needs a

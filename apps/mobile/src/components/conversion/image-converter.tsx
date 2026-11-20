@@ -1,31 +1,23 @@
 import type { File, ImageConversionOptions, ImageFormat } from "@darseen/vaze";
 import type { File as DeviceFile } from "expo-file-system";
 import { Image } from "expo-image";
-import {
-  Button,
-  Card,
-  Description,
-  Label,
-  Spinner,
-  Tabs,
-  useToast,
-} from "heroui-native";
+import { Button, Description, Spinner, Tabs, useToast } from "heroui-native";
 import { FileImage } from "lucide-react-native";
 import {
   useEffect,
   useRef,
   useState,
   type Dispatch,
-  type ReactNode,
   type SetStateAction,
 } from "react";
 import { View } from "react-native";
-import { ListSection } from "@/components/list-section";
 import { useServer } from "@/components/server-context";
+import { ChoiceSelect, Option, ToolScroll } from "@/components/tool-parts";
 import {
   convertImage,
   IMAGE_FORMAT_INFO,
   IMAGE_FORMATS,
+  sizeChange,
   type ConversionSource,
 } from "@/lib/conversion";
 import { formatBytes } from "@/lib/format";
@@ -69,34 +61,13 @@ const QUALITIES: Record<
   small: { label: "Smaller", value: { webp: 65, jpeg: 65, avif: 35 } },
 };
 
-// the box the longest side must fit in; four fit a phone's width on one line each
-const SIZES = ["original", "1920", "1280", "640"] as const;
+// the box the longest side must fit in, as in the dashboard
+const SIZES = ["original", "3840", "2560", "1920", "1280", "640"] as const;
 
 type Size = (typeof SIZES)[number];
 
-/** How the result's size compares with the original's. */
-function sizeChange(size: number, sourceSize: number): string | null {
-  if (!sourceSize) return null;
-  const ratio = size / sourceSize;
-  // e.g. a small SVG drawn large, where a percentage runs to thousands
-  if (ratio >= 2) {
-    return `${parseFloat(ratio.toFixed(ratio < 10 ? 1 : 0))}× larger`;
-  }
-  const percent = Math.round((1 - ratio) * 100);
-  if (percent > 0) return `${percent}% smaller`;
-  if (percent < 0) return `${-percent}% larger`;
-  return null;
-}
-
 /** Converts an image to another format. A stored image's `fileId` is picked, ready for its options. */
-export function ImageConverter({
-  fileId,
-  onLoaded,
-}: {
-  fileId?: string;
-  /** Called once `fileId` is picked, or has failed to load. */
-  onLoaded?: () => void;
-}) {
+export function ImageConverter({ fileId }: { fileId?: string }) {
   const { server, vaze } = useServer();
   const { toast } = useToast();
   const [source, setSource] = useState<ConversionSource | null>(null);
@@ -137,7 +108,6 @@ export function ImageConverter({
           message: error?.message ?? "That image is no longer on the server",
         });
       }
-      onLoaded?.();
     });
     return () => {
       active = false;
@@ -226,131 +196,111 @@ export function ImageConverter({
   }
 
   return (
-    <>
-      <ListSection
-        title="Image converter"
-        footer="HEIC, JPG, PNG, WebP, AVIF, GIF, TIFF and SVG. Camera details and location are left out, and the result isn't kept on the server, so save or share it."
-      >
-        <Card className="gap-4 border border-border">
-          {finding ? (
-            <View className="items-center py-8">
-              <Spinner />
-            </View>
-          ) : source ? (
-            <>
-              <SourceRow
-                source={source}
-                icon={FileImage}
-                showDeviceImage
-                removeLabel="Remove the image"
-                onRemove={busy ? undefined : () => choose(null)}
-              />
+    <ToolScroll description="Convert an image to WebP, JPG, PNG or AVIF and resize it, from HEIC, JPG, PNG, WebP, AVIF, GIF, TIFF and SVG. Camera details and location are left out, and the result isn't kept on the server, so save or share it.">
+      {finding ? (
+        <View className="items-center py-8">
+          <Spinner />
+        </View>
+      ) : source ? (
+        <>
+          <SourceRow
+            source={source}
+            icon={FileImage}
+            showDeviceImage
+            removeLabel="Remove the image"
+            onRemove={busy ? undefined : () => choose(null)}
+          />
 
-              <Option label="Format">
-                <Tabs value={format} onValueChange={changeOption(setFormat)}>
-                  <Tabs.List className="w-full">
-                    <Tabs.Indicator />
-                    {IMAGE_FORMATS.map((value) => (
-                      <Tabs.Trigger
-                        key={value}
-                        value={value}
-                        isDisabled={busy}
-                        className="flex-1"
-                      >
-                        <Tabs.Label>
-                          {IMAGE_FORMAT_INFO[value].label}
-                        </Tabs.Label>
-                      </Tabs.Trigger>
-                    ))}
-                  </Tabs.List>
-                </Tabs>
-              </Option>
-
-              <Option label="Quality">
-                {lossy ? (
-                  <Tabs
-                    value={quality}
-                    onValueChange={changeOption(setQuality)}
+          <Option label="Format">
+            <Tabs value={format} onValueChange={changeOption(setFormat)}>
+              <Tabs.List className="w-full">
+                <Tabs.Indicator />
+                {IMAGE_FORMATS.map((value) => (
+                  <Tabs.Trigger
+                    key={value}
+                    value={value}
+                    isDisabled={busy}
+                    className="flex-1"
                   >
-                    <Tabs.List className="w-full">
-                      <Tabs.Indicator />
-                      {(Object.keys(QUALITIES) as Quality[]).map((value) => (
-                        <Tabs.Trigger
-                          key={value}
-                          value={value}
-                          isDisabled={busy}
-                          className="flex-1"
-                        >
-                          <Tabs.Label>{QUALITIES[value].label}</Tabs.Label>
-                        </Tabs.Trigger>
-                      ))}
-                    </Tabs.List>
-                  </Tabs>
-                ) : (
-                  <Description>
-                    PNG keeps every pixel, so there's no quality to pick.
-                  </Description>
-                )}
-              </Option>
+                    <Tabs.Label>{IMAGE_FORMAT_INFO[value].label}</Tabs.Label>
+                  </Tabs.Trigger>
+                ))}
+              </Tabs.List>
+            </Tabs>
+          </Option>
 
-              <Option label="Longest side">
-                <Tabs value={size} onValueChange={changeOption(setSize)}>
-                  <Tabs.List className="w-full">
-                    <Tabs.Indicator />
-                    {SIZES.map((value) => (
-                      <Tabs.Trigger
-                        key={value}
-                        value={value}
-                        isDisabled={busy}
-                        // less padding keeps "Original" on one line
-                        className="flex-1 px-1"
-                      >
-                        <Tabs.Label>
-                          {value === "original" ? "Original" : value}
-                        </Tabs.Label>
-                      </Tabs.Trigger>
-                    ))}
-                  </Tabs.List>
-                </Tabs>
-                <Description>
-                  In pixels. Images are never made larger, except SVGs.
-                </Description>
-              </Option>
-            </>
-          ) : (
-            <SourceChoices
-              icon={FileImage}
-              title="Choose an image to get started"
-              hint="It comes back as WebP, JPG, PNG or AVIF."
-              descriptions={{
-                media: "A photo in your gallery",
-                files: "An image saved on this phone",
-                vaze: `An image on ${server.name}`,
-              }}
-              onPick={pick}
+          <Option label="Quality">
+            {lossy ? (
+              <Tabs value={quality} onValueChange={changeOption(setQuality)}>
+                <Tabs.List className="w-full">
+                  <Tabs.Indicator />
+                  {(Object.keys(QUALITIES) as Quality[]).map((value) => (
+                    <Tabs.Trigger
+                      key={value}
+                      value={value}
+                      isDisabled={busy}
+                      className="flex-1"
+                    >
+                      <Tabs.Label>{QUALITIES[value].label}</Tabs.Label>
+                    </Tabs.Trigger>
+                  ))}
+                </Tabs.List>
+              </Tabs>
+            ) : (
+              <Description>
+                PNG keeps every pixel, so there's no quality to pick.
+              </Description>
+            )}
+          </Option>
+
+          <Option label="Longest side">
+            <ChoiceSelect
+              label="Longest side"
+              value={size}
+              choices={SIZES.map((value) => ({
+                value,
+                label: value === "original" ? "Original" : `${value} px`,
+              }))}
+              isDisabled={busy}
+              onChange={changeOption(setSize)}
             />
-          )}
+            <Description>
+              In pixels. Images are never made larger, except SVGs.
+            </Description>
+          </Option>
+        </>
+      ) : (
+        <SourceChoices
+          icon={FileImage}
+          title="Choose an image to get started"
+          hint="It comes back as WebP, JPG, PNG or AVIF."
+          descriptions={{
+            media: "A photo in your gallery",
+            files: "An image saved on this phone",
+            vaze: `An image on ${server.name}`,
+          }}
+          onPick={pick}
+        />
+      )}
 
-          {status.phase !== "idle" ? <StatusPanel status={status} /> : null}
+      {status.phase !== "idle" ? <StatusPanel status={status} /> : null}
 
-          {image ? (
-            <ResultActions
-              file={image.image}
-              mimeType={IMAGE_FORMAT_INFO[image.format].mimeType}
-              againLabel="Convert another image"
-              onAgain={() => choose(null)}
-            />
-          ) : busy ? (
-            <Button variant="secondary" onPress={cancel}>
-              Cancel
-            </Button>
-          ) : source ? (
-            <Button onPress={() => start(source)}>
-              {status.phase === "error" ? "Try again" : `Convert to ${label}`}
-            </Button>
-          ) : null}
-        </Card>
-      </ListSection>
+      {image ? (
+        <ResultActions
+          file={image.image}
+          mimeType={IMAGE_FORMAT_INFO[image.format].mimeType}
+          againLabel="Convert another image"
+          onAgain={() => choose(null)}
+        />
+      ) : busy ? (
+        <Button variant="secondary" onPress={cancel}>
+          Cancel
+        </Button>
+      ) : source ? (
+        <Button onPress={() => start(source)}>
+          {status.phase === "error" ? "Try again" : `Convert to ${label}`}
+        </Button>
+      ) : null}
 
       <FilePickerSheet
         kind="image"
@@ -361,16 +311,7 @@ export function ImageConverter({
           choose({ kind: "vaze", file });
         }}
       />
-    </>
-  );
-}
-
-function Option({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <View className="gap-2">
-      <Label>{label}</Label>
-      {children}
-    </View>
+    </ToolScroll>
   );
 }
 

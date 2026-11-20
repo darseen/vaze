@@ -1,12 +1,12 @@
 import type { File } from "@darseen/vaze";
 import type { File as DeviceFile } from "expo-file-system";
-import { Button, Card, Spinner, useToast } from "heroui-native";
+import { Button, Spinner, useToast } from "heroui-native";
 import { AudioLines, FileVideo } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { Icon } from "@/components/icon";
-import { ListSection } from "@/components/list-section";
 import { useServer } from "@/components/server-context";
+import { ToolScroll } from "@/components/tool-parts";
 import { convertToAudio, type ConversionSource } from "@/lib/conversion";
 import { formatBytes } from "@/lib/format";
 import { discardPicked, pickOne } from "@/lib/transfer";
@@ -138,57 +138,50 @@ export function VideoToAudio({ fileId }: { fileId?: string }) {
   }
 
   return (
-    <>
-      <ListSection
-        title="Video to audio"
-        footer="MP4, MOV, MKV, WebM, AVI and more. The MP3 isn't kept on the server, so save or share it."
-      >
-        <Card className="gap-4 border border-border">
-          {finding ? (
-            <View className="items-center py-8">
-              <Spinner />
-            </View>
-          ) : source ? (
-            <SourceRow
-              source={source}
-              icon={FileVideo}
-              removeLabel="Remove the video"
-              onRemove={busy ? undefined : () => choose(null)}
-            />
-          ) : (
-            <SourceChoices
-              icon={FileVideo}
-              title="Choose a video to get started"
-              hint="Its audio comes back as an MP3."
-              descriptions={{
-                media: "A video in your gallery",
-                files: "A video saved on this phone",
-                vaze: `A video on ${server.name}`,
-              }}
-              onPick={pick}
-            />
-          )}
+    <ToolScroll description="Extract the sound of a video as an MP3, from MP4, MOV, MKV, WebM, AVI and more. The MP3 isn't kept on the server, so save or share it.">
+      {finding ? (
+        <View className="items-center py-8">
+          <Spinner />
+        </View>
+      ) : source ? (
+        <SourceRow
+          source={source}
+          icon={FileVideo}
+          removeLabel="Remove the video"
+          onRemove={busy ? undefined : () => choose(null)}
+        />
+      ) : (
+        <SourceChoices
+          icon={FileVideo}
+          title="Choose a video to get started"
+          hint="Its audio comes back as an MP3."
+          descriptions={{
+            media: "A video in your gallery",
+            files: "A video saved on this phone",
+            vaze: `A video on ${server.name}`,
+          }}
+          onPick={pick}
+        />
+      )}
 
-          {status.phase !== "idle" ? <StatusPanel status={status} /> : null}
+      {status.phase !== "idle" ? <StatusPanel status={status} /> : null}
 
-          {audio ? (
-            <ResultActions
-              file={audio}
-              mimeType={AUDIO_TYPE}
-              againLabel="Convert another video"
-              onAgain={() => choose(null)}
-            />
-          ) : busy ? (
-            <Button variant="secondary" onPress={cancel}>
-              Cancel
-            </Button>
-          ) : source ? (
-            <Button onPress={() => start(source)}>
-              {status.phase === "error" ? "Try again" : "Convert to audio"}
-            </Button>
-          ) : null}
-        </Card>
-      </ListSection>
+      {audio ? (
+        <ResultActions
+          file={audio}
+          mimeType={AUDIO_TYPE}
+          againLabel="Convert another video"
+          onAgain={() => choose(null)}
+        />
+      ) : busy ? (
+        <Button variant="secondary" onPress={cancel}>
+          Cancel
+        </Button>
+      ) : source ? (
+        <Button onPress={() => start(source)}>
+          {status.phase === "error" ? "Try again" : "Convert to audio"}
+        </Button>
+      ) : null}
 
       <FilePickerSheet
         kind="video"
@@ -199,7 +192,7 @@ export function VideoToAudio({ fileId }: { fileId?: string }) {
           choose({ kind: "vaze", file });
         }}
       />
-    </>
+    </ToolScroll>
   );
 }
 

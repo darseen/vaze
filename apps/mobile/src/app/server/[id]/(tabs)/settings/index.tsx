@@ -10,7 +10,6 @@ import {
   LockKeyhole,
   LogOut,
   MonitorSmartphone,
-  Recycle,
   UserRound,
   Users,
 } from "lucide-react-native";
@@ -41,7 +40,6 @@ const PAGES = {
   visibility: "/server/[id]/settings/visibility",
   limits: "/server/[id]/settings/limits",
   deleted: "/server/[id]/deleted",
-  conversion: "/server/[id]/conversion",
 } as const;
 
 export default function SettingsScreen() {
@@ -49,7 +47,6 @@ export default function SettingsScreen() {
   const { server, vaze, me, can, signOut } = useServer();
   const deleted = useLibrary((state) => state.deleted[server.id]);
   const loadDeleted = useLibrary((state) => state.loadDeleted);
-  const conversion = useLibrary((state) => state.conversion[server.id]);
   const theme = usePreferences((state) => state.theme);
   const setTheme = usePreferences((state) => state.setTheme);
   const [switching, setSwitching] = useState(false);
@@ -147,22 +144,6 @@ export default function SettingsScreen() {
               description: "Who can sign in and what they can do",
               hidden: !can("users:manage"),
               onPress: open("users"),
-            },
-          ]}
-        />
-
-        <ListSection
-          title="Tools"
-          rows={[
-            {
-              label: "Conversion",
-              icon: Recycle,
-              description: conversion?.image
-                ? "Extract audio from videos, and convert images"
-                : "Extract the audio of a video as an MP3",
-              hidden:
-                !can("files:read") || !(conversion?.video || conversion?.image),
-              onPress: open("conversion"),
             },
           ]}
         />

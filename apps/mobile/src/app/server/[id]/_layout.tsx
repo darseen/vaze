@@ -194,16 +194,16 @@ function ServerGate({ server }: { server: Server }) {
   );
 }
 
-// the file viewer, Recently deleted and Conversion open above the tabs, so they cover the tab bar
+// the file viewer, Recently deleted and each tool open above the tabs, so they cover the tab bar
 function ServerStack() {
   const { server, vaze } = useServer();
   const stackOptions = useStackOptions();
-  const checkConversion = useLibrary((state) => state.checkConversion);
+  const loadTools = useLibrary((state) => state.loadTools);
 
-  // asked up front, so Settings and file sheets offer conversion without a jump
+  // asked up front, so the Tools tab and file sheets offer them without a jump
   useEffect(() => {
-    checkConversion(server.id, vaze);
-  }, [checkConversion, server.id, vaze]);
+    loadTools(server.id, vaze);
+  }, [loadTools, server.id, vaze]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -213,8 +213,12 @@ function ServerStack() {
         options={{ ...stackOptions, headerShown: true }}
       />
       <Stack.Screen
-        name="conversion"
-        options={{ ...stackOptions, headerShown: true, title: "Conversion" }}
+        name="conversion/[tool]"
+        options={{ ...stackOptions, headerShown: true }}
+      />
+      <Stack.Screen
+        name="pdf/[tool]"
+        options={{ ...stackOptions, headerShown: true }}
       />
       <Stack.Screen
         name="view"

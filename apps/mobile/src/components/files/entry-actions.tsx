@@ -21,6 +21,13 @@ import { MoveSheet } from "./move-sheet";
 
 type SheetName = "details" | "rename" | "move" | "delete";
 
+// each Convert action opens its tool with the file chosen
+const CONVERSION_TOOLS = {
+  "convert-video": "video",
+  "convert-audio": "video-to-audio",
+  "convert-image": "image",
+} as const;
+
 export const NO_SLASH = "Names can't contain a slash.";
 
 const keyOf = (entry: Entry) =>
@@ -166,21 +173,18 @@ export function useEntryActions() {
         return;
       }
 
-      case "convert":
-        if (entry.type !== "file") return;
-        setSheet(null);
-        router.push({
-          pathname: "/server/[id]/conversion",
-          params: { id: server.id, file: entry.file.id },
-        });
-        return;
-
+      case "convert-video":
+      case "convert-audio":
       case "convert-image":
         if (entry.type !== "file") return;
         setSheet(null);
         router.push({
-          pathname: "/server/[id]/conversion",
-          params: { id: server.id, image: entry.file.id },
+          pathname: "/server/[id]/conversion/[tool]",
+          params: {
+            id: server.id,
+            tool: CONVERSION_TOOLS[action],
+            file: entry.file.id,
+          },
         });
         return;
 
