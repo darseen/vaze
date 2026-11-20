@@ -1,11 +1,11 @@
 ---
 title: Conversion
-description: Extract the audio of a video as an MP3, and convert and resize images
+description: Compress and convert videos, extract their audio as an MP3, and convert and resize images
 icon: Recycle
 ---
 
 `vaze.conversion` converts files on the server, which needs Vaze 4.5.0 or
-later, and 4.6.0 for images. Converting needs `files:read`, and every method
+later, 4.6.0 for images and 4.8.0 for videos. Converting needs `files:read`, and every method
 returns the [response envelope](/docs/sdk#response-shape).
 
 ## Video to audio
@@ -48,6 +48,75 @@ const response = await fetch(vaze.conversion.videoToAudioUrl(), {
 
 See [the endpoint](/docs/api-reference/conversion) for the request formats and
 the `X-Content-Duration` header that progress can be measured against.
+
+## Videos
+
+`video(source, options?, wait?)` compresses and converts a video to MP4, WebM,
+MOV, MKV or an animated GIF, and waits for it. It starts the conversion, polls
+it until it is done, downloads the result and removes it from the server. The
+source is a stored file's `id` or a `file` from your device, as for audio:
+
+```ts
+const { data, error } = await vaze.conversion.video(
+  { id: "file-id" },
+  { format: "mp4", codec: "h264", resolution: 720 },
+  { onProgress: (job) => console.log(job.status, job.progress) },
+);
+
+if (data) {
+  const { blob, filename } = data; // e.g. "clip.mp4"
+  await fs.writeFile(filename ?? "video.mp4", Buffer.from(await blob.arrayBuffer()));
+}
+```
+
+| Option         | Description                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------------- |
+| `format`       | `"mp4"` (the default), `"webm"`, `"mov"`, `"mkv"` or `"gif"`                                                   |
+| `codec`        | `"h264"`, `"h265"`, `"vp9"`, `"av1"` or `"copy"`. Defaults to `"h264"`, or `"vp9"` for WebM. A GIF takes none |
+| `quality`      | `"high"`, `"balanced"` (the default) or `"small"`                                                              |
+| `targetSize`   | Bytes to fit in, in place of `quality`. Takes about twice as long. Not for GIFs                               |
+| `resolution`   | The short side, e.g. `720` for 1280 × 720. Never made larger. GIFs default to `480`                            |
+| `fps`          | The most frames a second; a video with fewer keeps its own. GIFs default to `15`                               |
+| `start`, `end` | Where it starts and ends, in seconds or as text such as `"1:30"`                                               |
+| `audio`        | `false` leaves the sound out                                                                                   |
+
+`codec: "copy"` changes only the container, such as MKV to MP4, in seconds and
+without loss, so it takes no `quality`, `targetSize`, `resolution` or `fps`.
+See [the endpoint](/docs/api-reference/conversion#videos) for which codecs each
+format holds, and what the result is like.
+
+The third argument takes `onProgress`, called with the
+[job](/docs/api-reference/conversion#start-a-conversion) each time it is
+polled, a `signal` whose abort stops the conversion on the server too, and
+`pollInterval` in milliseconds, 1000 by default. An option that isn't valid
+sets `error` with status `400`, and a file that can't be converted that way
+with `422`. A failed conversion sets `error` with its reason.
+
+### Running the job yourself
+
+To keep working while the server converts, or to stream a large result to
+disk, use the job's steps one by one. The result stays on the server for an
+hour after it finishes.
+
+```ts
+const { data: job } = await vaze.conversion.startVideo(
+  { file },
+  { format: "webm", targetSize: 25 * 1024 * 1024 },
+);
+
+// later, e.g. on a timer
+const { data } = await vaze.conversion.videoJob(job.id);
+if (data?.status === "done") {
+  const response = await fetch(vaze.conversion.videoDownloadUrl(job.id), {
+    headers: await vaze.authHeaders(),
+  });
+  // stream response.body to disk, then free the server's copy
+  await vaze.conversion.cancelVideo(job.id);
+}
+```
+
+`downloadVideo(id)` reads the result into a `Blob` instead, and
+`cancelVideo(id)` stops a conversion that hasn't finished too.
 
 ## Images
 

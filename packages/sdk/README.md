@@ -250,6 +250,20 @@ const { data, error } = await vaze.conversion.image(
 if (data) console.log(data.filename); // e.g. "photo.webp"
 ```
 
+`video(source, options?, wait?)` Compress and convert a video to MP4, WebM, MOV, MKV or an animated GIF, and wait for it. Needs a Vaze 4.8.0 server. Options are `format` (`"mp4"`, `"webm"`, `"mov"`, `"mkv"` or `"gif"`), `codec` (`"h264"`, `"h265"`, `"vp9"`, `"av1"`, or `"copy"` to change only the container), `quality` (`"high"`, `"balanced"` or `"small"`) or `targetSize` in bytes, `resolution` (the short side, never made larger), `fps`, `start` and `end` to trim it, and `audio: false` to leave the sound out. HDR video is tone mapped, and the result has no metadata such as where it was filmed.
+
+```ts
+const { data, error } = await vaze.conversion.video(
+  { id: "file-id-123" },
+  { format: "mp4", resolution: 720, targetSize: 25 * 1024 * 1024 },
+  { onProgress: (job) => console.log(job.status, job.progress) },
+);
+
+if (data) console.log(data.filename); // e.g. "clip.mp4"
+```
+
+The conversion runs on the server as a job, which `video` polls until it is done. To run the steps yourself, use `startVideo(source, options?)`, `videoJob(id)`, `downloadVideo(id)` or `videoDownloadUrl(id)`, and `cancelVideo(id)`, which also removes a finished result before its hour is up.
+
 PDF API Merge, split and edit PDFs, and make them from images and documents, via `vaze.pdf`. Needs `files:read` and a Vaze 4.8.0 server. Each method takes stored files by `id` and device files as `file`, mixed in any order, and the result is not stored.
 
 `merge(sources)` Join 2 to 100 PDFs into one, in the order given.

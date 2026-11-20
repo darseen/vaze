@@ -1,4 +1,13 @@
-import type { FileWithUrl, Limits, Role, Scope, Visibility } from "@repo/types";
+import type {
+  FileWithUrl,
+  Limits,
+  Role,
+  Scope,
+  VideoCodec,
+  VideoFormat,
+  VideoJob,
+  Visibility,
+} from "@repo/types";
 import type Account from "../account.js";
 import type Activity from "../activity.js";
 import type Conversion from "../conversion.js";
@@ -60,6 +69,48 @@ export type ImageConversionOptions = {
   /** Fits the image inside `width` × `height`; only an SVG is ever made larger. */
   width?: number;
   height?: number;
+};
+
+export type VideoQuality = "high" | "balanced" | "small";
+
+export type VideoConversionOptions = {
+  /** Defaults to "mp4". A GIF has no codec and no sound. */
+  format?: VideoFormat;
+  /**
+   * Defaults to H.264, or VP9 for WebM. "copy" keeps the streams as they are
+   * and changes only the container, so it takes no quality, size or fps.
+   */
+  codec?: VideoCodec;
+  /** The short side to fit, e.g. 720 for 1280 × 720; never made larger. GIFs default to 480. */
+  resolution?: number | "original";
+  /** The most frames a second; a slower video keeps its own. GIFs default to 15. */
+  fps?: number | "original";
+  /** Seconds, or text such as "1:30", where the result starts. */
+  start?: number | string;
+  /** Seconds, or text such as "1:30", where the result ends. */
+  end?: number | string;
+  /** false leaves the sound out. */
+  audio?: boolean;
+} & (
+  | {
+      /** Defaults to "balanced". */
+      quality?: VideoQuality;
+      targetSize?: never;
+    }
+  | {
+      /** Bytes the result fits in, made in two passes; not for GIFs. */
+      targetSize: number;
+      quality?: never;
+    }
+);
+
+export type VideoWaitOptions = {
+  /** Called with the job each time it is polled, and once as it starts. */
+  onProgress?: (job: VideoJob) => void;
+  /** Aborting stops the conversion on the server too. */
+  signal?: AbortSignal;
+  /** Milliseconds between polls. Defaults to 1000. */
+  pollInterval?: number;
 };
 
 /** Split by ranges such as "1-3, 4-6, 7-", where "7-" runs to the end, or every so many pages. */

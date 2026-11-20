@@ -1,13 +1,13 @@
 ---
 title: Conversion
-description: Extract the audio of a video as an MP3, and convert and resize images
+description: Compress and convert videos, extract their audio as an MP3, and convert and resize images
 icon: Recycle
 ---
 
 Conversion runs on the server: ffmpeg for video, and libvips and libheif for
-images, all of which the Docker image includes. The result comes back as the
-response and is not stored, so save it, or
-[upload](/docs/api-reference/files#upload-files) it, if you want to keep it.
+images, all of which the Docker image includes. The result is not stored as a
+file in Vaze, so save it, or [upload](/docs/api-reference/files#upload-files)
+it, if you want to keep it.
 
 Converting needs the `files:read` scope. It works with an [`API-Key`
 header](/docs/api-reference#authentication) or a signed-in session.
@@ -59,6 +59,157 @@ so are MP3, WAV, FLAC, AAC and Ogg audio files.
 The errors use the usual [response envelope](/docs/api-reference#response-envelope).
 The server runs a few video conversions at a time, depending on its CPU cores,
 and each client may start 30 per minute.
+
+## Videos
+
+```
+POST   /api/conversion/video
+GET    /api/conversion/video/{id}
+GET    /api/conversion/video/{id}/download
+DELETE /api/conversion/video/{id}
+```
+
+Compresses and converts a video to MP4, WebM, MOV, MKV or an animated GIF, and
+resizes, trims and mutes it if you ask. Needs Vaze 4.8.0 or later. Encoding a
+video takes a while, often longer than a proxy waits for a response, so it runs
+as a job: you start it, poll its status, and download the result once it is
+done.
+
+### Start a conversion
+
+Send a stored file by its id as JSON, with the options beside it:
+
+```json
+{ "fileId": "<id>", "format": "mp4", "codec": "h264", "resolution": 720 }
+```
+
+Or send a file from your device as `multipart/form-data`, with the options as
+fields and one file part. It may be as large as `maxUploadSize`.
+
+```bash
+curl -X POST https://vaze.example.com/api/conversion/video \
+  -H "API-Key: $VAZE_API_KEY" \
+  -F "format=mp4" \
+  -F "resolution=720" \
+  -F "file=@clip.mov"
+```
+
+Every option has a default, so a request with none makes an H.264 MP4 at the
+video's own size.
+
+| Option          | Description                                                                                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format`        | `mp4` (the default), `webm`, `mov`, `mkv` or `gif`                                                                                                                  |
+| `codec`         | `h264`, `h265`, `vp9`, `av1` or `copy`. MP4 takes H.264, H.265 and AV1, WebM takes VP9 and AV1, MOV takes H.264 and H.265, and MKV takes all four. Defaults to `h264`, or `vp9` for WebM. A GIF takes none |
+| `quality`       | `high`, `balanced` (the default) or `small`                                                                                                                         |
+| `targetSize`    | Bytes the result should fit in, from 102400 (100 KB), in place of `quality`. The video is encoded twice, once to measure it, so it takes about twice as long. Not for GIFs |
+| `resolution`    | The short side, from 64 to 4320, e.g. `720` for 1280 × 720, or 720 × 1280 for a portrait video. `720p` works too. Never made larger. Defaults to `original`, or `480` for a GIF |
+| `fps`           | The most frames a second, from 1 to 120. A video with fewer keeps its own. Defaults to `original`, or `15` for a GIF                                               |
+| `start`, `end`  | Where the result starts and ends, as seconds such as `90.5`, or a time such as `1:30` or `1:02:03`                                                                  |
+| `audio`         | `false` leaves the sound out                                                                                                                                        |
+
+`codec: "copy"` keeps the video and sound as they are and only changes the
+container, say from MKV to MP4. It takes seconds and loses nothing, but can't
+change `quality`, `targetSize`, `resolution` or `fps`, and a trim starts at the
+keyframe before `start`. A container that can't hold the video's codec as it
+is, such as H.264 in WebM, gets a `422`.
+
+The response is `202 Accepted` with the job:
+
+```json
+{
+  "data": {
+    "id": "6f1c2d1e-8a0b-4a51-9a3e-2c7d9b0e4f11",
+    "status": "queued",
+    "progress": null,
+    "position": 0,
+    "name": "clip.mp4",
+    "format": "mp4",
+    "codec": "h264",
+    "mimeType": "video/mp4",
+    "width": 1280,
+    "height": 720,
+    "duration": 12,
+    "size": null,
+    "sourceSize": 30007797,
+    "error": null,
+    "createdAt": "2026-11-19T16:39:20.131Z",
+    "expiresAt": null
+  },
+  "error": null
+}
+```
+
+| Field             | Description                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| `status`          | `queued`, then `converting`, and last `done` or `failed`                                     |
+| `progress`        | 0 to 1, or `null` while queued and for a video that doesn't say how long it is               |
+| `position`        | Conversions ahead of it while it is queued, else `null`                                      |
+| `name`            | What the result is called, after the original, e.g. `clip.mp4`                               |
+| `width`, `height` | The result's size in pixels                                                                  |
+| `duration`        | Seconds in the result, when known                                                            |
+| `size`            | The result's bytes, once `done`                                                              |
+| `sourceSize`      | The original's bytes, to compare with                                                        |
+| `error`           | Why it `failed`                                                                              |
+| `expiresAt`       | When the result and the job are removed, an hour after it finishes                           |
+
+### Follow it
+
+`GET /api/conversion/video/{id}` returns the job as above. Poll it every second
+or so until `status` is `done` or `failed`.
+
+### Download the result
+
+`GET /api/conversion/video/{id}/download` returns the video, with its
+`Content-Type`, a `Content-Length`, and a `Content-Disposition` naming it after
+the original. It takes `Range` requests, so an interrupted download can resume.
+It answers `409` until the job is done, or with the reason if it failed.
+
+```bash
+curl -H "API-Key: $VAZE_API_KEY" -o clip.mp4 \
+  https://vaze.example.com/api/conversion/video/6f1c2d1e-8a0b-4a51-9a3e-2c7d9b0e4f11/download
+```
+
+### Cancel it
+
+`DELETE /api/conversion/video/{id}` stops a conversion that hasn't finished,
+or removes one that has, with its result. Delete a job once you have its video
+to free the space it takes right away; otherwise it goes an hour after it
+finishes.
+
+A job can be seen only by the account that started it, with any of its keys or
+sessions. Jobs live in the server's memory, so a restart drops them.
+
+### What comes out
+
+- Videos are 8-bit SDR, which every player shows correctly. HDR video, such as
+  an iPhone's, is tone mapped so its colors don't come out washed out.
+- Phone videos come out upright, and non-square pixels are made square.
+- Metadata such as where and when it was filmed is left out, and so are
+  subtitles, chapters and any audio tracks after the first.
+- Sound is AAC, or Opus in WebM, and surround is mixed down to stereo.
+- MP4 and MOV start playing before they have fully downloaded. H.265 is tagged
+  so Apple devices play it.
+- A GIF gets a palette made from its own colors, loops forever, and can be at
+  most 60 seconds long.
+
+MP4, MOV, MKV, WebM, AVI, FLV, MPEG-TS (including `.mts` and `.m2ts`), MPEG,
+WMV and Ogg videos can be converted, and so can animated GIFs.
+
+| Status | Meaning                                                                                                                         |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `202`  | Started                                                                                                                         |
+| `400`  | No `fileId`, an option that isn't valid, or a form with more than one file                                                     |
+| `404`  | No file with that id, or no job with that id: it expired, was deleted, or another account started it                          |
+| `409`  | The job hasn't finished, or it failed, when downloading                                                                        |
+| `413`  | The uploaded file is larger than `maxUploadSize`                                                                               |
+| `422`  | Not a video that can be read, `start` past its end, a GIF over 60 seconds, a `targetSize` too small for its length, or a codec the container can't hold as it is |
+| `503`  | Too many videos are waiting to be converted; retry after `Retry-After`                                                          |
+| `507`  | Not enough free space on the volume to hold the uploaded file meanwhile                                                         |
+
+The server converts one video at a time, as encoding uses every core, and lets
+eight more wait their turn. Each client may start 20 per minute, and polls count
+toward the usual 300 per minute.
 
 ## Images
 

@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -25,14 +24,15 @@ import {
   useRef,
   useState,
   type Dispatch,
-  type ReactNode,
   type SetStateAction,
 } from "react";
 import {
   ConversionFailed,
   ConversionProgress,
   ConversionReady,
+  Field,
   SelectedSource,
+  sizeChange,
   SourcePicker,
 } from "./conversion-parts";
 import { requestConversion, type ConversionSource } from "./request-conversion";
@@ -68,19 +68,6 @@ type Quality = keyof typeof QUALITIES;
 const SIZES = ["original", "3840", "2560", "1920", "1280", "640"] as const;
 
 type Size = (typeof SIZES)[number];
-
-/** How the result's size compares with the original's. */
-function sizeChange(size: number, sourceSize: number): string | null {
-  if (!sourceSize) return null;
-  const ratio = size / sourceSize;
-  // e.g. a small SVG drawn large, where a percentage runs to thousands
-  if (ratio >= 2)
-    return `${parseFloat(ratio.toFixed(ratio < 10 ? 1 : 0))}× larger`;
-  const percent = Math.round((1 - ratio) * 100);
-  if (percent > 0) return `${percent}% smaller`;
-  if (percent < 0) return `${-percent}% larger`;
-  return null;
-}
 
 export default function ImageConverter() {
   const [source, setSource] = useState<ConversionSource | null>(null);
@@ -280,23 +267,6 @@ export default function ImageConverter() {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function Field({
-  id,
-  label,
-  children,
-}: {
-  id: string;
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-    </div>
   );
 }
 

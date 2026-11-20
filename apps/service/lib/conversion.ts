@@ -7,8 +7,8 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 // both ship in the image's ffmpeg package; set these for binaries off PATH
-const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
-const FFPROBE = process.env.FFPROBE_PATH || "ffprobe";
+export const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
+export const FFPROBE = process.env.FFPROBE_PATH || "ffprobe";
 
 // Inputs are untrusted uploads: read local files only, through mainstream
 // demuxers, so playlists (HLS, concat) can't pull in other files or URLs.
@@ -48,7 +48,7 @@ export function acquireSlot(): (() => void) | null {
   };
 }
 
-function toConversionError(error: unknown, message: string): Error {
+export function toConversionError(error: unknown, message: string): Error {
   if ((error as NodeJS.ErrnoException | null)?.code === "ENOENT") {
     return new ConversionError("ffmpeg is not installed on this server", 503);
   }

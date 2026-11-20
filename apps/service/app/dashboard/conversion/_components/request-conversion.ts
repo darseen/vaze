@@ -62,8 +62,11 @@ export function requestConversion(
     expected = expectedSize?.(header) ?? null;
   };
 
+  // a job that runs on afterwards answers 202 with its status
+  const succeeded = () => xhr.status >= 200 && xhr.status < 300;
+
   xhr.onprogress = (event) => {
-    if (xhr.status !== 200) return;
+    if (!succeeded()) return;
     const total = event.lengthComputable ? event.total : expected;
     // an estimate can be off by a few frames, so 100% waits for the end
     handlers.onProgress(
@@ -73,7 +76,7 @@ export function requestConversion(
   };
 
   xhr.onload = async () => {
-    if (xhr.status === 200) handlers.onDone(xhr.response as Blob, header);
+    if (succeeded()) handlers.onDone(xhr.response as Blob, header);
     else handlers.onError(await errorMessageOf(xhr));
   };
   xhr.onerror = () => handlers.onError("Network error, check your connection");

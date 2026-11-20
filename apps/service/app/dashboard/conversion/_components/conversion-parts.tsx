@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { formatBytes } from "@/utils";
 import type { FileWithUrl } from "@repo/types";
@@ -233,5 +234,44 @@ export function ConversionReady({
         </Button>
       </div>
     </>
+  );
+}
+
+/** How the result's size compares with the original's. */
+export function sizeChange(size: number, sourceSize: number): string | null {
+  if (!sourceSize) return null;
+  const ratio = size / sourceSize;
+  // e.g. a small SVG drawn large, where a percentage runs to thousands
+  if (ratio >= 2)
+    return `${parseFloat(ratio.toFixed(ratio < 10 ? 1 : 0))}× larger`;
+  const percent = Math.round((1 - ratio) * 100);
+  if (percent > 0) return `${percent}% smaller`;
+  if (percent < 0) return `${-percent}% larger`;
+  return null;
+}
+
+/** A labeled option, such as a select or an input. */
+export function Field({
+  id,
+  label,
+  hint,
+  children,
+}: {
+  id: string;
+  label: string;
+  /** A line of help below the control, which it is described by. */
+  hint?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      {children}
+      {hint && (
+        <p id={`${id}-hint`} className="text-muted-foreground text-xs">
+          {hint}
+        </p>
+      )}
+    </div>
   );
 }

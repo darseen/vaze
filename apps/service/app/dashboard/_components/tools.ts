@@ -1,5 +1,6 @@
 import type { Scope } from "@repo/types";
 import {
+  Clapperboard,
   Combine,
   FilePen,
   FileImage,
@@ -35,6 +36,13 @@ export const TOOL_GROUPS = {
     icon: Recycle,
     scope: "files:read",
     tools: [
+      {
+        slug: "video",
+        title: "Video Converter",
+        description:
+          "Compress and convert videos to MP4, WebM, MOV, MKV or GIF, resize and trim them, and download them.",
+        icon: Clapperboard,
+      },
       {
         slug: "video-to-audio",
         title: "Video to Audio",

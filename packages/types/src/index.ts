@@ -219,3 +219,41 @@ export type Stats = {
   /** Empty when nothing needs attention. New types may be added later. */
   alerts?: StatsAlert[];
 };
+
+/** Containers a video converts to; a GIF has no audio and no codec to pick. */
+export type VideoFormat = "mp4" | "webm" | "mov" | "mkv" | "gif";
+
+/** Codecs a video is encoded with; "copy" keeps the original streams without re-encoding. */
+export type VideoCodec = "h264" | "h265" | "vp9" | "av1" | "copy";
+
+export type VideoJobStatus = "queued" | "converting" | "done" | "failed";
+
+/** A video conversion, which runs on the server while its status is polled. */
+export type VideoJob = {
+  id: string;
+  status: VideoJobStatus;
+  /** 0 to 1, or null when the video doesn't say how long it is. */
+  progress: number | null;
+  /** Conversions ahead of this one while it is queued, else null. */
+  position: number | null;
+  /** What the result is called, e.g. "clip.mp4". */
+  name: string;
+  format: VideoFormat;
+  /** Null for a GIF. */
+  codec: VideoCodec | null;
+  mimeType: string;
+  /** The result's size in pixels. */
+  width: number;
+  height: number;
+  /** Seconds in the result, when known. */
+  duration: number | null;
+  /** The result's bytes, once done. */
+  size: number | null;
+  /** The original's bytes. */
+  sourceSize: number;
+  /** Why it failed, when it did. */
+  error: string | null;
+  createdAt: string;
+  /** When the result and the job are removed: an hour after it finishes. */
+  expiresAt: string | null;
+};

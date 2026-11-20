@@ -123,6 +123,10 @@ export type {
   StatsAlert,
   TrafficDay,
   UserSummary as User,
+  VideoCodec,
+  VideoFormat,
+  VideoJob,
+  VideoJobStatus,
   Visibility,
 } from "@repo/types";
 export type {
@@ -153,4 +157,7 @@ export type {
   UserAccess,
   VazeHeaders,
   VazeOptions,
+  VideoConversionOptions,
+  VideoQuality,
+  VideoWaitOptions,
 } from "./types/index.js";

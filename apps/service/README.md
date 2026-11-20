@@ -29,9 +29,13 @@ pnpm --filter service dev
 Then open [http://localhost:3000](http://localhost:3000). On first launch you'll
 be redirected to `/register` to create the admin account.
 
-Video to audio conversion runs `ffmpeg` and `ffprobe`, so install ffmpeg
-locally (e.g. `brew install ffmpeg`, `apt install ffmpeg`). The Docker image
-already includes it.
+Video conversion and video to audio run `ffmpeg` and `ffprobe`, so install
+ffmpeg locally (e.g. `brew install ffmpeg`, `apt install ffmpeg`). Videos are
+encoded with x264, x265, libvpx, SVT-AV1 and Opus, and HDR is tone mapped with
+zimg, which most ffmpeg builds include; a codec your build lacks fails with a
+message naming it. The Docker image already includes all of them. A video
+converts as a job, one at a time with eight more waiting, and its result stays
+in `${DATA_PATH}/tmp` for an hour after it finishes.
 
 Image conversion uses `sharp`, which needs nothing else, except for HEIC
 images: those are decoded by `heif-dec` from libheif 1.17 or later (e.g.
