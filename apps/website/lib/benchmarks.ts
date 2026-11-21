@@ -23,10 +23,10 @@ export interface Scenario {
 export const benchmarkRun = {
   date: "November 16, 2026",
   runs: 5,
-  // point this at the release that ships commit de92f62 once it is tagged
+  // the first release with commit de92f62, the build that was measured
   vazeBuild: {
-    label: "commit de92f62",
-    url: `${repoUrl}/commit/de92f62`,
+    label: "4.6.0",
+    url: `${repoUrl}/tree/v4.6.0`,
   },
   seafileVersion: "14.0.9",
   machine: {

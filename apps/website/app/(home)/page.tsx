@@ -3,7 +3,10 @@ import { highlight } from "fumadocs-core/highlight";
 import {
   BellRing,
   ChartLine,
-  Download,
+  Clapperboard,
+  FileImage,
+  FilePen,
+  FileType,
   FolderUp,
   Gauge,
   History,
@@ -11,11 +14,13 @@ import {
   LayoutDashboard,
   ListChecks,
   Lock,
+  Scaling,
   ScanEye,
   Search,
   Server,
   Upload,
   Users,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
@@ -111,7 +116,7 @@ const fileFeatures: Feature[] = [
   {
     icon: ListChecks,
     title: "Work on many at once",
-    text: "Select files to move or delete together, or download a folder or a selection as one zip.",
+    text: "Move, delete or zip a whole selection, and restore anything deleted by mistake from Recently deleted.",
   },
 ];
 
@@ -127,9 +132,37 @@ const hostingFeatures: Feature[] = [
     text: "Range requests let video and audio seek, and ETag revalidation turns repeat loads into an empty 304.",
   },
   {
+    icon: Scaling,
+    title: "Images sized for the page",
+    text: "Add ?w=800&format=webp to an image's link and Vaze serves a smaller copy, made once and kept.",
+  },
+  {
     icon: ChartLine,
     title: "Traffic you can see",
     text: "The dashboard counts requests and bytes served, ranks your most requested files and flags links that found nothing.",
+  },
+];
+
+const toolFeatures: Feature[] = [
+  {
+    icon: Clapperboard,
+    title: "Video converter",
+    text: "Compress videos or turn them into MP4, WebM, MOV, MKV or GIF. Resize, trim and mute them, or keep only the sound as an MP3.",
+  },
+  {
+    icon: FileImage,
+    title: "Image converter",
+    text: "Turn HEIC photos and other images into WebP, JPG, PNG or AVIF, and shrink them for the web.",
+  },
+  {
+    icon: FilePen,
+    title: "PDF tools",
+    text: "Merge and split PDFs, and move, turn, remove and number their pages before saving a new copy.",
+  },
+  {
+    icon: FileType,
+    title: "Documents to PDF",
+    text: "Word, Excel, PowerPoint and OpenDocument files become PDFs with LibreOffice, which comes in the image.",
   },
 ];
 
@@ -164,13 +197,13 @@ const mobileFeatures: Feature[] = [
   },
   {
     icon: Upload,
-    title: "Upload from your phone",
-    text: "Send photos, videos and documents with live progress, and cancel any of them.",
+    title: "Upload, save and share",
+    text: "Send photos, videos and documents with live progress, and save files to Downloads or hand them to another app.",
   },
   {
-    icon: Download,
-    title: "Save and share",
-    text: "Save files to your Downloads folder, or hand them to another app with the share sheet.",
+    icon: Wrench,
+    title: "Tools on the go",
+    text: "Compress a video, convert a photo or merge PDFs from the Tools tab, with files from your phone or the server.",
   },
   {
     icon: LayoutDashboard,
@@ -272,9 +305,10 @@ export default async function HomePage() {
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-fd-muted-foreground sm:text-xl lg:text-lg">
             {appName} is a file server that runs in one Docker container.
-            Organize files from the web dashboard or the Android app, share
-            them with public or signed links, and use it as the storage
-            behind your own projects.
+            Organize files from the web dashboard or the Android app, share them
+            with public or signed links, convert videos, images and PDFs without
+            them leaving your server, and use it as the storage behind your own
+            projects.
           </p>
 
           <div className="mt-8">
@@ -378,18 +412,55 @@ export default async function HomePage() {
 
         <section>
           <div className="grid items-center gap-12 lg:grid-cols-[5fr_7fr]">
-            <SectionHeading title="Decide who gets in">
-              {appName} starts with one admin account. Add people when you
-              need to, and give each of them only the access they need.
+            <SectionHeading title="Convert files where they're stored">
+              Compress videos, convert images and rework PDFs on your own
+              server, from the dashboard or the app. Files never go to a
+              third-party service.
             </SectionHeading>
-            <BrowserFrame address={`${serverAddress}/dashboard/users`}>
-              <Screenshot
-                kind="web"
-                name="users"
-                alt="The users page with an admin, editors, a custom role and a disabled account"
-                sizes="(min-width: 1024px) 660px, 92vw"
-              />
-            </BrowserFrame>
+            <div className="relative pb-[10%]">
+              <div className="w-[88%]">
+                <BrowserFrame address={`${serverAddress}/dashboard/pdf/edit`}>
+                  <Screenshot
+                    kind="web"
+                    name="pdf"
+                    alt="Editing a field guide's pages: one turned, one removed and one moved"
+                    sizes="(min-width: 1024px) 580px, 82vw"
+                  />
+                </BrowserFrame>
+              </div>
+              <div className="absolute right-0 bottom-0 w-[24%]">
+                <PhoneFrame>
+                  <Screenshot
+                    kind="mobile"
+                    name="video"
+                    alt="A coastal video fitted to 25 MB in the app"
+                    sizes="(min-width: 1024px) 160px, 24vw"
+                  />
+                </PhoneFrame>
+              </div>
+            </div>
+          </div>
+          <FeatureList features={toolFeatures} />
+        </section>
+
+        <section>
+          <div className="grid items-center gap-12 lg:grid-cols-[7fr_5fr]">
+            <div className="lg:order-2">
+              <SectionHeading title="Decide who gets in">
+                {appName} starts with one admin account. Add people when you
+                need to, and give each of them only the access they need.
+              </SectionHeading>
+            </div>
+            <div className="lg:order-1">
+              <BrowserFrame address={`${serverAddress}/dashboard/users`}>
+                <Screenshot
+                  kind="web"
+                  name="users"
+                  alt="The users page with an admin, editors, a custom role and a disabled account"
+                  sizes="(min-width: 1024px) 660px, 92vw"
+                />
+              </BrowserFrame>
+            </div>
           </div>
           <FeatureList features={accessFeatures} />
         </section>
@@ -413,8 +484,8 @@ export default async function HomePage() {
                 <PhoneFrame>
                   <Screenshot
                     kind="mobile"
-                    name="viewer"
-                    alt="A photo open in the app's viewer"
+                    name="tools"
+                    alt="The app's Tools tab with the conversion and PDF tools"
                     sizes="(min-width: 1024px) 200px, 30vw"
                   />
                 </PhoneFrame>
@@ -422,8 +493,8 @@ export default async function HomePage() {
               <PhoneFrame>
                 <Screenshot
                   kind="mobile"
-                  name="traffic"
-                  alt="Hosting traffic and the most requested files in the app"
+                  name="viewer"
+                  alt="A photo open in the app's viewer"
                   sizes="(min-width: 1024px) 200px, 30vw"
                 />
               </PhoneFrame>
