@@ -71,25 +71,23 @@ instance totals for a year. See [Stats](/docs/api-reference/account#hosting-traf
 
 ### Tools
 
-| Variable            | Default | Description                                                                                                                       |
-| ------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `ENABLE_CONVERSION` | `true`  | `false` turns off [Conversion](/docs/api-reference/conversion): video to audio, the video converter and the image converter         |
-| `ENABLE_PDF_TOOLS`  | `true`  | `false` turns off the [PDF tools](/docs/api-reference/pdf): merging, splitting, editing, and making PDFs from images and documents |
+| Variable            | Default | Description                                                                                                          |
+| ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| `ENABLE_CONVERSION` | `true`  | `false` turns off [Conversion](/docs/api-reference/conversion): the video converter and the image converter                 |
 
-Both sections are on by default. The Docker image includes everything they
-run on: ffmpeg and libheif for Conversion, and LibreOffice with the Liberation
-and Noto fonts for turning documents into PDFs.
+Conversion is on by default, and the Docker image includes everything it runs
+on: ffmpeg and libheif.
 
-A section that is turned off disappears from the dashboard's sidebar and from
-the mobile app, its pages are gone, and its endpoints answer `404`. To turn
-one off, add its line to your `.env` and apply it:
+Turned off, it disappears from the dashboard's sidebar and from the mobile
+app, its pages are gone, and its endpoints answer `404`. To turn it off, add
+the line to your `.env` and apply it:
 
 ```bash
-echo "ENABLE_PDF_TOOLS=false" >> .env
+echo "ENABLE_CONVERSION=false" >> .env
 docker compose -f compose.prod.yaml up -d
 ```
 
-Turning a section off doesn't make the image smaller, since the image is the
+Turning Conversion off doesn't make the image smaller, since the image is the
 same for everyone.
 
 Public files are served to anyone with the link; private files require a signed

@@ -153,16 +153,18 @@ To change the profile, password or signed-in devices, see
 
 ## Tools
 
-`tools()` says which [conversions](/docs/sdk/conversion) and
-[PDF tools](/docs/sdk/pdf) a server offers, so an app can hide the ones it
-can't use. A server older than a tool lacks it, and an admin can turn
-Conversion or the PDF tools off with
-[`ENABLE_CONVERSION` and `ENABLE_PDF_TOOLS`](/docs/getting-started/configuration#tools).
+`tools()` says which [conversions](/docs/sdk/conversion) a server offers, so
+an app can hide the ones it can't use. A server older than a tool lacks it,
+and an admin can turn Conversion off with
+[`ENABLE_CONVERSION`](/docs/getting-started/configuration#tools).
 
 ```ts
 const { data } = await vaze.tools();
-// data => { videoToAudio: true, video: true, image: true, pdf: true }
+// data => { video: true, audio: true, image: true }
 ```
+
+`audio` says whether the video converter can keep only a video's sound as an
+MP3, which needs Vaze 5.0.0.
 
 It works with every server version. Using a tool also needs `files:read`, which
 [`me()`](#current-account) lists among the caller's scopes.
@@ -212,13 +214,8 @@ for (const alert of data?.alerts ?? []) {
   />
   <Card
     title="Conversion"
-    description="Compress and convert videos, extract their audio as an MP3, and convert and resize images."
+    description="Compress and convert videos or keep only their sound as an MP3, and convert and resize images."
     href="/docs/sdk/conversion"
-  />
-  <Card
-    title="PDF Tools"
-    description="Merge, split and edit PDFs, and make PDFs from images and documents."
-    href="/docs/sdk/pdf"
   />
   <Card
     title="Account"

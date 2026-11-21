@@ -1,12 +1,11 @@
 import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import { highlight } from "fumadocs-core/highlight";
 import {
+  AudioLines,
   BellRing,
   ChartLine,
   Clapperboard,
   FileImage,
-  FilePen,
-  FileType,
   FolderUp,
   Gauge,
   History,
@@ -147,22 +146,17 @@ const toolFeatures: Feature[] = [
   {
     icon: Clapperboard,
     title: "Video converter",
-    text: "Compress videos or turn them into MP4, WebM, MOV, MKV or GIF. Resize, trim and mute them, or keep only the sound as an MP3.",
+    text: "Compress videos or turn them into MP4, WebM, MOV, MKV or GIF, and resize, trim or mute them on the way.",
+  },
+  {
+    icon: AudioLines,
+    title: "Just the sound",
+    text: "Pick MP3 in the video converter to keep only a video's sound, trimmed to the part you want.",
   },
   {
     icon: FileImage,
     title: "Image converter",
     text: "Turn HEIC photos and other images into WebP, JPG, PNG or AVIF, and shrink them for the web.",
-  },
-  {
-    icon: FilePen,
-    title: "PDF tools",
-    text: "Merge and split PDFs, and move, turn, remove and number their pages before saving a new copy.",
-  },
-  {
-    icon: FileType,
-    title: "Documents to PDF",
-    text: "Word, Excel, PowerPoint and OpenDocument files become PDFs with LibreOffice, which comes in the image.",
   },
 ];
 
@@ -203,7 +197,7 @@ const mobileFeatures: Feature[] = [
   {
     icon: Wrench,
     title: "Tools on the go",
-    text: "Compress a video, convert a photo or merge PDFs from the Tools tab, with files from your phone or the server.",
+    text: "Compress a video, pull out its sound or convert a photo from the Tools tab, with files from your phone or the server.",
   },
   {
     icon: LayoutDashboard,
@@ -306,8 +300,8 @@ export default async function HomePage() {
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-fd-muted-foreground sm:text-xl lg:text-lg">
             {appName} is a file server that runs in one Docker container.
             Organize files from the web dashboard or the Android app, share them
-            with public or signed links, convert videos, images and PDFs without
-            them leaving your server, and use it as the storage behind your own
+            with public or signed links, convert videos and images without them
+            leaving your server, and use it as the storage behind your own
             projects.
           </p>
 
@@ -413,17 +407,19 @@ export default async function HomePage() {
         <section>
           <div className="grid items-center gap-12 lg:grid-cols-[5fr_7fr]">
             <SectionHeading title="Convert files where they're stored">
-              Compress videos, convert images and rework PDFs on your own
-              server, from the dashboard or the app. Files never go to a
+              Compress videos, pull out their sound and convert images on your
+              own server, from the dashboard or the app. Files never go to a
               third-party service.
             </SectionHeading>
             <div className="relative pb-[10%]">
               <div className="w-[88%]">
-                <BrowserFrame address={`${serverAddress}/dashboard/pdf/edit`}>
+                <BrowserFrame
+                  address={`${serverAddress}/dashboard/conversion/video`}
+                >
                   <Screenshot
                     kind="web"
-                    name="pdf"
-                    alt="Editing a field guide's pages: one turned, one removed and one moved"
+                    name="video"
+                    alt="A 410 MB video converted to a 720p WebM, 98% smaller"
                     sizes="(min-width: 1024px) 580px, 82vw"
                   />
                 </BrowserFrame>
@@ -485,7 +481,7 @@ export default async function HomePage() {
                   <Screenshot
                     kind="mobile"
                     name="tools"
-                    alt="The app's Tools tab with the conversion and PDF tools"
+                    alt="The app's Tools tab with the conversion tools"
                     sizes="(min-width: 1024px) 200px, 30vw"
                   />
                 </PhoneFrame>

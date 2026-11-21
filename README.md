@@ -15,7 +15,7 @@
 
 </div>
 
-**Vaze** is a self-hosted file storage and hosting service that runs as a single Docker container on your own server or home network. Manage your files from the web dashboard or the Android app, host them at URLs you choose, convert videos, images and PDFs without them leaving your server, and use its API as a file backend for your other apps. Installation, configuration, the API reference and the SDK guide are all in the **[documentation](https://vaze.darseen.dev/docs)**, starting with **[installation](https://vaze.darseen.dev/docs/getting-started/installation)**.
+**Vaze** is a self-hosted file storage and hosting service that runs as a single Docker container on your own server or home network. Manage your files from the web dashboard or the Android app, host them at URLs you choose, convert videos and images without them leaving your server, and use its API as a file backend for your other apps. Installation, configuration, the API reference and the SDK guide are all in the **[documentation](https://vaze.darseen.dev/docs)**, starting with **[installation](https://vaze.darseen.dev/docs/getting-started/installation)**.
 
 ## Features
 
@@ -23,7 +23,6 @@
 - **Hosting at URLs you choose**: Files keep the names you upload them with, so a link like `/api/hosting/projects/demo/photo.jpg` stays the same. Video and audio seek, repeat requests are cached, and images can be resized on the fly.
 - **Private files and signed links**: Make any file or folder private, then share it with a link that expires.
 - **Video and image conversion**: Compress and convert videos to MP4, WebM, MOV, MKV or GIF, resize, trim or mute them, or keep only their sound as an MP3. Turn HEIC photos and other images into WebP, JPG, PNG or AVIF.
-- **PDF tools**: Merge and split PDFs, move, turn and remove their pages, and make PDFs from images or from Word, Excel and PowerPoint files.
 - **Users, roles and API keys**: Add accounts as Admin, Editor or Viewer, or with a custom set of scopes, and give each API key only the access it needs.
 - **Dashboard and activity**: See what needs attention, how your storage is used, hosting traffic, the most requested files and how each API key is used, with a history of uploads, deletions and account changes.
 - **Android app**: The same files, tools, dashboard, keys and users on your phone, for as many servers as you add.
@@ -55,11 +54,6 @@ Vaze and Seafile 14, a long-established self-hosted file server, ran sixteen eve
 <div align="center">
   <h3> Video Converter </h3>
   <img src="./.github/images/video-converter.png" alt="A 410 MB video converted to a 720p WebM, 98% smaller" width="100%"/>
-</div>
-
-<div align="center">
-  <h3> PDF Tools </h3>
-  <img src="./.github/images/pdf-tools.png" alt="Editing a PDF's pages: one turned, one removed and one moved" width="100%"/>
 </div>
 
 <div align="center">

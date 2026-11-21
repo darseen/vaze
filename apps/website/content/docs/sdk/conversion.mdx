@@ -1,63 +1,26 @@
 ---
 title: Conversion
-description: Compress and convert videos, extract their audio as an MP3, and convert and resize images
+description: Compress and convert videos or keep only their sound as an MP3, and convert and resize images
 icon: Recycle
 ---
 
-`vaze.conversion` converts files on the server, which needs Vaze 4.5.0 or
-later, 4.6.0 for images and 4.8.0 for videos. Converting needs `files:read`,
+`vaze.conversion` converts files on the server, which needs Vaze 4.6.0 or
+later for images, 4.8.0 for videos and 5.0.0 for MP3s. Converting needs `files:read`,
 and every method returns the [response envelope](/docs/sdk#response-shape). On
 a server that [turned Conversion off](/docs/getting-started/configuration#tools),
 every method sets `error` with status `404`. [`tools()`](/docs/sdk#tools) tells
 you beforehand which conversions a server offers.
 
-## Video to audio
-
-Pass a stored file by its `id`:
-
-```ts
-const { data, error } = await vaze.conversion.videoToAudio({ id: "file-id" });
-
-if (data) {
-  const { blob, filename, contentType } = data; // e.g. "clip.mp3", "audio/mpeg"
-  await fs.writeFile(filename ?? "audio.mp3", Buffer.from(await blob.arrayBuffer()));
-}
-```
-
-Or a `file` from your device: a web
-[`File`](https://developer.mozilla.org/en-US/docs/Web/API/File), or in React
-Native a `{ uri, name, type }` reference. The server keeps it only until the
-conversion is done.
-
-```ts
-const { data, error } = await vaze.conversion.videoToAudio({ file });
-```
-
-The MP3 is 192 kbps, named after the video. A video without an audio track, or
-in a format that can't be read, sets `error` with status `422`. A server busy
-with other conversions answers `503`; try again shortly.
-
-The audio is read into a `Blob`. To stream it to disk instead, or to show
-progress, post to the endpoint yourself with
-[`authHeaders()`](/docs/sdk#fetching-urls-yourself):
-
-```ts
-const response = await fetch(vaze.conversion.videoToAudioUrl(), {
-  method: "POST",
-  headers: { ...(await vaze.authHeaders()), "Content-Type": "application/json" },
-  body: JSON.stringify({ fileId: "file-id" }),
-});
-```
-
-See [the endpoint](/docs/api-reference/conversion) for the request formats and
-the `X-Content-Duration` header that progress can be measured against.
-
 ## Videos
 
 `video(source, options?, wait?)` compresses and converts a video to MP4, WebM,
-MOV, MKV or an animated GIF, and waits for it. It starts the conversion, polls
-it until it is done, downloads the result and removes it from the server. The
-source is a stored file's `id` or a `file` from your device, as for audio:
+MOV, MKV or an animated GIF, or keeps only its sound as an MP3, and waits for
+it. It starts the conversion, polls it until it is done, downloads the result
+and removes it from the server. The source is a stored file's `id`, or a `file`
+from your device: a web
+[`File`](https://developer.mozilla.org/en-US/docs/Web/API/File), or in React
+Native a `{ uri, name, type }` reference. The server keeps it only until the
+conversion is done.
 
 ```ts
 const { data, error } = await vaze.conversion.video(
@@ -74,19 +37,33 @@ if (data) {
 
 | Option         | Description                                                                                                    |
 | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| `format`       | `"mp4"` (the default), `"webm"`, `"mov"`, `"mkv"` or `"gif"`                                                   |
-| `codec`        | `"h264"`, `"h265"`, `"vp9"`, `"av1"` or `"copy"`. Defaults to `"h264"`, or `"vp9"` for WebM. A GIF takes none |
-| `quality`      | `"high"`, `"balanced"` (the default) or `"small"`                                                              |
-| `targetSize`   | Bytes to fit in, in place of `quality`. Takes about twice as long. Not for GIFs                               |
-| `resolution`   | The short side, e.g. `720` for 1280 × 720. Never made larger. GIFs default to `480`                            |
-| `fps`          | The most frames a second; a video with fewer keeps its own. GIFs default to `15`                               |
+| `format`       | `"mp4"` (the default), `"webm"`, `"mov"`, `"mkv"`, `"gif"`, or `"mp3"` for only the sound                      |
+| `codec`        | `"h264"`, `"h265"`, `"vp9"`, `"av1"` or `"copy"`. Defaults to `"h264"`, or `"vp9"` for WebM. A GIF or an MP3 takes none |
+| `quality`      | `"high"`, `"balanced"` (the default) or `"small"`. An MP3 is 256, 192 or 128 kbps                              |
+| `targetSize`   | Bytes to fit in, in place of `quality`. Takes about twice as long. Not for GIFs or MP3s                       |
+| `resolution`   | The short side, e.g. `720` for 1280 × 720. Never made larger. GIFs default to `480`. Not for MP3s              |
+| `fps`          | The most frames a second; a video with fewer keeps its own. GIFs default to `15`. Not for MP3s                 |
 | `start`, `end` | Where it starts and ends, in seconds or as text such as `"1:30"`                                               |
-| `audio`        | `false` leaves the sound out                                                                                   |
+| `audio`        | `false` leaves the sound out. Not for MP3s                                                                     |
 
 `codec: "copy"` changes only the container, such as MKV to MP4, in seconds and
 without loss, so it takes no `quality`, `targetSize`, `resolution` or `fps`.
 See [the endpoint](/docs/api-reference/conversion#videos) for which codecs each
 format holds, and what the result is like.
+
+An MP3 is the video's sound alone. A video without sound sets `error` with
+status `422`.
+
+```ts
+const { data } = await vaze.conversion.video(
+  { id: "file-id" },
+  { format: "mp3", quality: "high", start: "1:30" },
+);
+// data.filename => "clip.mp3", data.contentType => "audio/mpeg"
+```
+
+`videoFormats()` lists the formats a server converts videos to, which a server
+before 5.0.0 answers with status `405`.
 
 The third argument takes `onProgress`, called with the
 [job](/docs/api-reference/conversion#start-a-conversion) each time it is

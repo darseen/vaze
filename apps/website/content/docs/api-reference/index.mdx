@@ -148,8 +148,8 @@ Requests are limited per client IP: 300/minute across `/api`, 600/minute
 on the public hosting endpoint, of which 60/minute may render a
 [resized image](/docs/api-reference/files#resize-and-convert-images) not yet on
 disk, and for [conversion](/docs/api-reference/conversion), 20/minute to start
-converting a video, 30/minute for video to audio and 60/minute for images. [PDF tools](/docs/api-reference/pdf) allow 60/minute,
-and 20/minute for documents. Exceeding any of them responds `429`.
+converting a video and 60/minute for images.
+Exceeding any of them responds `429`.
 
 ## List query parameters
 
@@ -202,13 +202,8 @@ offer the right form:
   />
   <Card
     title="Conversion"
-    description="Compress and convert videos, extract their audio as an MP3, and convert and resize images."
+    description="Compress and convert videos or keep only their sound as an MP3, and convert and resize images."
     href="/docs/api-reference/conversion"
-  />
-  <Card
-    title="PDF Tools"
-    description="Merge, split and edit PDFs, and make PDFs from images and documents."
-    href="/docs/api-reference/pdf"
   />
   <Card
     title="Account"

@@ -1,6 +1,6 @@
 export const appName = "Vaze";
 export const siteDescription =
-  "Vaze is a self-hosted file storage and hosting server with video, image and PDF tools, a web dashboard, an Android app and an SDK.";
+  "Vaze is a self-hosted file storage and hosting server with video and image conversion, a web dashboard, an Android app and an SDK.";
 export const docsRoute = "/docs";
 export const privacyRoute = "/privacy";
 export const benchmarksRoute = "/benchmarks";
