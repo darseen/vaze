@@ -11,9 +11,8 @@ services:
       TZ: ${TZ:-UTC}
       HOSTNAME: 0.0.0.0
       DATA_PATH: /var/lib/vaze
-      # false turns a tool section off and hides it from the dashboard and the apps
+      # false turns the Conversion tools off and hides them from the dashboard and the apps
       ENABLE_CONVERSION: ${ENABLE_CONVERSION:-true}
-      ENABLE_PDF_TOOLS: ${ENABLE_PDF_TOOLS:-true}
     ports:
       - "${VAZE_BIND_ADDR:-0.0.0.0}:${VAZE_PORT:-3000}:3000"
     volumes:

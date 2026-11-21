@@ -1,6 +1,9 @@
-FROM node:26-slim AS base
+FROM node:26-alpine AS base
  
 FROM base AS builder
+
+RUN apk update
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
@@ -13,6 +16,8 @@ RUN turbo prune service --docker
  
 FROM base AS installer
 
+RUN apk update
+RUN apk add --no-cache libc6-compat
 RUN npm install -g corepack && corepack enable pnpm
 
 WORKDIR /app
@@ -28,12 +33,9 @@ RUN pnpm turbo run build
  
 FROM base AS runner
 
-# ffmpeg powers the Conversion tools, heif-dec reads HEIC images, and headless LibreOffice with metric-compatible fonts turns documents into PDFs; updated with every image rebuild
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  openssl ffmpeg libheif-examples libheif-plugin-libde265 \
-  libreoffice-writer-nogui libreoffice-calc-nogui libreoffice-impress-nogui \
-  fonts-liberation fonts-noto-core \
-  && rm -rf /var/lib/apt/lists/*
+RUN apk update
+# ffmpeg and ffprobe power the Conversion tools, and libheif's heif-dec reads HEIC images; updated with every image rebuild
+RUN apk add --no-cache openssl ffmpeg libheif-tools
 
 WORKDIR /app
 
