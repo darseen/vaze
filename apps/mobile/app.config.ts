@@ -1,7 +1,28 @@
 import type { ExpoConfig } from "expo/config";
+import { withAndroidManifest, type ConfigPlugin } from "expo/config-plugins";
 import pkg from "./package.json" with { type: "json" };
 
-export default {
+// implied by the portrait lock and expo-network's ACCESS_WIFI_STATE, which would hide the app on devices without them
+const optionalFeatures = [
+  "android.hardware.screen.portrait",
+  "android.hardware.wifi",
+];
+
+const withOptionalFeatures: ConfigPlugin = (config) =>
+  withAndroidManifest(config, (config) => {
+    const manifest = config.modResults.manifest;
+    manifest["uses-feature"] = [
+      ...(manifest["uses-feature"] ?? []).filter(
+        (feature) => !optionalFeatures.includes(feature.$["android:name"]),
+      ),
+      ...optionalFeatures.map((name) => ({
+        $: { "android:name": name, "android:required": "false" as const },
+      })),
+    ];
+    return config;
+  });
+
+const config = {
   name: "Vaze",
   slug: "vaze",
   owner: "darseen",
@@ -113,3 +134,5 @@ export default {
     typedRoutes: true,
   },
 } satisfies ExpoConfig;
+
+export default withOptionalFeatures(config);
