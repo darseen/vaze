@@ -66,7 +66,7 @@ const vaze = new Vaze();
 
 # API Documentation
 
-The SDK's main modules are `files`, `folders`, `deleted`, `conversion` and `pdf`, plus `keys`, `account`, `activity`, `users` and `settings` for signed-in users. All methods are asynchronous and return a standard `ApiResponse` object containing either `data` or an `error`. Files API Access file-related methods via `vaze.files.getAll(options?)` Retrieve a paginated list of all files.
+The SDK's main modules are `files`, `folders`, `deleted` and `conversion`, plus `keys`, `account`, `activity`, `users` and `settings` for signed-in users. All methods are asynchronous and return a standard `ApiResponse` object containing either `data` or an `error`. Files API Access file-related methods via `vaze.files.getAll(options?)` Retrieve a paginated list of all files.
 
 - options (optional):
   - `limit`
@@ -225,19 +225,7 @@ await vaze.deleted.purge(["file-id-456"]); // gone for good
 await vaze.deleted.empty();
 ```
 
-Conversion API Convert files via `vaze.conversion`. Needs `files:read` and a Vaze 4.5.0 server.
-
-`videoToAudio(source)` Extract a video's audio as an MP3. Pass a stored file's `id`, or a `file` from your device (a web `File`, or in React Native a `{ uri, name, type }` reference), which the server keeps only until the conversion is done.
-
-```ts
-const { data, error } = await vaze.conversion.videoToAudio({ id: "file-id-123" });
-// or: await vaze.conversion.videoToAudio({ file });
-
-if (data) {
-  console.log(data.filename); // e.g. "clip.mp3"
-  const buffer = Buffer.from(await data.blob.arrayBuffer());
-}
-```
+Conversion API Convert files via `vaze.conversion`. Needs `files:read`. Each method takes a stored file's `id`, or a `file` from your device (a web `File`, or in React Native a `{ uri, name, type }` reference), which the server keeps only until the conversion is done.
 
 `image(source, options)` Convert an image, HEIC photos included, to WebP, JPG, PNG or AVIF. Needs a Vaze 4.6.0 server. Options are `format` (`"webp"`, `"jpeg"`, `"png"` or `"avif"`), `quality` (1 to 100, ignored for PNG), and `width` and `height`, a box the image is fitted inside without being made larger. The result is upright and has no metadata such as the camera or the location.
 
@@ -250,7 +238,7 @@ const { data, error } = await vaze.conversion.image(
 if (data) console.log(data.filename); // e.g. "photo.webp"
 ```
 
-`video(source, options?, wait?)` Compress and convert a video to MP4, WebM, MOV, MKV or an animated GIF, and wait for it. Needs a Vaze 4.8.0 server. Options are `format` (`"mp4"`, `"webm"`, `"mov"`, `"mkv"` or `"gif"`), `codec` (`"h264"`, `"h265"`, `"vp9"`, `"av1"`, or `"copy"` to change only the container), `quality` (`"high"`, `"balanced"` or `"small"`) or `targetSize` in bytes, `resolution` (the short side, never made larger), `fps`, `start` and `end` to trim it, and `audio: false` to leave the sound out. HDR video is tone mapped, and the result has no metadata such as where it was filmed.
+`video(source, options?, wait?)` Compress and convert a video to MP4, WebM, MOV, MKV or an animated GIF, or keep only its sound as an MP3, and wait for it. Needs a Vaze 4.8.0 server, and 5.0.0 for MP3. Options are `format` (`"mp4"`, `"webm"`, `"mov"`, `"mkv"`, `"gif"` or `"mp3"`), `codec` (`"h264"`, `"h265"`, `"vp9"`, `"av1"`, or `"copy"` to change only the container), `quality` (`"high"`, `"balanced"` or `"small"`) or `targetSize` in bytes, `resolution` (the short side, never made larger), `fps`, `start` and `end` to trim it, and `audio: false` to leave the sound out. HDR video is tone mapped, and the result has no metadata such as where it was filmed. An MP3 takes only `quality` (256, 192 or 128 kbps), `start` and `end`.
 
 ```ts
 const { data, error } = await vaze.conversion.video(
@@ -260,49 +248,12 @@ const { data, error } = await vaze.conversion.video(
 );
 
 if (data) console.log(data.filename); // e.g. "clip.mp4"
+
+// the sound alone, from 1:30 on
+const { data: sound } = await vaze.conversion.video({ file }, { format: "mp3", start: "1:30" });
 ```
 
-The conversion runs on the server as a job, which `video` polls until it is done. To run the steps yourself, use `startVideo(source, options?)`, `videoJob(id)`, `downloadVideo(id)` or `videoDownloadUrl(id)`, and `cancelVideo(id)`, which also removes a finished result before its hour is up.
-
-PDF API Merge, split and edit PDFs, and make them from images and documents, via `vaze.pdf`. Needs `files:read` and a Vaze 4.8.0 server. Each method takes stored files by `id` and device files as `file`, mixed in any order, and the result is not stored.
-
-`merge(sources)` Join 2 to 100 PDFs into one, in the order given.
-
-```ts
-const { data, error } = await vaze.pdf.merge([{ id: "cover-id" }, { file }, { id: "appendix-id" }]);
-
-if (data) console.log(data.filename); // e.g. "cover (merged).pdf"
-```
-
-`split(source, options?)` Cut a PDF into parts, returned as PDFs in a ZIP. Pass `ranges` such as `"1-3, 4-6, 7-"`, where `7-` runs to the last page, or `every` to cut a part every so many pages. Without either, each page becomes its own PDF.
-
-```ts
-const { data } = await vaze.pdf.split({ id: "file-id-123" }, { ranges: "1-3, 7, 10-" });
-```
-
-`edit(source, options)` Rearrange a PDF's pages. `pages` lists the pages to keep in their new order, each a page number or `{ page, rotate }` with a clockwise turn of 90, 180 or 270, so pages can be moved, removed, repeated or turned. `pageNumbers` numbers the pages at their foot, and `title` renames the document.
-
-```ts
-// page 3 first, then page 1 turned, page 2 left out
-const { data } = await vaze.pdf.edit(
-  { id: "file-id-123" },
-  { pages: [3, { page: 1, rotate: 90 }], pageNumbers: true },
-);
-```
-
-`fromImages(sources, options?)` Make a PDF with one image on each page. `pageSize` is `"fit"` (each page the image's size, the default), `"a4"` or `"letter"`, and `margin` is the space around each image in points.
-
-```ts
-const { data } = await vaze.pdf.fromImages([{ id: "scan-1" }, { id: "scan-2" }], { pageSize: "a4", margin: 18 });
-```
-
-`fromDocument(source)` Turn a Word, Excel, PowerPoint or OpenDocument file, RTF, CSV or plain text into a PDF.
-
-```ts
-const { data } = await vaze.pdf.fromDocument({ id: "report-docx-id" });
-```
-
-Each method has a matching URL, such as `mergeUrl()`, for sending the request yourself with `authHeaders()`.
+The conversion runs on the server as a job, which `video` polls until it is done. To run the steps yourself, use `startVideo(source, options?)`, `videoJob(id)`, `downloadVideo(id)` or `videoDownloadUrl(id)`, and `cancelVideo(id)`, which also removes a finished result before its hour is up. `videoFormats()` lists the formats the server converts to.
 
 Keys API Manage the caller's API keys via `vaze.keys`. These calls need a client that acts as a signed-in user (`headers`) holding `api-keys:manage`; a client built with an API key gets a `403`.
 
@@ -403,11 +354,11 @@ Failed requests carry the HTTP status in `error.status`, such as `401` once a se
 
 # Tools
 
-`vaze.tools()` says which conversions and PDF tools the server offers: `videoToAudio`, `video`, `image` and `pdf`. Each is `false` on a server too old for it, or one whose admin turned its section off with `ENABLE_CONVERSION=false` or `ENABLE_PDF_TOOLS=false`.
+`vaze.tools()` says which conversions the server offers: `video`, `audio` (MP3s from the video converter) and `image`. Each is `false` on a server too old for it, or one whose admin turned Conversion off with `ENABLE_CONVERSION=false`.
 
 ```ts
 const { data } = await vaze.tools();
-if (data?.pdf) showPdfTools();
+if (data?.video) showVideoConverter();
 ```
 
 # Types

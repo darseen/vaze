@@ -1,4 +1,4 @@
-import type { ApiResponse, VideoJob } from "@repo/types";
+import type { ApiResponse, VideoFormat, VideoJob } from "@repo/types";
 import Base from "./base.js";
 import type {
   ConversionSource,
@@ -25,27 +25,6 @@ function wait(ms: number, signal?: AbortSignal): Promise<void> {
 
 /** Converting files from one format to another. */
 export default class Conversion extends Base {
-  /**
-   * Extract a video's audio as an MP3. Pass a stored file's `id`, or a `file`
-   * from the caller's device, which the server keeps only until it is done.
-   */
-  public async videoToAudio(source: ConversionSource) {
-    const url = this.videoToAudioUrl();
-    if ("id" in source) {
-      return await this.requestBlob(url, "POST", { fileId: source.id });
-    }
-
-    const formData = new FormData();
-    // React Native's FormData reads uri, name and type off a plain object
-    formData.append("file", source.file as Blob);
-    return await this.requestBlob(url, "POST", formData);
-  }
-
-  /** Where `videoToAudio` posts; stream it yourself with `authHeaders()`. */
-  public videoToAudioUrl() {
-    return this.apiUrl("/api/conversion/video-to-audio");
-  }
-
   /**
    * Convert an image to WebP, JPG, PNG or AVIF, and resize it if asked. Pass a
    * stored file's `id`, or a `file` from the caller's device, which the server
@@ -79,7 +58,8 @@ export default class Conversion extends Base {
   /**
    * Convert a video and wait for the result: starts the job, polls it until
    * it is done, downloads the file and removes it from the server. Pass a
-   * stored file's `id`, or a `file` from the caller's device.
+   * stored file's `id`, or a `file` from the caller's device. `format: "mp3"`
+   * keeps only its sound.
    */
   public async video(
     source: ConversionSource,
@@ -155,6 +135,14 @@ export default class Conversion extends Base {
   /** Where `startVideo` posts; send the request yourself with `authHeaders()`. */
   public videoUrl() {
     return this.apiUrl("/api/conversion/video");
+  }
+
+  /** The formats the server converts videos to. Servers before 5.0.0 answer `405`. */
+  public async videoFormats() {
+    return await this.request<{ formats: VideoFormat[] }>(
+      "GET",
+      this.videoUrl(),
+    );
   }
 
   /** A video conversion's status and progress. */

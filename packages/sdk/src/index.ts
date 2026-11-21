@@ -7,7 +7,6 @@ import Deleted from "./deleted.js";
 import Files from "./files.js";
 import Folders from "./folders.js";
 import Keys from "./keys.js";
-import Pdf from "./pdf.js";
 import Settings from "./settings.js";
 import Users from "./users.js";
 import type { IVaze, Tools, VazeOptions } from "./types/index.js";
@@ -18,7 +17,6 @@ export default class Vaze extends Base implements IVaze {
   public folders: Folders;
   public deleted: Deleted;
   public conversion: Conversion;
-  public pdf: Pdf;
   public keys: Keys;
   public account: Account;
   public activity: Activity;
@@ -32,7 +30,6 @@ export default class Vaze extends Base implements IVaze {
     this.folders = new Folders(options);
     this.deleted = new Deleted(options);
     this.conversion = new Conversion(options);
-    this.pdf = new Pdf(options);
     this.keys = new Keys(options);
     this.account = new Account(options);
     this.activity = new Activity(options);
@@ -48,19 +45,30 @@ export default class Vaze extends Base implements IVaze {
   }
 
   /**
-   * Which conversions and PDF tools the server offers. A server older than a
-   * tool lacks it, and an admin can turn Conversion or the PDF tools off.
+   * Which conversions the server offers. A server older than a tool lacks it,
+   * and an admin can turn Conversion off.
    */
   public async tools(): Promise<ApiResponse<Tools>> {
     try {
-      // the endpoints only take POST, so one that is there answers a GET with 405
-      const [videoToAudio, video, image, pdf] = await Promise.all([
-        this.hasEndpoint(this.conversion.videoToAudioUrl()),
-        this.hasEndpoint(this.conversion.videoUrl()),
+      const [formats, image] = await Promise.all([
+        this.conversion.videoFormats(),
+        // the endpoint only takes POST, so a server that has it answers a GET with 405
         this.hasEndpoint(this.conversion.imageUrl()),
-        this.hasEndpoint(this.pdf.mergeUrl()),
       ]);
-      return { data: { videoToAudio, video, image, pdf }, error: null };
+      const status = formats.error?.status;
+      // no status means the server couldn't be reached
+      if (formats.error && status === undefined) {
+        return { data: null, error: formats.error };
+      }
+      return {
+        data: {
+          // servers before 5.0.0 list nothing, and answer 405
+          video: formats.data !== null || status === 405,
+          audio: formats.data?.formats.includes("mp3") ?? false,
+          image,
+        },
+        error: null,
+      };
     } catch (error) {
       return {
         data: null,
@@ -166,17 +174,11 @@ export type {
   HostedImageWidth,
   ImageConversionOptions,
   ImageFormat,
-  ImagesToPdfOptions,
   ListOptions,
   MoveDestination,
   NewKeyOptions,
   NewUserOptions,
   PasswordChange,
-  PdfEditOptions,
-  PdfPage,
-  PdfPageRotation,
-  PdfPageSize,
-  PdfSplitOptions,
   ProfileChanges,
   SettingsChanges,
   SignedUrl,

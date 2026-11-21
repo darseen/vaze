@@ -15,7 +15,6 @@ import type Deleted from "../deleted.js";
 import type Files from "../files.js";
 import type Folders from "../folders.js";
 import type Keys from "../keys.js";
-import type Pdf from "../pdf.js";
 import type Settings from "../settings.js";
 import type Users from "../users.js";
 
@@ -24,7 +23,6 @@ export interface IVaze {
   folders: Folders;
   deleted: Deleted;
   conversion: Conversion;
-  pdf: Pdf;
   keys: Keys;
   account: Account;
   activity: Activity;
@@ -59,14 +57,12 @@ export type FileReference = {
 
 /** Which tools a server offers; each is false on a server too old for it, or with its section turned off. */
 export type Tools = {
-  /** Video to audio, in Vaze 4.5.0 and later. */
-  videoToAudio: boolean;
   /** Video conversion, in Vaze 4.8.0 and later. */
   video: boolean;
+  /** Keeping only a video's sound, with `format: "mp3"`, in Vaze 5.0.0 and later. */
+  audio: boolean;
   /** Image conversion, in Vaze 4.6.0 and later. */
   image: boolean;
-  /** Every PDF tool, in Vaze 4.8.0 and later. */
-  pdf: boolean;
 };
 
 /** A stored file by its id, or a file from the caller's device. */
@@ -86,7 +82,11 @@ export type ImageConversionOptions = {
 export type VideoQuality = "high" | "balanced" | "small";
 
 export type VideoConversionOptions = {
-  /** Defaults to "mp4". A GIF has no codec and no sound. */
+  /**
+   * Defaults to "mp4". A GIF has no codec and no sound. An MP3 keeps only the
+   * sound, at 256, 192 or 128 kbps for each `quality`, and takes no codec,
+   * resolution, fps, target size or `audio: false`.
+   */
   format?: VideoFormat;
   /**
    * Defaults to H.264, or VP9 for WebM. "copy" keeps the streams as they are
@@ -123,39 +123,6 @@ export type VideoWaitOptions = {
   signal?: AbortSignal;
   /** Milliseconds between polls. Defaults to 1000. */
   pollInterval?: number;
-};
-
-/** Split by ranges such as "1-3, 4-6, 7-", where "7-" runs to the end, or every so many pages. */
-export type PdfSplitOptions =
-  | { ranges: string; every?: never }
-  | { every: number; ranges?: never }
-  | { ranges?: never; every?: never };
-
-/** Quarter turns clockwise, added to the page's own. */
-export type PdfPageRotation = 0 | 90 | 180 | 270;
-
-/** A page of the original, numbered from 1, or that page turned. */
-export type PdfPage = number | { page: number; rotate?: PdfPageRotation };
-
-export type PdfEditOptions = {
-  /**
-   * The pages to keep, in their new order. A page can be left out, moved,
-   * repeated or turned. Leave this out to keep every page as it is.
-   */
-  pages?: PdfPage[];
-  /** Number the pages at the foot of each, as shown. */
-  pageNumbers?: boolean;
-  /** Up to 500 characters. Defaults to the original's title. */
-  title?: string;
-};
-
-/** `fit` gives each image a page of its own size; A4 and Letter turn to match it. */
-export type PdfPageSize = "fit" | "a4" | "letter";
-
-export type ImagesToPdfOptions = {
-  pageSize?: PdfPageSize;
-  /** Space around each image, in points from 0 to 144 (2 inches). Defaults to 0. */
-  margin?: number;
 };
 
 export type ListOptions = {
