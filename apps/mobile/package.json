@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@better-auth/expo": "1.7.25",
-    "@darseen/vaze": "^2.11.0",
+    "@darseen/vaze": "^3.0.0",
     "@expo-google-fonts/inter": "0.4.2",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-async-storage/async-storage": "2.2.0",

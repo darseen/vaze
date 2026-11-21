@@ -4,12 +4,7 @@ import { ListGroup, Separator, Spinner } from "heroui-native";
 import { ChevronLeft, Folder as FolderIcon } from "lucide-react-native";
 import { Fragment, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import {
-  isConvertibleImage,
-  isConvertibleVideo,
-  isVideo,
-} from "@/lib/conversion";
-import { isConvertibleDocument, isPdf } from "@/lib/pdf-tools";
+import { isConvertibleImage, isConvertibleVideo } from "@/lib/conversion";
 import { formatBytes } from "@/lib/format";
 import { folderCacheKey, parentKey, useLibrary } from "@/stores/library";
 import { FileThumb } from "../files/file-thumb";
@@ -17,14 +12,12 @@ import { Icon } from "../icon";
 import { useServer } from "../server-context";
 import { Sheet } from "../sheet";
 
-export type PickableKind =
-  "video" | "convertible-video" | "image" | "pdf" | "document";
+export type PickableKind = "convertible-video" | "image";
 
 const KINDS: Record<
   PickableKind,
   { accepts: (file: File) => boolean; one: string; many: string }
 > = {
-  video: { accepts: isVideo, one: "a video", many: "videos" },
   // the video converter reads animated GIFs too
   "convertible-video": {
     accepts: isConvertibleVideo,
@@ -32,12 +25,6 @@ const KINDS: Record<
     many: "videos",
   },
   image: { accepts: isConvertibleImage, one: "an image", many: "images" },
-  pdf: { accepts: isPdf, one: "a PDF", many: "PDFs" },
-  document: {
-    accepts: isConvertibleDocument,
-    one: "a document",
-    many: "documents",
-  },
 };
 
 type FilePickerSheetProps = {

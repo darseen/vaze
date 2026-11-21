@@ -235,18 +235,6 @@ export function pdfInfo(document: string) {
   return native().pdfInfo(document);
 }
 
-/** One page of a PDF on disk at `width` pixels, written to `target`. */
-export async function renderPdfPage(
-  document: string,
-  index: number,
-  width: number,
-  target: DeviceFile,
-): Promise<string> {
-  if (!target.exists)
-    await native().pdfPage(document, index, width, target.uri);
-  return target.uri;
-}
-
 /** The start of a text file, or an error when it looks binary. */
 export async function textStart(
   { headers }: Source,

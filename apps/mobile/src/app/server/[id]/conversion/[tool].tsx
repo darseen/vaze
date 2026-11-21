@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { View } from "react-native";
 import { ImageConverter } from "@/components/conversion/image-converter";
 import { VideoConverter } from "@/components/conversion/video-converter";
-import { VideoToAudio } from "@/components/conversion/video-to-audio";
 import { EmptyState } from "@/components/empty-state";
 import { clearConversions } from "@/lib/conversion";
 import { findTool } from "@/lib/tools";
@@ -14,7 +13,6 @@ const SCREENS: Record<
   (props: { fileId?: string }) => React.JSX.Element
 > = {
   video: VideoConverter,
-  "video-to-audio": VideoToAudio,
   image: ImageConverter,
 };
 

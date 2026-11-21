@@ -16,7 +16,7 @@ import {
   Spinner,
   useToast,
 } from "heroui-native";
-import { Clapperboard } from "lucide-react-native";
+import { AudioLines, Clapperboard } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { Icon } from "@/components/icon";
@@ -33,6 +33,7 @@ import {
   GIF_FRAME_RATE,
   GIF_RESOLUTION,
   MIN_VIDEO_TARGET_SIZE,
+  MP3_KBPS,
   parseTimestamp,
   sizeChange,
   VIDEO_CODEC_INFO,
@@ -44,6 +45,7 @@ import {
 } from "@/lib/conversion";
 import { formatBytes } from "@/lib/format";
 import { discardPicked, pickOne } from "@/lib/transfer";
+import { useLibrary } from "@/stores/library";
 import {
   ConversionFailed,
   ConversionProgress,
@@ -144,9 +146,18 @@ export function VideoConverter({ fileId }: { fileId?: string }) {
   // events from a canceled run are ignored
   const runRef = useRef(0);
 
+  // servers before 5.0.0 make no MP3s
+  const canMakeMp3 = useLibrary(
+    (state) => state.tools[server.id]?.data?.audio ?? false,
+  );
+  const formats = VIDEO_FORMATS.filter(
+    (value) => value !== "mp3" || canMakeMp3,
+  );
   const gif = format === "gif";
-  const copy = !gif && codec === "copy";
-  const fitToSize = !gif && !copy && compression === "size";
+  // only the sound, so nothing about the picture applies
+  const mp3 = format === "mp3";
+  const copy = !gif && !mp3 && codec === "copy";
+  const fitToSize = !gif && !mp3 && !copy && compression === "size";
   const busy =
     status.phase !== "idle" &&
     status.phase !== "done" &&
@@ -186,8 +197,10 @@ export function VideoConverter({ fileId }: { fileId?: string }) {
 
   function options(): VideoConversionOptions {
     const sent: Record<string, string | number | boolean> = { format };
-    if (!gif) sent.codec = codec;
-    if (!copy) {
+    if (!gif && !mp3) sent.codec = codec;
+    if (mp3) {
+      sent.quality = compression === "size" ? "balanced" : compression;
+    } else if (!copy) {
       if (fitToSize) {
         sent.targetSize = Math.round(Number(targetMb) * 1024 ** 2);
       } else {
@@ -196,7 +209,7 @@ export function VideoConverter({ fileId }: { fileId?: string }) {
       sent.resolution = resolution;
       sent.fps = fps;
     }
-    if (!gif && !audio) sent.audio = false;
+    if (!gif && !mp3 && !audio) sent.audio = false;
     if (start.trim()) sent.start = start.trim();
     if (end.trim()) sent.end = end.trim();
     // the checks above keep the pairs the server refuses apart
@@ -262,11 +275,14 @@ export function VideoConverter({ fileId }: { fileId?: string }) {
     if (nextCodecs.length > 0 && !nextCodecs.includes(codec)) {
       setCodec(nextCodecs[0]);
     }
-    // GIFs are kept small unless asked otherwise, and can't be fitted to a size
+    // GIFs and MP3s can't be fitted to a size
+    if ((next === "gif" || next === "mp3") && compression === "size") {
+      setCompression("balanced");
+    }
+    // GIFs are kept small unless asked otherwise
     if (next === "gif" && !gif) {
       setResolution(String(GIF_RESOLUTION));
       setFps(String(GIF_FRAME_RATE));
-      if (compression === "size") setCompression("balanced");
     } else if (next !== "gif" && gif) {
       setResolution(ORIGINAL);
       setFps(ORIGINAL);
@@ -289,7 +305,9 @@ export function VideoConverter({ fileId }: { fileId?: string }) {
   }
 
   return (
-    <ToolScroll description="Compress a video, or change its format, size or frame rate, trim it and mute it. HDR is tone mapped and details such as where it was filmed are left out. The result isn't kept on the server, so save or share it.">
+    <ToolScroll
+      description={`Compress a video, or change its format, size or frame rate, trim it and mute it${canMakeMp3 ? ", or keep only its sound as an MP3" : ""}. HDR is tone mapped and details such as where it was filmed are left out. The result isn't kept on the server, so save or share it.`}
+    >
       {finding ? (
         <View className="items-center py-8">
           <Spinner />
@@ -320,7 +338,7 @@ export function VideoConverter({ fileId }: { fileId?: string }) {
           <Option label="Format">
             <ChoiceTabs
               value={format}
-              choices={VIDEO_FORMATS.map((value) => ({
+              choices={formats.map((value) => ({
                 value,
                 label: VIDEO_FORMAT_INFO[value].label,
               }))}
@@ -331,6 +349,10 @@ export function VideoConverter({ fileId }: { fileId?: string }) {
           <Option label="Codec">
             {gif ? (
               <Description>GIFs loop and have no sound.</Description>
+            ) : mp3 ? (
+              <Description>
+                Keeps only the sound, which any player can play.
+              </Description>
             ) : (
               <>
                 <ChoiceTabs
@@ -352,10 +374,15 @@ export function VideoConverter({ fileId }: { fileId?: string }) {
                 <ChoiceTabs
                   value={compression}
                   choices={COMPRESSIONS.filter(
-                    (choice) => !gif || choice.value !== "size",
+                    (choice) => !(gif || mp3) || choice.value !== "size",
                   )}
                   onChange={change(setCompression)}
                 />
+                {mp3 && compression !== "size" ? (
+                  <Description>
+                    {MP3_KBPS[compression]} kbps, at a constant bitrate.
+                  </Description>
+                ) : null}
                 {fitToSize ? (
                   <>
                     <Input
@@ -371,35 +398,40 @@ export function VideoConverter({ fileId }: { fileId?: string }) {
                 ) : null}
               </Option>
 
-              <View className="flex-row gap-3">
-                <View className="flex-1">
-                  <Option label="Resolution">
-                    <ChoiceSelect
-                      label="Resolution"
-                      value={resolution}
-                      choices={RESOLUTIONS}
-                      onChange={change(setResolution)}
-                    />
-                  </Option>
-                </View>
-                <View className="flex-1">
-                  <Option label="Frame rate">
-                    <ChoiceSelect
-                      label="Frame rate"
-                      value={fps}
-                      choices={FRAME_RATES}
-                      onChange={change(setFps)}
-                    />
-                  </Option>
-                </View>
-              </View>
-              <Description className="-mt-2">
-                Never made larger, and a slower video keeps its own frame rate.
-              </Description>
+              {mp3 ? null : (
+                <>
+                  <View className="flex-row gap-3">
+                    <View className="flex-1">
+                      <Option label="Resolution">
+                        <ChoiceSelect
+                          label="Resolution"
+                          value={resolution}
+                          choices={RESOLUTIONS}
+                          onChange={change(setResolution)}
+                        />
+                      </Option>
+                    </View>
+                    <View className="flex-1">
+                      <Option label="Frame rate">
+                        <ChoiceSelect
+                          label="Frame rate"
+                          value={fps}
+                          choices={FRAME_RATES}
+                          onChange={change(setFps)}
+                        />
+                      </Option>
+                    </View>
+                  </View>
+                  <Description className="-mt-2">
+                    Never made larger, and a slower video keeps its own frame
+                    rate.
+                  </Description>
+                </>
+              )}
             </>
           )}
 
-          {gif ? null : (
+          {gif || mp3 ? null : (
             <ControlField
               isSelected={audio}
               onSelectedChange={change(setAudio)}
@@ -539,7 +571,7 @@ function StatusPanel({
           : VIDEO_FORMAT_INFO[job.format].label;
       const details = [
         kind,
-        `${job.width} × ${job.height}`,
+        job.width !== null ? `${job.width} × ${job.height}` : null,
         job.duration ? formatTimestamp(job.duration) : null,
         formatBytes(size),
         sizeChange(size, job.sourceSize),
@@ -547,10 +579,16 @@ function StatusPanel({
 
       return (
         <ConversionReady
-          title="Your video is ready"
+          title={
+            job.format === "mp3" ? "Your MP3 is ready" : "Your video is ready"
+          }
           preview={
             <View className="size-10 items-center justify-center rounded-xl bg-success-soft">
-              <Icon icon={Clapperboard} size={18} className="text-success" />
+              <Icon
+                icon={job.format === "mp3" ? AudioLines : Clapperboard}
+                size={18}
+                className="text-success"
+              />
             </View>
           }
           name={video.name}

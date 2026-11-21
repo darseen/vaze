@@ -24,7 +24,6 @@ type SheetName = "details" | "rename" | "move" | "delete";
 // each Convert action opens its tool with the file chosen
 const CONVERSION_TOOLS = {
   "convert-video": "video",
-  "convert-audio": "video-to-audio",
   "convert-image": "image",
 } as const;
 
@@ -174,7 +173,6 @@ export function useEntryActions() {
       }
 
       case "convert-video":
-      case "convert-audio":
       case "convert-image":
         if (entry.type !== "file") return;
         setSheet(null);

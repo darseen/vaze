@@ -217,10 +217,6 @@ function ServerStack() {
         options={{ ...stackOptions, headerShown: true }}
       />
       <Stack.Screen
-        name="pdf/[tool]"
-        options={{ ...stackOptions, headerShown: true }}
-      />
-      <Stack.Screen
         name="view"
         options={{
           animation: "fade",

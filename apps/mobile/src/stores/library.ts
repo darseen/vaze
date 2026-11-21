@@ -13,7 +13,7 @@ type LibraryState = {
   stats: Record<string, Loadable<Stats>>;
   /** `supported` is false on servers that predate Recently deleted. */
   deleted: Record<string, Loadable<DeletedContents> & { supported?: boolean }>;
-  /** Which conversions and PDF tools each server offers. */
+  /** Which conversions each server offers. */
   tools: Record<string, Loadable<Tools>>;
   loadFolder: (serverId: string, vaze: Vaze, key: string) => Promise<void>;
   loadStats: (serverId: string, vaze: Vaze) => Promise<void>;

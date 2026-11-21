@@ -1,6 +1,5 @@
 import { Chip } from "heroui-native";
 import {
-  AudioLines,
   Clapperboard,
   Download,
   FolderInput,
@@ -13,11 +12,7 @@ import {
   Trash2,
 } from "lucide-react-native";
 import { Text, View } from "react-native";
-import {
-  isConvertibleImage,
-  isConvertibleVideo,
-  isVideo,
-} from "@/lib/conversion";
+import { isConvertibleImage, isConvertibleVideo } from "@/lib/conversion";
 import { fileKind, KIND_INFO, previewKind } from "@/lib/file-kind";
 import { formatBytes, formatDateTime } from "@/lib/format";
 import { useLibrary } from "@/stores/library";
@@ -36,7 +31,6 @@ export type EntryAction =
   | "make-private"
   | "make-public"
   | "convert-video"
-  | "convert-audio"
   | "convert-image"
   | "delete";
 
@@ -120,16 +114,11 @@ function EntryActions({
           {
             label: "Convert video",
             icon: Clapperboard,
-            description: "Compress it, or change its format",
+            description: tools?.audio
+              ? "Compress it, change its format, or keep its sound"
+              : "Compress it, or change its format",
             hidden: !tools?.video || !isFile || !isConvertibleVideo(entry.file),
             onPress: () => onAction("convert-video"),
-          },
-          {
-            label: "Convert to audio",
-            icon: AudioLines,
-            description: "Extract its audio as an MP3",
-            hidden: !tools?.videoToAudio || !isFile || !isVideo(entry.file),
-            onPress: () => onAction("convert-audio"),
           },
           {
             label: "Convert image",

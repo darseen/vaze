@@ -9,13 +9,12 @@ import type {
   VideoConversionOptions,
   VideoFormat,
   VideoJob,
+  VideoQuality,
 } from "@darseen/vaze";
 import { fetch as streamingFetch } from "expo/fetch";
 import { Directory, File as DeviceFile, Paths } from "expo-file-system";
 import { extensionOf, previewKind } from "./file-kind";
 
-// the server's constant bitrate, so the final size follows from the duration
-const MP3_BITRATE_KBPS = 192;
 // progress re-renders at most this often
 const REPORT_MS = 150;
 
@@ -25,7 +24,7 @@ export type ConversionSource =
 
 export type ReadHeader = (name: string) => string | null;
 
-export type Handlers = {
+type Handlers = {
   /** Only for device files, which are uploaded first. */
   onUploadProgress: (fraction: number) => void;
   /** `fraction` is null when the result's size isn't known. */
@@ -34,22 +33,15 @@ export type Handlers = {
   onError: (message: string) => void;
 };
 
-export type ConversionRequest = {
+type ConversionRequest = {
   url: string;
   /** What the result is called in the app's cache. */
   name: string;
-  /** Sent with the files, in the JSON body or as form fields, where lists go as JSON. */
-  options?: Record<string, string | number | boolean | object | undefined>;
-  /** Sends stored files as `fileIds`, for endpoints that take several. */
-  many?: boolean;
-  /** The result's size, for a response that streams without a length. */
-  expectedSize?: (header: ReadHeader) => number | null;
+  /** Sent with the file, in the JSON body or as form fields. */
+  options?: Record<string, string | number | boolean | undefined>;
 };
 
-export const toMp3Name = (name: string) =>
-  `${name.replace(/\.[^./\\]+$/, "") || "audio"}.mp3`;
-
-export const isVideo = (file: File) => previewKind(file) === "video";
+const isVideo = (file: File) => previewKind(file) === "video";
 
 /** What images convert to, in the order the app offers them. */
 export const IMAGE_FORMATS: ImageFormat[] = ["webp", "jpeg", "png", "avif"];
@@ -106,6 +98,7 @@ export const VIDEO_FORMATS: VideoFormat[] = [
   "mov",
   "mkv",
   "gif",
+  "mp3",
 ];
 
 export const VIDEO_FORMAT_INFO: Record<
@@ -113,7 +106,7 @@ export const VIDEO_FORMAT_INFO: Record<
   {
     label: string;
     mimeType: string;
-    /** The codecs it holds, its default first; a GIF has none to pick. */
+    /** The codecs it holds, its default first; a GIF and an MP3 have none to pick. */
     codecs: VideoCodec[];
   }
 > = {
@@ -138,6 +131,14 @@ export const VIDEO_FORMAT_INFO: Record<
     codecs: ["h264", "h265", "vp9", "av1", "copy"],
   },
   gif: { label: "GIF", mimeType: "image/gif", codecs: [] },
+  mp3: { label: "MP3", mimeType: "audio/mpeg", codecs: [] },
+};
+
+/** An MP3's constant bitrate for each quality, as the server makes it. */
+export const MP3_KBPS: Record<VideoQuality, number> = {
+  high: 256,
+  balanced: 192,
+  small: 128,
 };
 
 export const VIDEO_CODEC_INFO: Record<
@@ -215,18 +216,8 @@ export function sizeChange(size: number, sourceSize: number): string | null {
   return null;
 }
 
-function mp3Size(duration: string | null) {
-  const seconds = Number(duration);
-  return seconds > 0
-    ? Math.ceil((seconds * MP3_BITRATE_KBPS * 1000) / 8)
-    : null;
-}
-
-function expectedTotal(request: ConversionRequest, header: ReadHeader) {
-  return (
-    Number(header("Content-Length")) || request.expectedSize?.(header) || null
-  );
-}
+const expectedTotal = (header: ReadHeader) =>
+  Number(header("Content-Length")) || null;
 
 function reporter(onProgress: Handlers["onProgress"], expected: number | null) {
   let last = 0;
@@ -255,9 +246,6 @@ function failureMessage(status: number, body: string) {
 
 class Canceled extends Error {}
 
-const formValue = (value: string | number | boolean | object) =>
-  typeof value === "object" ? JSON.stringify(value) : String(value);
-
 /** Writes a response body to `destination` as it arrives. */
 async function streamToFile(
   body: ReadableStream<Uint8Array>,
@@ -282,10 +270,10 @@ async function streamToFile(
   }
 }
 
-/** Stored files convert on the server and the result streams to disk as it comes. */
+/** A stored file converts on the server and the result streams to disk as it comes. */
 async function convertStored(
   vaze: Vaze,
-  files: File[],
+  file: File,
   request: ConversionRequest,
   destination: DeviceFile,
   onProgress: Handlers["onProgress"],
@@ -297,12 +285,7 @@ async function convertStored(
       ...(await vaze.authHeaders()),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      ...(request.many
-        ? { fileIds: files.map((file) => file.id) }
-        : { fileId: files[0].id }),
-      ...request.options,
-    }),
+    body: JSON.stringify({ fileId: file.id, ...request.options }),
     credentials: "omit",
     signal,
   });
@@ -315,32 +298,30 @@ async function convertStored(
   await streamToFile(
     response.body,
     destination,
-    reporter(onProgress, expectedTotal(request, header)),
+    reporter(onProgress, expectedTotal(header)),
   );
   return header;
 }
 
-/** The options as fields, then stored files by id and device files as parts, in order. */
+/** The options as fields, then the file as a part, or by id when it is stored. */
 function formOf(
-  sources: ConversionSource[],
+  source: ConversionSource,
   options: ConversionRequest["options"] = {},
 ) {
   const body = new FormData();
   for (const [name, value] of Object.entries(options)) {
-    if (value !== undefined) body.append(name, formValue(value));
+    if (value !== undefined) body.append(name, String(value));
   }
-  for (const source of sources) {
-    if (source.kind === "vaze") {
-      body.append("fileId", source.file.id);
-      continue;
-    }
-    // the server only names its reply after the part, and the app names the result itself
-    body.append("file", {
-      uri: source.file.uri,
-      name: source.file.name.replace(/[^\x20-\x7e]|"/g, "_"),
-      type: source.file.type,
-    } as unknown as Blob);
+  if (source.kind === "vaze") {
+    body.append("fileId", source.file.id);
+    return body;
   }
+  // the server only names its reply after the part, and the app names the result itself
+  body.append("file", {
+    uri: source.file.uri,
+    name: source.file.name.replace(/[^\x20-\x7e]|"/g, "_"),
+    type: source.file.type,
+  } as unknown as Blob);
   return body;
 }
 
@@ -415,10 +396,10 @@ async function sendForm(
 const textOf = (bytes: ArrayBuffer | null) =>
   bytes ? new TextDecoder().decode(bytes) : "";
 
-/** Device files, with any stored ones among them by id; the result comes back whole. */
+/** A device file goes up as a form; the result comes back whole. */
 async function convertDevice(
   vaze: Vaze,
-  sources: ConversionSource[],
+  source: ConversionSource,
   request: ConversionRequest,
   destination: DeviceFile,
   handlers: Handlers,
@@ -428,12 +409,12 @@ async function convertDevice(
   const { status, bytes, header } = await sendForm(
     vaze,
     request.url,
-    formOf(sources, request.options),
+    formOf(source, request.options),
     {
       onUploadProgress: handlers.onUploadProgress,
       onHeaders: (status, header) => {
         if (status !== 200) return;
-        report = reporter(handlers.onProgress, expectedTotal(request, header));
+        report = reporter(handlers.onProgress, expectedTotal(header));
       },
       onDownloadProgress: (received) => report?.(received),
     },
@@ -461,24 +442,21 @@ function resultFile(name: string) {
   return new DeviceFile(folder, name);
 }
 
-/** Converts `sources`, in order, into the app's cache; returns a function that cancels it. */
-export function convert(
+/** Converts `source` into the app's cache; returns a function that cancels it. */
+function convert(
   vaze: Vaze,
-  sources: ConversionSource[],
+  source: ConversionSource,
   request: ConversionRequest,
   handlers: Handlers,
 ): () => void {
   const controller = new AbortController();
   const destination = resultFile(request.name);
 
-  const stored = sources.flatMap((source) =>
-    source.kind === "vaze" ? [source.file] : [],
-  );
   const run =
-    stored.length === sources.length
+    source.kind === "vaze"
       ? convertStored(
           vaze,
-          stored,
+          source.file,
           request,
           destination,
           handlers.onProgress,
@@ -486,7 +464,7 @@ export function convert(
         )
       : convertDevice(
           vaze,
-          sources,
+          source,
           request,
           destination,
           handlers,
@@ -512,24 +490,6 @@ export function convert(
   return () => controller.abort();
 }
 
-/** Extracts a video's audio as an MP3. */
-export function convertToAudio(
-  vaze: Vaze,
-  source: ConversionSource,
-  handlers: Handlers,
-) {
-  return convert(
-    vaze,
-    [source],
-    {
-      url: vaze.conversion.videoToAudioUrl(),
-      name: toMp3Name(source.file.name),
-      expectedSize: (header) => mp3Size(header("X-Content-Duration")),
-    },
-    handlers,
-  );
-}
-
 /** Converts an image to another format, resized when asked. */
 export function convertImage(
   vaze: Vaze,
@@ -539,7 +499,7 @@ export function convertImage(
 ) {
   return convert(
     vaze,
-    [source],
+    source,
     {
       url: vaze.conversion.imageUrl(),
       name: toImageName(source.file.name, options.format),
@@ -591,7 +551,7 @@ async function startDeviceVideo(
   const { status, bytes } = await sendForm(
     vaze,
     vaze.conversion.videoUrl(),
-    formOf([source], options),
+    formOf(source, options),
     {
       onUploadProgress: (fraction) => {
         if (fraction < 1) handlers.onUploadProgress(fraction);

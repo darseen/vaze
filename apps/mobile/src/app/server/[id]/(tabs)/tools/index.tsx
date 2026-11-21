@@ -11,7 +11,6 @@ import { useLibrary } from "@/stores/library";
 
 const ROUTES = {
   conversion: "/server/[id]/conversion/[tool]",
-  pdf: "/server/[id]/pdf/[tool]",
 } as const satisfies Record<ToolGroupKey, string>;
 
 export default function ToolsScreen() {
@@ -74,7 +73,7 @@ export default function ToolsScreen() {
           <EmptyState
             icon={Wrench}
             title="No tools on this server"
-            message="It runs an older Vaze, or its admin turned Conversion and the PDF tools off."
+            message="It runs an older Vaze, or its admin turned Conversion off."
           />
         )}
       </ScrollView>

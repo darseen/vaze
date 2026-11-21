@@ -64,7 +64,7 @@ export function ChoiceTabs<T extends string>({
             key={choice.value}
             value={choice.value}
             isDisabled={isDisabled}
-            // less padding keeps five short labels on one line
+            // less padding keeps six short labels on one line
             className="flex-1 px-1"
           >
             <Tabs.Label>{choice.label}</Tabs.Label>
