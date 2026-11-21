@@ -25,7 +25,6 @@ export function SourcePicker({
   accept,
   filter,
   disabled,
-  multiple = false,
   onChoose,
 }: {
   icon: LucideIcon;
@@ -36,18 +35,16 @@ export function SourcePicker({
   /** Which Vaze files can be picked. Must be stable, e.g. defined at module level. */
   filter: (file: FileWithUrl) => boolean;
   disabled: boolean;
-  /** Lets the device picker take several files, each passed to `onChoose`. */
-  multiple?: boolean;
   onChoose: (source: ConversionSource) => void;
 }) {
   const [isFileSelectorOpen, setIsFileSelectorOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleDeviceFile(event: React.ChangeEvent<HTMLInputElement>) {
-    const files = [...(event.target.files ?? [])];
+    const file = event.target.files?.[0];
     // lets the same file be picked again
     event.target.value = "";
-    for (const file of files) onChoose({ kind: "device", file });
+    if (file) onChoose({ kind: "device", file });
   }
 
   return (
@@ -63,7 +60,6 @@ export function SourcePicker({
             ref={inputRef}
             type="file"
             accept={accept}
-            multiple={multiple}
             className="hidden"
             onChange={handleDeviceFile}
           />

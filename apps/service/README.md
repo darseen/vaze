@@ -13,8 +13,8 @@ public file hosting.
 - API keys (with optional expiry) for programmatic access.
 - Public file hosting via `/api/hosting/<filename>`, with images resized and
   converted on request (`?w=800&format=webp`) from a fixed set of widths.
-- PDF tools: merge, split, rearrange, turn and number pages, and make PDFs
-  from images or from documents, spreadsheets and presentations.
+- Conversion tools: compress and convert videos or keep only their sound as
+  MP3s, and convert images.
 - Dashboard analytics: storage usage, largest files, file types and API usage.
 
 ## Getting started
@@ -29,31 +29,22 @@ pnpm --filter service dev
 Then open [http://localhost:3000](http://localhost:3000). On first launch you'll
 be redirected to `/register` to create the admin account.
 
-Video conversion and video to audio run `ffmpeg` and `ffprobe`, so install
-ffmpeg locally (e.g. `brew install ffmpeg`, `apt install ffmpeg`). Videos are
-encoded with x264, x265, libvpx, SVT-AV1 and Opus, and HDR is tone mapped with
-zimg, which most ffmpeg builds include; a codec your build lacks fails with a
-message naming it. The Docker image already includes all of them. A video
-converts as a job, one at a time with eight more waiting, and its result stays
-in `${DATA_PATH}/tmp` for an hour after it finishes.
+Video conversion runs `ffmpeg` and `ffprobe`, so install ffmpeg locally (e.g.
+`brew install ffmpeg`, `apt install ffmpeg`). Videos are encoded with x264,
+x265, libvpx, SVT-AV1, Opus and LAME, and HDR is tone mapped with zimg, which
+most ffmpeg builds include; a codec your build lacks fails with a message naming
+it. The Docker image already includes all of them. A video converts as a job,
+one at a time with eight more waiting, and its result stays in
+`${DATA_PATH}/tmp` for an hour after it finishes.
 
 Image conversion uses `sharp`, which needs nothing else, except for HEIC
 images: those are decoded by `heif-dec` from libheif 1.17 or later (e.g.
 `brew install libheif`, or `libheif-examples` on Debian and Ubuntu). The
 Docker image already includes it.
 
-The PDF tools use `pdf-lib`, on a worker thread so a large PDF doesn't hold up
-other requests. Turning DOCX, XLSX, PPTX, ODT, RTF and similar files into PDFs
-needs LibreOffice's `soffice` (e.g. `brew install --cask libreoffice`,
-`apt install libreoffice-writer-nogui libreoffice-calc-nogui libreoffice-impress-nogui`).
-LibreOffice runs with macros, OLE and links switched off, so a document can't
-run code or pull in other files. The Docker image, built on Debian slim,
-includes headless LibreOffice with the Liberation and Noto fonts.
-
-The Conversion and PDF tool sections are on by default. Set
-`ENABLE_CONVERSION=false` or `ENABLE_PDF_TOOLS=false` to turn one off: it
-leaves the dashboard's sidebar and the mobile app, and its pages and endpoints
-answer 404.
+The Conversion tools are on by default. Set `ENABLE_CONVERSION=false` to turn
+them off: they leave the dashboard's sidebar and the mobile app, and their
+pages and endpoints answer 404.
 
 ## Environment variables
 
@@ -65,9 +56,7 @@ answer 404.
 | `FFMPEG_PATH`       | No          | Path to the `ffmpeg` binary. Defaults to `ffmpeg` on `PATH`.                                |
 | `FFPROBE_PATH`      | No          | Path to the `ffprobe` binary. Defaults to `ffprobe` on `PATH`.                              |
 | `HEIF_DEC_PATH`     | No          | Path to libheif's `heif-dec` binary. Defaults to `heif-dec` on `PATH`.                      |
-| `SOFFICE_PATH`      | No          | Path to LibreOffice's `soffice` binary. Defaults to `soffice` on `PATH`.                    |
-| `ENABLE_CONVERSION` | No          | `false` turns off the Conversion tools: video to audio, video and image conversion.         |
-| `ENABLE_PDF_TOOLS`  | No          | `false` turns off the PDF tools, documents to PDF included.                                 |
+| `ENABLE_CONVERSION` | No          | `false` turns off the Conversion tools: video and image conversion.                         |
 
 ## Data & persistence
 

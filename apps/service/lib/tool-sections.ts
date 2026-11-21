@@ -1,9 +1,8 @@
 /** The dashboard's tool sections, each of which an environment variable can turn off. */
-export type ToolSection = "conversion" | "pdf";
+export type ToolSection = "conversion";
 
 export const TOOL_SECTION_ENV: Record<ToolSection, string> = {
   conversion: "ENABLE_CONVERSION",
-  pdf: "ENABLE_PDF_TOOLS",
 };
 
 /** On unless its variable is set to false. */
@@ -12,12 +11,10 @@ export const isToolSectionEnabled = (section: ToolSection) =>
 
 export const enabledToolSections = (): Record<ToolSection, boolean> => ({
   conversion: isToolSectionEnabled("conversion"),
-  pdf: isToolSectionEnabled("pdf"),
 });
 
 const API_PREFIXES: Record<ToolSection, string> = {
   conversion: "/api/conversion/",
-  pdf: "/api/pdf/",
 };
 
 /** The section an API path belongs to, if any. */

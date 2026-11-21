@@ -220,8 +220,8 @@ export type Stats = {
   alerts?: StatsAlert[];
 };
 
-/** Containers a video converts to; a GIF has no audio and no codec to pick. */
-export type VideoFormat = "mp4" | "webm" | "mov" | "mkv" | "gif";
+/** What a video converts to; a GIF has no sound and an MP3 is only the sound, so neither has a codec to pick. */
+export type VideoFormat = "mp4" | "webm" | "mov" | "mkv" | "gif" | "mp3";
 
 /** Codecs a video is encoded with; "copy" keeps the original streams without re-encoding. */
 export type VideoCodec = "h264" | "h265" | "vp9" | "av1" | "copy";
@@ -239,12 +239,12 @@ export type VideoJob = {
   /** What the result is called, e.g. "clip.mp4". */
   name: string;
   format: VideoFormat;
-  /** Null for a GIF. */
+  /** Null for a GIF or an MP3. */
   codec: VideoCodec | null;
   mimeType: string;
-  /** The result's size in pixels. */
-  width: number;
-  height: number;
+  /** The result's size in pixels, null for an MP3. */
+  width: number | null;
+  height: number | null;
   /** Seconds in the result, when known. */
   duration: number | null;
   /** The result's bytes, once done. */

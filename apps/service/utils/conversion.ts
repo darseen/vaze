@@ -1,17 +1,8 @@
 import type { VideoCodec, VideoFormat } from "@repo/types";
 import { getPreviewKind } from "./file-type";
 
-/** Constant bitrate of converted audio, so its final size follows from the duration. */
-export const MP3_BITRATE_KBPS = 192;
-
 const withExtension = (name: string, extension: string, fallback: string) =>
   `${name.replace(/\.[^./\\]+$/, "") || fallback}.${extension}`;
-
-export const toMp3Name = (name: string) => withExtension(name, "mp3", "audio");
-
-/** Expected size in bytes of `seconds` of converted audio. */
-export const expectedMp3Bytes = (seconds: number) =>
-  Math.ceil((seconds * MP3_BITRATE_KBPS * 1000) / 8);
 
 export const isVideo = (file: { name: string; mimeType: string }) =>
   getPreviewKind(file.name, file.mimeType) === "video";
@@ -97,6 +88,7 @@ export const VIDEO_FORMATS = [
   "mov",
   "mkv",
   "gif",
+  "mp3",
 ] as const satisfies readonly VideoFormat[];
 
 export const VIDEO_FORMAT_INFO: Record<
@@ -105,7 +97,7 @@ export const VIDEO_FORMAT_INFO: Record<
     label: string;
     extension: string;
     mimeType: string;
-    /** The codecs it holds, its default first; a GIF has none to pick. */
+    /** The codecs it holds, its default first; a GIF and an MP3 have none to pick. */
     codecs: VideoCodec[];
   }
 > = {
@@ -139,6 +131,19 @@ export const VIDEO_FORMAT_INFO: Record<
     mimeType: "image/gif",
     codecs: [],
   },
+  mp3: {
+    label: "MP3",
+    extension: "mp3",
+    mimeType: "audio/mpeg",
+    codecs: [],
+  },
+};
+
+/** Constant bitrates of an MP3 for each quality, so its size follows from its length. */
+export const MP3_KBPS: Record<VideoQuality, number> = {
+  high: 256,
+  balanced: 192,
+  small: 128,
 };
 
 export const VIDEO_CODEC_INFO: Record<

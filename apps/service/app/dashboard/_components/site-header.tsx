@@ -42,7 +42,7 @@ function buildCrumbs(pathname: string): Crumb[] {
     return [{ label: "Dashboard", href: "/dashboard" }, { label: "Users" }];
   }
 
-  if (segments[0] === "conversion" || segments[0] === "pdf") {
+  if (segments[0] === "conversion") {
     const group: ToolGroup = TOOL_GROUPS[segments[0]];
     const tool = group.tools.find((tool) => tool.slug === segments[1]);
     return [

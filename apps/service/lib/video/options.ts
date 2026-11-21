@@ -18,7 +18,7 @@ import { ConversionError } from "../conversion";
 
 export interface VideoOptions {
   format: VideoFormat;
-  /** Null for a GIF. */
+  /** Null for a GIF or an MP3. */
   codec: VideoCodec | null;
   quality: VideoQuality;
   /** Bytes the result should fit in, in place of `quality`. */
@@ -89,8 +89,12 @@ function parseTime(value: unknown, name: string): number {
 
 function parseCodec(format: VideoFormat, value: unknown): VideoCodec | null {
   const { label, codecs } = VIDEO_FORMAT_INFO[format];
-  if (format === "gif") {
-    if (!isBlank(value)) throw invalid("A GIF has no codec to choose");
+  if (codecs.length === 0) {
+    if (!isBlank(value)) {
+      throw invalid(
+        `${format === "gif" ? "A GIF" : "An MP3"} has no codec to choose`,
+      );
+    }
     return null;
   }
   if (isBlank(value)) return codecs[0];
@@ -189,6 +193,24 @@ export function parseVideoOptions(
     if (isBlank(fields.resolution)) resolution = GIF_DEFAULT_RESOLUTION;
     if (isBlank(fields.fps)) fps = GIF_DEFAULT_FRAME_RATE;
     audio = false;
+  }
+
+  if (format === "mp3") {
+    // only the sound is kept, so nothing about the picture applies
+    const changes = ["resolution", "fps"].filter(
+      (name) => !isOriginal(fields[name]),
+    );
+    if (changes.length > 0) {
+      throw invalid(
+        `An MP3 is only the sound, so it can't change ${list(changes)}`,
+      );
+    }
+    if (targetSize !== null) {
+      throw invalid(
+        "An MP3 can't be fitted to a size. Choose a quality instead",
+      );
+    }
+    if (!audio) throw invalid("An MP3 is the sound, so audio can't be false");
   }
 
   return {

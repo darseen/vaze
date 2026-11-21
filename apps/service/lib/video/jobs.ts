@@ -26,8 +26,8 @@ interface JobRecord {
   name: string;
   format: VideoJob["format"];
   codec: VideoJob["codec"];
-  width: number;
-  height: number;
+  width: number | null;
+  height: number | null;
   duration: number | null;
   size: number | null;
   sourceSize: number;
@@ -123,7 +123,9 @@ function failureMessage(error: unknown, job: JobRecord): string {
       return "The server ran out of space while converting this video";
     }
     if (/unknown encoder|encoder not found/i.test(error.stderr)) {
-      const codec = job.codec ? VIDEO_CODEC_INFO[job.codec].label : "GIF";
+      const codec = job.codec
+        ? VIDEO_CODEC_INFO[job.codec].label
+        : VIDEO_FORMAT_INFO[job.format].label;
       return `This server's ffmpeg can't encode ${codec}. Choose another codec`;
     }
   }

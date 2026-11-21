@@ -5,20 +5,14 @@ export type ConversionSource =
 
 type ReadHeader = (name: string) => string | null;
 
-type Conversion = {
+interface Conversion {
   url: string;
-  /** Sent with the files, in the JSON body or as form fields, where lists go as JSON. */
-  options?: Record<string, string | number | boolean | object>;
+  source: ConversionSource;
+  /** Sent with the file, in the JSON body or as form fields. */
+  options?: Record<string, string | number | boolean>;
   /** The result's expected size, for responses that stream without a length. */
   expectedSize?: (header: ReadHeader) => number | null;
-} & (
-  | { source: ConversionSource }
-  /** Sent in this order; stored files go by id, among the uploaded ones. */
-  | { sources: ConversionSource[] }
-);
-
-const formValue = (value: string | number | boolean | object) =>
-  typeof value === "object" ? JSON.stringify(value) : String(value);
+}
 
 interface Handlers {
   /** Only for device files, which are uploaded first. */
@@ -43,13 +37,9 @@ async function errorMessageOf(xhr: XMLHttpRequest): Promise<string> {
 
 /** Starts converting `source` and returns a function that cancels it. */
 export function requestConversion(
-  conversion: Conversion,
+  { url, source, options = {}, expectedSize }: Conversion,
   handlers: Handlers,
 ): () => void {
-  const { url, options = {}, expectedSize } = conversion;
-  const sources =
-    "sources" in conversion ? conversion.sources : [conversion.source];
-
   // XHR rather than fetch, which can't report upload progress
   const xhr = new XMLHttpRequest();
   xhr.open("POST", url);
@@ -81,7 +71,7 @@ export function requestConversion(
   };
   xhr.onerror = () => handlers.onError("Network error, check your connection");
 
-  if (sources.some((source) => source.kind === "device")) {
+  if (source.kind === "device") {
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         handlers.onUploadProgress(event.loaded / event.total);
@@ -89,25 +79,13 @@ export function requestConversion(
     };
     const body = new FormData();
     for (const [name, value] of Object.entries(options)) {
-      body.append(name, formValue(value));
+      body.append(name, String(value));
     }
-    for (const source of sources) {
-      if (source.kind === "device") body.append("file", source.file);
-      else body.append("fileId", source.file.id);
-    }
+    body.append("file", source.file);
     xhr.send(body);
   } else {
     xhr.setRequestHeader("Content-Type", "application/json");
-    // every source is a stored one here
-    const ids = sources.flatMap((source) =>
-      source.kind === "vaze" ? [source.file.id] : [],
-    );
-    xhr.send(
-      JSON.stringify({
-        ...("sources" in conversion ? { fileIds: ids } : { fileId: ids[0] }),
-        ...options,
-      }),
-    );
+    xhr.send(JSON.stringify({ fileId: source.file.id, ...options }));
   }
 
   return () => xhr.abort();

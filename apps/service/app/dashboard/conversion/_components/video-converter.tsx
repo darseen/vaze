@@ -15,6 +15,7 @@ import {
   formatTimestamp,
   isConvertibleVideo,
   MIN_VIDEO_TARGET_SIZE,
+  MP3_KBPS,
   parseTimestamp,
   VIDEO_ACCEPT,
   VIDEO_CODEC_INFO,
@@ -30,7 +31,7 @@ import type {
   VideoFormat,
   VideoJob,
 } from "@repo/types";
-import { Clapperboard, Play } from "lucide-react";
+import { AudioLines, Clapperboard, Play } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   ConversionFailed,
@@ -136,8 +137,10 @@ export default function VideoConverter() {
   const id = useId();
 
   const gif = format === "gif";
-  const copy = !gif && codec === "copy";
-  const fitToSize = !gif && !copy && compression === "size";
+  // only the sound, so nothing about the picture applies
+  const mp3 = format === "mp3";
+  const copy = !gif && !mp3 && codec === "copy";
+  const fitToSize = !gif && !mp3 && !copy && compression === "size";
   const busy =
     status.phase === "uploading" ||
     status.phase === "starting" ||
@@ -237,11 +240,14 @@ export default function VideoConverter() {
     const next = value as VideoFormat;
     const { codecs } = VIDEO_FORMAT_INFO[next];
     if (codecs.length > 0 && !codecs.includes(codec)) setCodec(codecs[0]);
-    // GIFs are kept small unless asked otherwise, and can't be fitted to a size
+    // GIFs and MP3s can't be fitted to a size
+    if ((next === "gif" || next === "mp3") && compression === "size") {
+      setCompression("balanced");
+    }
+    // GIFs are kept small unless asked otherwise
     if (next === "gif" && format !== "gif") {
       setResolution("480");
       setFps("15");
-      if (compression === "size") setCompression("balanced");
     } else if (next !== "gif" && format === "gif") {
       setResolution(ORIGINAL);
       setFps(ORIGINAL);
@@ -251,8 +257,10 @@ export default function VideoConverter() {
 
   function options() {
     const sent: Record<string, string | number | boolean> = { format };
-    if (!gif) sent.codec = codec;
-    if (!copy) {
+    if (!gif && !mp3) sent.codec = codec;
+    if (mp3) {
+      sent.quality = compression === "size" ? "balanced" : compression;
+    } else if (!copy) {
       if (fitToSize) {
         sent.targetSize = Math.round(Number(targetMb) * 1024 ** 2);
       } else {
@@ -261,7 +269,7 @@ export default function VideoConverter() {
       sent.resolution = resolution;
       sent.fps = fps;
     }
-    if (!gif && !audio) sent.audio = false;
+    if (!gif && !mp3 && !audio) sent.audio = false;
     if (start.trim()) sent.start = start.trim();
     if (end.trim()) sent.end = end.trim();
     return sent;
@@ -369,7 +377,10 @@ export default function VideoConverter() {
                     }}
                     options={VIDEO_FORMATS.map((value) => ({
                       value,
-                      label: VIDEO_FORMAT_INFO[value].label,
+                      label:
+                        value === "mp3"
+                          ? "MP3, sound only"
+                          : VIDEO_FORMAT_INFO[value].label,
                     }))}
                   />
                 </Field>
@@ -380,15 +391,17 @@ export default function VideoConverter() {
                   hint={
                     gif
                       ? "GIFs loop and have no sound"
-                      : VIDEO_CODEC_INFO[codec].hint
+                      : mp3
+                        ? "Keeps only the sound, for any player"
+                        : VIDEO_CODEC_INFO[codec].hint
                   }
                 >
                   <OptionSelect
                     id={`${id}-codec`}
                     describedBy={`${id}-codec-hint`}
-                    value={gif ? "" : codec}
+                    value={gif || mp3 ? "" : codec}
                     placeholder="None"
-                    disabled={busy || gif}
+                    disabled={busy || gif || mp3}
                     onChange={(value) => {
                       setCodec(value as VideoCodec);
                       forgetResult();
@@ -421,16 +434,23 @@ export default function VideoConverter() {
                       forgetResult();
                     }}
                     options={(Object.keys(QUALITIES) as Compression[])
-                      .filter((value) => !gif || value !== "size")
-                      .map((value) => ({ value, label: QUALITIES[value] }))}
+                      .filter((value) => !(gif || mp3) || value !== "size")
+                      .map((value) => ({
+                        value,
+                        label:
+                          mp3 && value !== "size"
+                            ? `${QUALITIES[value]}, ${MP3_KBPS[value]} kbps`
+                            : QUALITIES[value],
+                      }))}
                   />
                 </Field>
 
                 <Field id={`${id}-resolution`} label="Resolution">
                   <OptionSelect
                     id={`${id}-resolution`}
-                    value={copy ? ORIGINAL : resolution}
-                    disabled={busy || copy}
+                    value={mp3 ? "" : copy ? ORIGINAL : resolution}
+                    placeholder="None"
+                    disabled={busy || copy || mp3}
                     onChange={(value) => {
                       setResolution(value);
                       forgetResult();
@@ -448,8 +468,9 @@ export default function VideoConverter() {
                 <Field id={`${id}-fps`} label="Frame rate">
                   <OptionSelect
                     id={`${id}-fps`}
-                    value={copy ? ORIGINAL : fps}
-                    disabled={busy || copy}
+                    value={mp3 ? "" : copy ? ORIGINAL : fps}
+                    placeholder="None"
+                    disabled={busy || copy || mp3}
                     onChange={(value) => {
                       setFps(value);
                       forgetResult();
@@ -467,9 +488,9 @@ export default function VideoConverter() {
                 <Field id={`${id}-audio`} label="Sound">
                   <OptionSelect
                     id={`${id}-audio`}
-                    value={gif ? "" : audio ? "keep" : "remove"}
-                    placeholder="None"
-                    disabled={busy || gif}
+                    value={gif || mp3 ? "" : audio ? "keep" : "remove"}
+                    placeholder={mp3 ? "Only the sound" : "None"}
+                    disabled={busy || gif || mp3}
                     onChange={(value) => {
                       setAudio(value === "keep");
                       forgetResult();
@@ -631,7 +652,7 @@ function StatusPanel({
           : VIDEO_FORMAT_INFO[job.format].label;
       const details = [
         kind,
-        `${job.width} × ${job.height}`,
+        job.width !== null ? `${job.width} × ${job.height}` : null,
         job.duration ? formatTimestamp(job.duration) : null,
         job.size !== null ? formatBytes(job.size) : null,
         job.size !== null ? sizeChange(job.size, job.sourceSize) : null,
@@ -639,10 +660,16 @@ function StatusPanel({
 
       return (
         <ConversionReady
-          title="Your video is ready"
+          title={
+            job.format === "mp3" ? "Your MP3 is ready" : "Your video is ready"
+          }
           preview={
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-              <Clapperboard size={18} />
+              {job.format === "mp3" ? (
+                <AudioLines size={18} />
+              ) : (
+                <Clapperboard size={18} />
+              )}
             </div>
           }
           name={job.name}

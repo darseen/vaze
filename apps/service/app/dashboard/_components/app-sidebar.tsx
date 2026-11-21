@@ -132,7 +132,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   },
   {
     label: "Tools",
-    items: [groupItem("conversion"), groupItem("pdf")],
+    items: [groupItem("conversion")],
   },
 ];
 

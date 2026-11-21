@@ -2,6 +2,7 @@ import { formatBytes } from "@/utils";
 import {
   formatTimestamp,
   MAX_GIF_SECONDS,
+  MP3_KBPS,
   VIDEO_FORMAT_INFO,
   type VideoQuality,
 } from "@/utils/conversion";
@@ -20,9 +21,9 @@ export interface VideoPass {
 
 export interface VideoPlan {
   passes: VideoPass[];
-  /** The result's size in pixels. */
-  width: number;
-  height: number;
+  /** The result's size in pixels, null for an MP3. */
+  width: number | null;
+  height: number | null;
   /** Seconds in the result, when known. */
   duration: number | null;
   /** With a target size, the last pass again at a bitrate that fits, should the result come out over. */
@@ -68,11 +69,12 @@ const MUXERS: Record<VideoFormat, string> = {
   mov: "mov",
   mkv: "matroska",
   gif: "gif",
+  mp3: "mp3",
 };
 
 // what each container holds as it is, by ffprobe's codec names
 const COPYABLE: Record<
-  Exclude<VideoFormat, "gif">,
+  Exclude<VideoFormat, "gif" | "mp3">,
   { video: string[]; audio: string[] }
 > = {
   mp4: {
@@ -313,6 +315,35 @@ export function planVideo(
     "-y",
     `file:${output}`,
   ];
+
+  if (format === "mp3") {
+    if (!info.audio) {
+      throw unusable("This video has no sound to keep as an MP3");
+    }
+    return {
+      passes: [
+        {
+          weight: 1,
+          args: [
+            ...inputArgs,
+            "-map",
+            "0:a:0",
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            `${MP3_KBPS[options.quality]}k`,
+            ...(info.audio.channels > 2 ? ["-ac", "2"] : []),
+            ...strip,
+            ...writeOutput,
+          ],
+        },
+      ],
+      width: null,
+      height: null,
+      duration: length,
+      fit: null,
+    };
+  }
 
   if (gif) {
     const size = outputSize(info, options.resolution);

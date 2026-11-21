@@ -3,6 +3,7 @@ import { ConversionError } from "@/lib/conversion";
 import { isBusy, startVideoJob } from "@/lib/video/jobs";
 import { parseVideoOptions } from "@/lib/video/options";
 import { probeVideo } from "@/lib/video/probe";
+import { VIDEO_FORMATS } from "@/utils/conversion";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
@@ -10,6 +11,14 @@ import path from "node:path";
 import authorizeRequest from "../../_utils/authorize-request";
 import { busy, jsonError, receiveSources } from "../../_utils/conversion";
 import { isClientAbort } from "../../_utils/multipart";
+
+/** The formats this server converts videos to, so apps offer only those. */
+export async function GET(request: NextRequest) {
+  const { error } = await authorizeRequest(request, {});
+  if (error) return jsonError(error.message, error.status, error.retryAfter);
+
+  return NextResponse.json({ data: { formats: VIDEO_FORMATS }, error: null });
+}
 
 /**
  * Starts converting a video and answers 202 with the job, whose status is
