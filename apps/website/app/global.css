@@ -18,6 +18,19 @@
   --vz-chart-other: #6f6e69;
 }
 
+/* layered depth under the screenshot frames, keyed to the page theme only */
+:root {
+  --vz-shadow-frame:
+    0 1px 2px rgb(0 0 0 / 0.06), 0 6px 12px -2px rgb(0 0 0 / 0.08),
+    0 24px 48px -12px rgb(0 0 0 / 0.18);
+}
+
+:root.dark {
+  --vz-shadow-frame:
+    0 1px 2px rgb(0 0 0 / 0.4), 0 8px 16px -4px rgb(0 0 0 / 0.4),
+    0 32px 64px -16px rgb(0 0 0 / 0.6);
+}
+
 @theme inline {
   --color-gold: var(--vz-gold);
   --color-gold-soft: var(--vz-gold-soft);
@@ -25,6 +38,65 @@
   --color-chart-other: var(--vz-chart-other);
   --font-display: var(--font-display-face), ui-sans-serif, system-ui,
     sans-serif;
+  --shadow-frame: var(--vz-shadow-frame);
+}
+
+/* fades whichever end of a horizontal scroller has more to show */
+@property --vz-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --vz-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.vz-scroll-fade {
+  --vz-fade-size: 3rem;
+  mask:
+    linear-gradient(black, black) no-clip subtract,
+    linear-gradient(to right, black, transparent) 0 0 / var(--vz-fade-start)
+      100% no-repeat no-clip,
+    linear-gradient(to right, transparent, black) 100% 0 /
+      var(--vz-fade-end) 100% no-repeat no-clip;
+
+  /* browsers without scroll timelines get these classes from a script */
+  &.more-start {
+    --vz-fade-start: var(--vz-fade-size);
+  }
+
+  &.more-end {
+    --vz-fade-end: var(--vz-fade-size);
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  /* longhands, because the minifier expands the shorthand with a 0s duration */
+  .vz-scroll-fade {
+    animation-name: vz-reveal-fade-start, vz-hide-fade-end;
+    animation-duration: auto;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll(self inline);
+    animation-range:
+      0 var(--vz-fade-size),
+      calc(100% - var(--vz-fade-size)) 100%;
+  }
+}
+
+@keyframes vz-reveal-fade-start {
+  to {
+    --vz-fade-start: var(--vz-fade-size);
+  }
+}
+
+@keyframes vz-hide-fade-end {
+  from {
+    --vz-fade-end: var(--vz-fade-size);
+  }
 }
 
 html {
