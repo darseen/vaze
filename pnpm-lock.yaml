@@ -188,8 +188,8 @@ importers:
         specifier: 1.7.25
         version: 1.7.25(02bb4a4d93de62f1755bbab626fe9c73)
       '@darseen/vaze':
-        specifier: ^3.0.0
-        version: 3.0.0
+        specifier: ^3.1.0
+        version: 3.1.0
       '@expo-google-fonts/inter':
         specifier: 0.4.2
         version: 0.4.2
@@ -1057,8 +1057,8 @@ packages:
   '@better-fetch/fetch@1.3.3':
     resolution: {integrity: sha512-U6SlDt/GUWtK2JAxS/NhdoYTEim+EL1G5byz2TUj83KjLZBUpYzb5SmX0aXaCnbGkAjFKnV/o/0+cyXMbEcqqg==}
 
-  '@darseen/vaze@3.0.0':
-    resolution: {integrity: sha512-YUzXoKn/Zc9TZycrwSKmj5c/vowv9Y1J2CGOCOu8ruMhW4VJkAFx0+xpldvv+WfC2wD1bnYY9F8TZMfedYXXNg==}
+  '@darseen/vaze@3.1.0':
+    resolution: {integrity: sha512-asbQftFU2x4qFW39Ya1xqSx8w0LeN58Ee2y5uoxFWhXCrtoeeDqvbYTIisZO56t5TMc61/iw1S/7XVb87CWHbw==}
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
@@ -8663,7 +8663,7 @@ snapshots:
 
   '@better-fetch/fetch@1.3.3': {}
 
-  '@darseen/vaze@3.0.0': {}
+  '@darseen/vaze@3.1.0': {}
 
   '@drizzle-team/brocli@0.10.2': {}
 

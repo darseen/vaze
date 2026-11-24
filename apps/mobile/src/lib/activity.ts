@@ -7,6 +7,7 @@ import {
   History,
   KeyRound,
   LockKeyhole,
+  LogIn,
   PencilLine,
   Trash2,
   UserCheck,
@@ -100,6 +101,7 @@ export const ACTIVITY_META: Record<
     icon: UserMinus,
     tone: TONES.danger,
   },
+  "account.signed-in": { label: "Signed in", icon: LogIn, tone: TONES.info },
 };
 
 /** A newer server may send a type this app doesn't know, e.g. "file.restored" reads "File restored". */
@@ -121,6 +123,7 @@ export const ACTIVITY_FILTERS = [
   { value: "uploads", label: "Uploads" },
   { value: "deletions", label: "Deletions" },
   { value: "api-keys", label: "API keys" },
+  { value: "sign-ins", label: "Sign-ins" },
   { value: "users", label: "Users" },
 ] as const;
 
@@ -131,6 +134,7 @@ export function matchesFilter(type: ActivityType, filter: ActivityFilter) {
   if (filter === "deletions")
     return type.startsWith("file.") || type.startsWith("folder.");
   if (filter === "api-keys") return type.startsWith("api-key.");
+  if (filter === "sign-ins") return type === "account.signed-in";
   if (filter === "users") return type.startsWith("user.");
   return true;
 }

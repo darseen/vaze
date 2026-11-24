@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Avatar, Chip, cn } from "heroui-native";
 import { EllipsisVertical } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
-import { formatDate, initials } from "@/lib/format";
+import { formatDate, initials, timeAgo } from "@/lib/format";
 import { hasEveryScope, ROLE_INFO, SCOPE_INFO } from "@/lib/scopes";
 import { Icon } from "../icon";
 
@@ -27,6 +27,13 @@ type UserCardProps = {
 export function UserCard({ user, isSelf, onOptions }: UserCardProps) {
   const tone = ROLE_TONES[user.role];
   const keys = `${user.apiKeys} ${user.apiKeys === 1 ? "API key" : "API keys"}`;
+  // servers before 5.1.0 don't send it, so the line stays off there
+  const lastSignedIn =
+    user.lastSignedInAt === undefined
+      ? ""
+      : user.lastSignedInAt
+        ? ` · Last signed in ${timeAgo(user.lastSignedInAt)}`
+        : " · Never signed in";
 
   return (
     <Pressable
@@ -109,6 +116,7 @@ export function UserCard({ user, isSelf, onOptions }: UserCardProps) {
 
       <Text className="font-normal text-xs text-muted">
         Added {formatDate(user.createdAt)} · {keys}
+        {lastSignedIn}
       </Text>
     </Pressable>
   );

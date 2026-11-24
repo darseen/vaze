@@ -13,7 +13,8 @@ then raise the version the app depends on.
 - A Vaze server with session support in the SDK (`/api/me`, `/api/stats` and
   the Better Auth Expo plugin). Older servers show an "update it" message.
   Recently deleted needs Vaze 4.4.0, image conversion 4.6.0, the video
-  converter 4.8.0, and its MP3s 5.0.0. On older servers, and on servers that
+  converter 4.8.0, its MP3s 5.0.0, and when each user last signed in 5.1.0.
+  On older servers, and on servers that
   turn Conversion off, their entry points stay hidden, and so does the Tools
   tab when none are left.
 - A development build. Expo Go doesn't include every native module the app
