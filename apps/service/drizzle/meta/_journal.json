@@ -64,6 +64,13 @@
       "when": 1793802525556,
       "tag": "0008_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1795543389001,
+      "tag": "0009_last_signed_in",
+      "breakpoints": true
     }
   ]
 }

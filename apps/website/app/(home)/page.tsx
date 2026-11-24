@@ -211,7 +211,7 @@ const accessNotes: Note[] = [
   {
     term: "Activity and alerts",
     detail:
-      "Uploads, deletions and account changes are logged. The dashboard warns about low disk space, failed uploads, and keys that are about to expire or sit unused.",
+      "Sign-ins, uploads, deletions and account changes are logged. The dashboard warns about low disk space, failed uploads, and keys that are about to expire or sit unused.",
   },
 ];
 

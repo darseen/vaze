@@ -19,6 +19,7 @@ export const ACTIVITY_TYPES = [
   "user.disabled",
   "user.enabled",
   "user.deleted",
+  "account.signed-in",
 ] as const;
 
 export const activities = sqliteTable(

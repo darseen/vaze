@@ -4,8 +4,8 @@ description: Read and prune your activity history
 icon: RotateCcwClock
 ---
 
-Vaze keeps a history of each user's uploads, deletions and API key changes,
-plus the account changes an admin makes. It is what the **Activity** page in
+Vaze keeps a history of each user's sign-ins, uploads, deletions and API key
+changes, plus the account changes an admin makes. It is what the **Activity** page in
 the dashboard and the mobile app shows. These endpoints need a [signed-in
 session](/docs/api-reference#signed-in-sessions) and no scope; a request made
 with an API key gets a `403`.
@@ -33,6 +33,10 @@ Every call only sees the caller's own entries. An entry looks like this:
 | `folder.deleted`, `folder.delete-failed`                  | A folder is deleted                   |
 | `api-key.created`, `api-key.renamed`, `api-key.deleted`   | The caller changes one of their keys  |
 | `user.created`, `user.access-changed`, `user.password-reset`, `user.disabled`, `user.enabled`, `user.deleted` | An admin changes an account |
+| `account.signed-in`                                       | The caller signs in                   |
+
+A sign-in's `target` is the device, such as `Chrome on Linux`, and its
+`detail` the IP address it signed in from, when the server knows it.
 
 Entries older than the activity retention set under [instance
 settings](/docs/api-reference/settings) are deleted automatically.

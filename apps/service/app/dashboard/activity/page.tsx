@@ -8,7 +8,7 @@ import ActivityList from "./_components/activity-list";
 
 export const metadata: Metadata = {
   title: "Activity",
-  description: "Vaze | Review recent uploads and API key changes.",
+  description: "Vaze | Review recent uploads, sign-ins and API key changes.",
 };
 
 export default async function Page() {
@@ -26,8 +26,8 @@ export default async function Page() {
           <h1 className="text-foreground text-3xl font-bold">Activity</h1>
         </div>
         <p className="text-muted-foreground text-balance">
-          A history of uploads and API key changes. Delete what you no longer
-          need — entries are pruned automatically after a while.
+          A history of uploads, sign-ins and API key changes. Delete what you no
+          longer need. Entries are pruned automatically after a while.
         </p>
       </header>
 

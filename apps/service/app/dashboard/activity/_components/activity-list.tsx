@@ -27,6 +27,7 @@ import {
   History,
   KeyRound,
   LockKeyhole,
+  LogIn,
   PencilLine,
   Trash2,
   UserCheck,
@@ -125,6 +126,11 @@ const TYPE_META: Record<
     icon: UserMinus,
     tone: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   },
+  "account.signed-in": {
+    label: "Signed in",
+    icon: LogIn,
+    tone: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  },
 };
 
 const FILTERS = [
@@ -132,6 +138,7 @@ const FILTERS = [
   { value: "uploads", label: "Uploads" },
   { value: "deletions", label: "Deletions" },
   { value: "api-keys", label: "API keys" },
+  { value: "sign-ins", label: "Sign-ins" },
   { value: "users", label: "Users" },
 ] as const;
 
@@ -142,6 +149,7 @@ function matchesFilter(type: ActivityType, filter: Filter) {
   if (filter === "deletions")
     return type.startsWith("file.") || type.startsWith("folder.");
   if (filter === "api-keys") return type.startsWith("api-key.");
+  if (filter === "sign-ins") return type === "account.signed-in";
   if (filter === "users") return type.startsWith("user.");
   return true;
 }
@@ -330,8 +338,8 @@ export default function ActivityList({
             Nothing here yet
           </h3>
           <p className="text-muted-foreground max-w-sm text-sm">
-            Uploads and API key changes show up here as they happen, so you can
-            check what went through and what did not.
+            Uploads, sign-ins and API key changes show up here as they happen,
+            so you can check what went through and what did not.
           </p>
         </CardContent>
       </Card>

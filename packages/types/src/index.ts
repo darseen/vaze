@@ -79,6 +79,8 @@ export type UserSummary = {
   disabled: boolean;
   apiKeys: number;
   createdAt: string;
+  /** Null until the account first signs in. Servers before 5.1.0 leave it out. */
+  lastSignedInAt: string | null;
 };
 
 /** Byte, second and day limits an admin can change at runtime. */

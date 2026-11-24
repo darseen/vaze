@@ -23,14 +23,16 @@ A user object looks like this:
   "customScopes": ["files:read", "files:write"],
   "disabled": false,
   "apiKeys": 2,
-  "createdAt": "2026-10-14T09:12:44.000Z"
+  "createdAt": "2026-10-14T09:12:44.000Z",
+  "lastSignedInAt": "2026-11-20T08:03:11.000Z"
 }
 ```
 
 `scopes` is what the account can actually do, from its
 [role](/docs/api-reference#scopes). `customScopes` holds the scopes picked for
 the `custom` role, and is empty for the other roles. `apiKeys` counts the
-account's keys.
+account's keys. `lastSignedInAt` is when the account last signed in, `null` if
+it never has. Servers before 5.1.0 leave it out.
 
 ## List users
 

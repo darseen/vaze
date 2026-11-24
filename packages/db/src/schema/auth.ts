@@ -31,6 +31,8 @@ export const users = sqliteTable("users", {
   banned: integer("banned", { mode: "boolean" }).notNull().default(false),
   banReason: text("ban_reason"),
   banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
+  // kept here so sign-outs and pruned history don't lose it
+  lastSignedInAt: integer("last_signed_in_at", { mode: "timestamp_ms" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),

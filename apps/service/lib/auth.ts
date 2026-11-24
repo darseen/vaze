@@ -1,4 +1,8 @@
 import { db, schema } from "@/db";
+import { recordActivity } from "@/lib/activity";
+import { markSignedIn } from "@/lib/users";
+import { formatIpAddress } from "@/utils";
+import { describeUserAgent } from "@/utils/user-agent";
 import { expo } from "@better-auth/expo";
 import { users, type Role } from "@repo/db";
 import { betterAuth } from "better-auth";
@@ -31,6 +35,9 @@ const roles = {
   viewer: noAdminAccess,
   custom: noAdminAccess,
 } satisfies Record<Role, unknown>;
+
+// a password change also starts a session, and that is not a sign-in
+const SIGN_IN_PATHS = new Set(["/sign-in/email", "/sign-up/email"]);
 
 export const auth = betterAuth({
   baseURL: process.env.BASE_URL,
@@ -84,6 +91,23 @@ export const auth = betterAuth({
             });
           }
           return { data: user };
+        },
+      },
+    },
+    session: {
+      create: {
+        // sign-up counts too, since the first account is signed straight in
+        after: async (session, ctx) => {
+          if (!ctx?.path || !SIGN_IN_PATHS.has(ctx.path)) return;
+          markSignedIn(session.userId, session.createdAt);
+          recordActivity({
+            userId: session.userId,
+            type: "account.signed-in",
+            target: describeUserAgent(session.userAgent || null),
+            detail: session.ipAddress
+              ? formatIpAddress(session.ipAddress)
+              : null,
+          });
         },
       },
     },

@@ -23,9 +23,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ALL_SCOPES, ROLE_INFO, SCOPE_INFO } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-import { formatDate } from "@/utils";
+import { formatDate, parseTimestamp } from "@/utils";
 import { callApi } from "@/utils/api";
 import type { Role, UserSummary } from "@repo/types";
+import { formatDistanceToNow } from "date-fns";
 import {
   LockKeyhole,
   MoreVertical,
@@ -49,6 +50,22 @@ const ROLE_TONES: Record<Role, string> = {
   custom:
     "border-violet-200 bg-violet-100 text-violet-800 dark:border-violet-900/50 dark:bg-violet-900/30 dark:text-violet-300",
 };
+
+function LastSignedIn({ value }: { value: string | null }) {
+  if (!value) return <>Never signed in</>;
+
+  const date = parseTimestamp(value);
+  return (
+    // the server renders this a moment before the browser does
+    <time
+      title={formatDate(value)}
+      dateTime={date.toISOString()}
+      suppressHydrationWarning
+    >
+      Last signed in {formatDistanceToNow(date, { addSuffix: true })}
+    </time>
+  );
+}
 
 type Pending = {
   kind: "access" | "password" | "disable" | "delete";
@@ -196,7 +213,8 @@ export default function UsersList({ users, currentUserId }: Props) {
 
                   <p className="text-muted-foreground text-xs">
                     Added {formatDate(user.createdAt)} · {user.apiKeys}{" "}
-                    {user.apiKeys === 1 ? "API key" : "API keys"}
+                    {user.apiKeys === 1 ? "API key" : "API keys"} ·{" "}
+                    <LastSignedIn value={user.lastSignedInAt} />
                   </p>
                 </div>
 

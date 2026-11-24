@@ -4,8 +4,8 @@ description: Read and prune the caller's activity history
 icon: RotateCcwClock
 ---
 
-`vaze.activity` reads the history of the caller's uploads, deletions, API key
-changes and, for admins, account changes. These calls need a client that [acts
+`vaze.activity` reads the history of the caller's sign-ins, uploads, deletions,
+API key changes and, for admins, account changes. These calls need a client that [acts
 as a signed-in user](/docs/sdk#act-as-a-signed-in-user); a client built with
 an API key gets a `403`. Every method returns the [response
 envelope](/docs/sdk#response-shape).
@@ -15,7 +15,7 @@ envelope](/docs/sdk#response-shape).
 ```ts
 type Activity = {
   id: string;
-  type: ActivityType; // e.g. "upload.succeeded", "api-key.created", "user.disabled"
+  type: ActivityType; // e.g. "upload.succeeded", "api-key.created", "account.signed-in"
   target: string | null; // what it happened to, such as a file name
   detail: string | null; // an extra line, such as the error that failed an upload
   createdAt: string; // UTC, e.g. "2026-10-14 09:12:44"

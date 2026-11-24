@@ -24,7 +24,20 @@ function toSummary(user: User, keyCount: number): UserSummary {
     disabled: isDisabled(user),
     apiKeys: keyCount,
     createdAt: user.createdAt.toISOString(),
+    lastSignedInAt: user.lastSignedInAt?.toISOString() ?? null,
   };
+}
+
+/** Best-effort: a sign-in must never fail over the time it is noted at. */
+export function markSignedIn(userId: string, at: Date) {
+  try {
+    db.update(users)
+      .set({ lastSignedInAt: at })
+      .where(eq(users.id, userId))
+      .run();
+  } catch (error) {
+    console.error("failed to record sign-in time", error);
+  }
 }
 
 /** Every account, oldest first. */

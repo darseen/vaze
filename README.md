@@ -24,7 +24,7 @@
 - **Private files and signed links**: Make any file or folder private, then share it with a link that expires.
 - **Video and image conversion**: Compress and convert videos to MP4, WebM, MOV, MKV or GIF, resize, trim or mute them, or keep only their sound as an MP3. Turn HEIC photos and other images into WebP, JPG, PNG or AVIF.
 - **Users, roles and API keys**: Add accounts as Admin, Editor or Viewer, or with a custom set of scopes, and give each API key only the access it needs.
-- **Dashboard and activity**: See what needs attention, how your storage is used, hosting traffic, the most requested files and how each API key is used, with a history of uploads, deletions and account changes.
+- **Dashboard and activity**: See what needs attention, how your storage is used, hosting traffic, the most requested files and how each API key is used, with a history of sign-ins, uploads, deletions and account changes.
 - **Android app**: The same files, tools, dashboard, keys and users on your phone, for as many servers as you add.
 - **API and SDK**: A REST API and the [`@darseen/vaze`](https://npmjs.com/package/@darseen/vaze) TypeScript SDK for using Vaze from your own apps.
 - **Docker**: One container and one data volume, with everything the tools need already inside. A single command installs it and later upgrades it.

@@ -22,6 +22,7 @@ type User = {
   disabled: boolean;
   apiKeys: number;
   createdAt: string;
+  lastSignedInAt: string | null; // null until the first sign-in, absent before Vaze 5.1.0
 };
 ```
 
